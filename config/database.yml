@@ -3,6 +3,7 @@ common: &default
   encoding: unicode
   pool: 5
   username: postgres
+  port: 5433
   password:
 
 development:

@@ -1,0 +1,108 @@
+/= alert_messages
+#slideshow
+  .row.margin-home
+    %h1{ align: "center"}
+      = t("home.title_1")
+      %br
+      = t("home.title_2")
+
+    #featuredContent
+      .slider-for
+        .registrese
+          .row.tabs
+            .columns.small-4.current
+              = link_to(t("home.register.button"), root_path)
+            .columns.small-4
+              = link_to(t("home.participate.button"), root_path)
+            .columns.small-4
+              = link_to(t("home.fees.button"), root_path)
+          .content
+            .doctor-one.small-offset-1
+            %h4.small-offset-5
+              = t "home.register.line1"
+              %br
+              = t "home.register.line2"
+              %br
+              = t "home.register.line3"
+              %br
+              = t "home.register.line4"
+        .participe
+          .row.tabs
+            .columns.small-4
+              = link_to(t("home.register.button"), root_path)
+            .columns.small-4.current
+              = link_to(t("home.participate.button"), root_path)
+            .columns.small-4
+              = link_to(t("home.fees.button"), root_path)
+          .content
+            %h4.columns.small-offset-2
+              = t "home.participate.line1"
+              %br
+              = t "home.participate.line2"
+              %br
+              = t "home.participate.line3"
+            .doctor-two.columns.small-offset-6
+        .reciba
+          .row.tabs
+            .columns.small-4
+              = link_to(t("home.register.button"), root_path)
+            .columns.small-4
+              = link_to(t("home.participate.button"), root_path)
+            .columns.small-4.current
+              = link_to(t("home.fees.button"), root_path)
+          .content.row
+            .doctor-three.small-offset-1
+            %h4.small-offset-4
+              = t "home.fees.line1"
+              %br
+              = t "home.fees.line2"
+              %br
+              = t "home.fees.line3"
+
+.row
+  .columns.small-3.small-offset-1
+    %p
+      = t "home.column1"
+  .columns.small-3.small-offset-1
+    %p
+      = t "home.column2"
+  .columns.small-3.small-offset-1
+    %p
+      = t "home.column3"
+
+#features
+  .row
+    .columns.small-12.medium-3.small-offset-1
+      %p
+      /  = t "home.column3"
+      / - if @testimonials.present?
+      /   = render "testimonials", locale: params[:locale], testimonials: @testimonials
+      / - else
+      /   = render "testimonials_#{params[:locale]}"
+
+    .columns.small-12.medium-3.small-offset-1
+      %p
+        %span.glyph 5
+        %strong 60
+        = t "home.specialities"
+      %p
+        %span.glyph o
+        %strong 50.000
+        = t "home.active_professionals"
+      %p
+        %span.glyph /
+        %strong 1000+
+        = t "home.studies"
+      %p
+        %span.glyph l
+        %strong 16
+        = t "home.la_countries"
+    .columns.small-12.medium-3.small-offset-1
+      %h5
+        = t "home.ethical_commitment"
+      %p
+        = t "home.serious_network"
+      = link_to t("home.read_more"), root_path
+
+
+ 

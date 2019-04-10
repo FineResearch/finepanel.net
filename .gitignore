@@ -26,4 +26,8 @@
 /public/assets
 .byebug_history
 
+#Ignore the database's configuration
+/config/database.yml
+
 **/.DS_Store
+/vendor

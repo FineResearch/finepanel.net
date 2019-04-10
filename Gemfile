@@ -34,6 +34,13 @@ gem 'jbuilder', '~> 2.5'
 gem 'bootsnap', '>= 1.1.0', require: false
 gem 'haml', '~> 5.0', '>= 5.0.4'
 
+gem 'compass-rails', '~> 3.0.2'
+gem 'foundation-rails', '~> 6.5', '>= 6.5.3.0'
+gem 'autoprefixer-rails', '~> 9.5'
+gem 'jquery-rails'
+gem 'html5-rails'
+gem 'remotipart', '~> 1.0'
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
