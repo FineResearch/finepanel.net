@@ -859,19 +859,47 @@ div.alert-box {
 }
 
 #faq{
+  display: block;
+  padding: 0px 20px;
   #side-nav{
     width:270px;
+    margin: 14px 0;
     a{
       font-size:12px;
       line-height:16px;
     }
   }
+  
+  h3, h4, h5{ font-weight: bold; }
+  h3{
+    font-size: 27px;
+    margin-bottom: 14px;
+    margin-top: 14px;
+  }
+  h5{
+    font-size: 17px;
+    line-height: 1.1;
+    margin-bottom: 14px;
+    margin-top: 14px;
+  }
+  h4{ font-size: 23px; }
+  ul{ list-style-type: none; }
+  li{
+    line-height: 16px;
+    margin: 0 0 7px 0;
+    &.active > a{
+      color: #4d4d4d;
+      font-weight: bold;
+    }
+  }
+  dd{ font-size: 14px; }
 }
 
 #back-top {
   position: fixed;
   bottom: 30px;
   right: 10px;
+  display: none;
   a, a * {
     cursor: pointer;
   }
