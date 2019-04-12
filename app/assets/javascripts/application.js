@@ -12,17 +12,17 @@
 //
 //= require jquery
 //= require jquery_ujs
+//= require slick
 //= require jquery.scrollTo
 //= require addtohomescreen.min
 //= require foundation
 //= require responsive-tables
-//= require_tree
+//= require home
 //= require_self
 
 
 
-$(document).on('turbolinks:load', function() {
-
+$(document).on('ready turbolinks:load', function() {
   addToHomescreen();
   /* Use this js doc for all application specific JS */
 
@@ -60,21 +60,7 @@ $(document).on('turbolinks:load', function() {
     $(this).closest(".alert-box").fadeOut(function(event){
       $(this).remove();
     });
-  });
-
-  /* PLACEHOLDER FOR FORMS ------------- */
-  /* Remove this and jquery.placeholder.min.js if you don't need :) */
-  $('input, textarea').placeholder();
-
-  /* TOOLTIPS ------------ */
-  // $(this).tooltips();
-
-  /* UNCOMMENT THE LINE YOU WANT BELOW IF YOU WANT IE6/7/8 SUPPORT AND ARE USING .block-grids */
-  //  $('.block-grid.two-up>li:nth-child(2n+1)').css({clear: 'left'});
-  //  $('.block-grid.three-up>li:nth-child(3n+1)').css({clear: 'left'});
-  //  $('.block-grid.four-up>li:nth-child(4n+1)').css({clear: 'left'});
-  //  $('.block-grid.five-up>li:nth-child(5n+1)').css({clear: 'left'});
-
+  });   
 
   /* DROPDOWN NAV ------------- */
   var lockNavBar = false;
@@ -143,9 +129,6 @@ $(document).on('turbolinks:load', function() {
   $('.button.dropdown.up.large > ul').css('top', 'auto').css('bottom', largeButtonHeight - 2);
   $('.button.dropdown.up.small > ul').css('top', 'auto').css('bottom', smallButtonHeight - 2);
   $('.button.dropdown.up.tiny > ul').css('top', 'auto').css('bottom', tinyButtonHeight - 2);
-
-  /* CUSTOM FORMS */
-  $.foundation.customForms.appendCustomMarkup();
 
   $( ".menu" ).click(function() {
     $(".navigation").toggleClass("open")

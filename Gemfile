@@ -40,6 +40,7 @@ gem 'autoprefixer-rails', '~> 9.5'
 gem 'jquery-rails'
 gem 'html5-rails'
 gem 'remotipart', '~> 1.0'
+gem 'devise', '~> 4.6'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console

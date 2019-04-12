@@ -31,3 +31,4 @@
 
 **/.DS_Store
 /vendor
+/config/rails_best_practices.yml
