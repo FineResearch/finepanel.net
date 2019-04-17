@@ -1,0 +1,91 @@
+
+@font-face {
+	font-family: FoundationIcons;
+	src: url('/fonts/foundation-icons-general.eot'); /* IE */ 
+}
+@font-face {
+	font-family: FoundationIconsSocial;
+	src: url('/fonts/foundation-icons-social.eot'); /* IE */ 
+}
+
+#header {
+	#login{
+		margin-top: ms(2);
+		form{
+			width:auto;
+			.columns{
+				padding: 0 5px;
+				width:160px;
+				input{
+					&[type="text"], &[type="password"]{
+						font-size: ms(-1);
+						margin-bottom:5px;
+						width:95%;
+						height:15px;
+						float: left;
+					}
+				}
+				button{
+					height: 24px;
+					margin-top:2px;
+					line-height:7px;
+				}
+				&.two{
+					width:auto;
+				}
+			}	
+		}
+	}
+	.navigation{
+		.nav-bar{
+			> li, > li.active{
+				&.has-flyout{
+					a:first-child:after{
+						top:50px;
+					}
+					ul.flyout{
+						top: 80px;
+						li {
+							a {
+								width:100%;
+								float: left;
+								padding:0;
+								text-indent: 5px;
+							}
+						}
+					}
+				}
+			}
+		}
+		form.search{
+			height:104px;
+		}
+	}
+}
+
+	form.search{
+		margin:0;
+		.row.collapse{
+			div:first-child {
+				float: left;
+				width: 150px;
+				input{
+					width: 150px;
+					height:24px;
+					padding:8px 0 0 6px;
+					margin:0;}
+			}	
+			div:first-child + div{
+				width:40px;
+				float: left;
+				.button.postfix{
+					width:40px;
+					margin-top:1px;
+				}
+			}
+		}
+	}
+
+.button, button{
+	width:auto!important
+}

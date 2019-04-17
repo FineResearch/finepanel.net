@@ -1,0 +1,867 @@
+pt:
+  countries:
+    co1: Brasil
+    co2: México
+    co3: Argentina
+    co4: Chile
+    co5: Colombia
+    co6: Venezuela
+    co8: Peru
+    co9: Uruguai
+    co10: Paraguai
+    co11: Bolívia
+    co12: El Salvador
+    co13: Guatemala
+    co14: Honduras
+    co15: Nicarágua
+    co16: Panamá
+    co17: República Dominicana
+    co18: Porto Rico
+    co19: Espanha
+    co20: Portugal
+    co21: Equador
+    co22: Costa Rica
+    cities:
+      co1:
+        ci1: Sao Paulo
+        ci2: Rio de Janeiro
+        ci3: Belo Horizonte
+        ci4: Porto Alegre
+        ci5: Recife
+        ci6: Brasilia
+        ci7: Fortaleza
+        ci8: Salvador
+        ci9: Curitiba
+        ci10: Campinas
+        ci11: Belem
+        ci12: Goiania
+        ci13: Manaus
+        ci14: Santos
+        ci15: Vitoria
+        ci16: Sao Luis
+        ci17: Natal
+        ci18: Maceio
+        ci19: Joinville
+      co2:
+        ci1: Ciudad de México
+        ci2: Guadalajara
+        ci3: Monterrey
+        ci4: Puebla
+        ci5: Tijuana
+        ci6: Toluca
+        ci7: León
+        ci8: Ciudad Juárez
+        ci9: Torreón
+        ci10: Mexicali
+        ci11: Culiacan
+        ci12: San Luis Potosi
+        ci13: Acapulco
+        ci14: Merida
+        ci15: Cuernavaca
+        ci16: Veracruz
+        ci17: Queretaro
+        ci18: Aguascalientes
+        ci19: Chihuahua
+        ci20: Villahermosa
+        ci21: Morelia
+        ci22: Tampico
+        ci23: Hermosillo
+        ci24: Saltillo
+        ci25: Irapuato
+      co3:
+        ci1: Bahía Blanca
+        ci2: Ciudad Autónoma de Buenos Aires
+        ci3: Córdoba
+        ci4: Corrientes
+        ci5: Formosa
+        ci6: Godoy Cruz
+        ci7: GBA/Conurbano
+        ci8: La Plata
+        ci9: Las Heras
+        ci10: Mar del Plata
+        ci11: Neuquén
+        ci12: Paraná
+        ci13: Pilar
+        ci14: Posadas
+        ci15: Resistencia
+        ci16: Rosario
+        ci17: Salta
+        ci18: San Miguel de Tucumán
+        ci19: San Salvador de Jujuy
+        ci20: Santa Fe
+        ci21: Santiago del Estero
+      co4:
+        ci1: Santiago
+        ci2: Antofagasta
+        ci3: Arica
+        ci4: Calama
+        ci5: Chillán
+        ci6: Concepción
+        ci7: Copiapó
+        ci8: Curicó
+        ci9: Iquique
+        ci10: La Serena
+        ci11: Los Ángeles
+        ci12: Osorno
+        ci13: Puerto Montt
+        ci14: Punta Arenas
+        ci15: Quillota
+        ci16: Rancagua
+        ci17: San Antonio
+        ci18: Talca
+        ci19: Temuco
+        ci20: Valdivia
+        ci21: Valparaiso
+      co5:
+        ci1: Bogotá
+        ci2: Barranquilla
+        ci3: Bello
+        ci4: Bucamaranga
+        ci5: Buenaventura
+        ci6: Cali
+        ci7: Cartagena
+        ci8: Cúcuta
+        ci9: Inagué
+        ci10: Manizales
+        ci11: Medellín
+        ci12: Montería
+        ci13: Neiva
+        ci14: Pasto
+        ci15: Pereira
+        ci16: Santa Marta
+        ci17: Soacha
+        ci18: Soledad
+        ci19: Valledupar
+        ci20: Villavicencio
+      co6:
+        ci1: Caracas
+        ci2: Acarigua-Araure
+        ci3: Barcelona
+        ci4: Barinas
+        ci5: Barquisimeto
+        ci6: Cabimas
+        ci7: Ciudad Bolívar
+        ci8: Ciudad Ojeda
+        ci9: Coro
+        ci10: Cumaná
+        ci11: Guarenas
+        ci12: Los Teques
+        ci13: Maracaibo
+        ci14: Maracay
+        ci15: Maturín
+        ci16: Mérida
+        ci17: Puerto La Cruz
+        ci18: Punto Fijo
+        ci19: San Cristóbal
+        ci20: Valencia
+      co8:
+        ci1: Lima
+        ci2: Arequipa
+        ci3: Trujillo
+      co9:
+        ci1: Montevideo
+      co10:
+        ci1: Assunção
+      co11:
+        ci1: La Paz
+      co12:
+        ci1: São Salvador
+      co13:
+        ci1: Cidade da Guatemala
+      co14:
+        ci1: Tegucigalpa
+      co15:
+        ci1: Managua
+      co16:
+        ci1: Cidade de Panama
+      co17:
+        ci1: Santo Domingo
+      co18:
+        ci1: São João
+      co19:
+        ci1: Alicante
+        ci2: Badalona
+        ci3: Barcelona
+        ci4: Bilbao
+        ci5: Cordova
+        ci6: Granada
+        ci7: Madri
+        ci8: Málaga
+        ci9: Salamanca
+        ci10: San Sebastián
+        ci11: Santiago de Compostela
+        ci12: Sevilha
+        ci13: Valencia
+        ci14: Vitoria
+      co20:
+        ci1: Lisboa
+        ci2: Porto
+      co21:
+        ci1: Quito
+        ci2: Guayaquil
+      co22:
+        ci1: São José
+
+  common:
+    users: Usuários
+    recent_publications: Publicações recentes
+    recent_news: Notícias recentes
+    'yes': Sim
+    'no': Não
+
+  forms:
+    email: Correio eletrônico
+    password: senha
+    specify: Especificar
+    select: Selecionar
+    other: Outro
+    submit: Enviar
+    publish: Publicar
+    publishing: Publicando
+    cancel: Cancelar
+    edit_data: Editar dados
+    video_tab_description: Pode incluir URLs de portais de hospedagem de vídeos como YouTube ou Vimeo, ou o código de inserção ("embed") tal como é proporcionado por qualquer site de vídeo/flash.
+    insert_video_url: Insira a url do vídeo
+    payment_notice: Para perguntas ou outros meios de pagamento, comunicar-se por e-mail para honorarios@finepanel.net
+    remember: Lembrar-me
+    placeholders:
+      field_of_interest: Área de interesse
+      share_information_with_your_field_colleagues: Compartilhe informação com seus colegas na área
+      write_your_comment_in_finepanels_wall: Escreva seu comentário no mural da Fine Panel
+      write_a_description_about_the_video: Escreva uma descrição sobre o vídeo
+      write_a_description_about_the_image: Escreva uma descrição sobre a imagem
+      write_a_description_about_the_document: Escreva uma descrição sobre o documento
+    required_fields_notice: Os campos indicados com * são obrigatórios
+
+  header:
+    get_an_account: Obtenha uma conta
+    recommend_to_a_colleague: Indicar colega
+    forgot_password: esqueceu sua senha
+    login: Entrar
+    logout: Sair
+    my_personal_data: Meu cadastro
+    my_payment_data: Meus dados de pagamento
+    my_dashboard: Minha  página principal
+    update_my_account: Atualizar minha conta
+    search: Pesquisar
+    my_areas_of_interest: Forum
+    areas: Áreas
+    news: Notícias
+    colleagues: Colegas
+    support: Suporte
+
+  footer:
+    home: Início
+    account: Conta
+    faq: Perguntas Frequentes
+    campaigns: Campanhas
+    support: Suporte
+    contact: Contato
+
+  breadcrumbs:
+    home: Início
+    dashboard: Página principal
+    edit_profile: Meu cadastro
+    new_invitation: Convidar a um colega
+    interests: Áreas de interesse
+    articles: Notícias
+    search:  Pesquisar
+    my_payment_data: Meus dados de pagamento
+
+  specialty:
+    general_medicine: Medicina Geral - %{location}
+    urology: Urologia - %{location}
+    hematology: Hematologia - %{location}
+    pulmonary: Pneumologia - %{location}
+    hiv_specialist: Especialista em HIV - %{location}
+    endocrinology: Endocrinologia - %{location}
+
+  home:
+    title_1: A rede de profissionais da medicina
+    title_2: Onde sua opinião é valorizada.
+    register:
+      button: Cadastre-se
+      line1: A Fine Panel lhe permite participar
+      line2: em pesquisas on-line
+      line3: e conhecer as últimas novidades
+      line4: na sua especialidade.
+    participate:
+      button: Participe
+      line1: Compartilhe sua experiência
+      line2: e influa  no desenvolvimento
+      line3: de futuras linhas terapêuticas
+    fees:
+      button: Receba Honorários
+      line1: Por cada pesquisa que completa,
+      line2: o(a) Sr.(a) recebe honorários
+      line3: diretamente na sua conta bancária.
+    column1: Crie grupos de discussão e intercâmbio com colegas de sua mesma especialidade, área técnica, círculo de trabalho ou  entorno acadêmico.
+    column2: Compartilhe e veja materiais e dados de forma segura numa grande rede de profissionais da medicina.
+    column3: Conheça as notícias científicas mais importantes através de prestigiosas fontes técnicas especializadas.
+    testimonial1: Estarei sempre à disposição para as pesquisas coordenadas por vocês.
+    testimonial2: Fiz poucas pesquisas nos moldes antigos, com o funcionário e papel. Mas achei mais agradável responder pelo site.
+    testimonial3: Gostei muito desta forma online. é mais pratica, pois podemos realizá-la de qualquer lugar e de acordo com nossa disponibilidade de tempo. Parabéns! até a próxima! abraço.
+    testimonial4: Fiquei impressionada, no bom sentido, com o nível de cuidado para o lançamento da campanha Obrigada pela oportunidade.
+    testimonial5: Pesquisa interessante.Das melhores que participei Gostei mto de participar achei os temas pertinentes e muita seriedade da empresa att.
+    specialities: especialidades médicas
+    active_professionals: profissionais ativos
+    studies: estudos realizados
+    la_countries: países da América Latina
+    ethical_commitment: Compromisso Ético
+    serious_network: Participe numa rede séria e responsável no pagamento de seus honorários.
+    read_more: Ler mais
+
+  dashboard:
+    contact_with_finepanel: Comentários e Novidades
+    title_1: A rede de profissionais da medicina
+    loading: Carregando...
+    participate: Honorário
+    updates_summary: Resumo das atualizações
+    interests_areas: Suas áreas de interesse
+    see_full_list: Ver a lista completa
+    see_survey_history: Ver histórico de pesquisas
+    posts_disclaimer: 1. Lembre que seu comentário será público e que compartilharemos seu sobrenome, especialidade, cidade e país<br />2. Por favor, mantenha a confidencialidade dos conteúdos de todas as pesquisas para não influenciar ao restante da comunidade.
+    project: Projeto
+    comment_wall: Postar comentário
+    invite_collegues: Indicar colega
+    support_payment_link: Suporte sobre pagamentos
+    survey_list:
+      available_surveys: Pesquisas disponíveis
+      specialty_news: Novidades na sua especialidade
+      subject: Assunto
+      estimated_duration: Duração estimada
+      fee: Honorário
+      there_is_no_information_about_surveys_to_show: Não há informação sobre pesquisas para exibir
+    balance:
+      balance: "Balanço:"
+      fees: "Honorários:"
+      accumulated: Acumulados
+      paid: Total já pago
+      pending: Credito pendente a pagar
+      last_payment: Último pagament
+      last_payment_date: ", no dia"
+      total_fees: Total gerado
+    survey_history:
+      survey_history: As suas últimas participações
+      modal_title: Seu histórico de pesquisas
+      fee: Honorário
+      status: Estado
+      date: Data de pagamento
+      participation_date: Data de participação
+      there_is_no_information_in_your_history_to_show: Não há informação para exibir no seu histórico
+    payment_history:
+      modal_title: Histórico de participações e pagamentos
+      modal_title_small: Até às 00:00 horas de hoje
+      button_text: Créditos e Pagamentos
+      project: Projeto
+      date: Data de email
+      comment: Conceito
+      fee: Honorario
+      no_info: Não há informação de pagamentos para exibir
+      history_comment:
+        filter: Tentativa 1-2 minutos
+        complete: Completa
+        pay: Pagamento
+        donate: Valor Doado
+        duplicate_error: Desconto por erro no credito previo
+        other_error: Desconto por erro no credito previo
+        panelist_error: Desconto por erro no credito previo
+      today_credit:
+        project: Detalhes disponível amanhã
+        comment_pay: Pagamento
+        comment_credit: Credito
+        day: Hoje
+    survey_status:
+      complete_to_pay: Completa a pagar
+      attempt_to_pay: Tentativa 1-2 minutos a pagar
+      complete_paid: Completa paga
+      attempt_paid: Tentativa 1-2 minutos paga
+      complete_donated: Completa doada
+      attempt_donated: Tentativa doada
+      not_paid_for_duplicity: Não pago por duplicação
+    interests:
+      your_fields_of_interest: Suas áreas de interesse
+    index:
+      news:
+        title: Notícias
+      survey_history:
+        origin_disclaimer: 'Como o(a) Sr.(a) não recebeu um convite direto realizado desde o Fine Panel, a responsabilidade pelo pagamento é da equipe que entrou em contato com o(a) Sr.(a) conforme o que foi combinado com eles. Para consultar o pagamento ou demora na cobrança pode, de qualquer forma, escrever para honorarios@finepanel.net'
+
+  faq:
+    page_title: Perguntas Frequentes
+    up: Acima
+    all_questions: Veja todas as perguntas
+    button_assistance: Procure assistência
+    questions:
+      q1: Quais são as vantagens de participar das pesquisas do Fine Panel?
+      q2: Como serão tratadas minhas respostas e meus dados pessoais?
+      q3: Quem participa desta comunidade?
+      q4: Eu serei convidado(a) a participar em estudos sobre quais assuntos?
+      q5: Como posso saber quanto receberei por cada participação?
+      q6: O que preciso fazer para receber meus honorários?
+      q7: Qual é o prazo que eu tenho para participar após um convite?
+      q8: Por que procura-se um perfil específico?
+      q9: Como posso saber se eu tenho o perfil procurado?
+      q10: Se tento participar, mas não tenho o perfil para esse projeto,serei recompensado(a) mesmo assim?
+      q11: Posso participar regularmente?
+      q12: Como receberei o pagamento?
+      q13: Quando receberei o pagamento?
+      q14: Como posso controlar meus pagamentos e minhas participações?
+    answers:
+      a1: É um canal para que o(a) Sr.(a) possa influir com suas opiniões e experiências nas discussões de futuras linhas terapêuticas, conhecer inovações na sua área, com as vantagens de participar online no horário que lhe for mais conveniente e sendo recompensado(a) com honorários depositados na sua conta bancária.
+      a2: Com a máxima confidencialidade. Seus dados pessoais nunca serão fornecidos a terceiros nem vinculados a suas resposta, obedecendo as rígidas regras da Sociedade Europeia de Pesquisa de Mercados (www.esomar.org) e a Sociedade Europeia de Pesquisa Farmacêutica (www.ephmra.org/)
+      a3: As pesquisas são destinadas exclusivamente a médicos ativos que moram na América Latina, credenciados conforme as leis aplicáveis. Temos milhares de participantes regulares.
+      a4: Dependendo de sua prática médica e de sua especialidade, o(a) convidaremos às diferentes pesquisas que podem ser de seu interesse.
+      a5: O honorário é indicado na carta de convite
+      a6: o honorário é pago a aqueles que têm o perfil procurado para cada projeto e completam toda a pesquisa. As pesquisas têm uma duração de aproximadamente 15-40 minutos, dependendo do projeto e de seu navegador)
+      a7: Os projetos têm um tempo limitado -geralmente dias- e além disso procuram-se uma quantidade de entrevistas determinadas. Por tanto, quanto antes participe melhor. Se o projeto já estiver fechado quando o(a) Sr.(a) entrar o sistema o informará.
+      a8: Em todas as pesquisas há um público alvo o qual depende dos critérios e da área de interesse da equipe de pesquisa. As vezes há uma demanda de um determinado tipo de pacientes ou de práticas (pública ou privada), ou qualquer outro critério. Não ter o perfil para uma pesquisa especifica, não significa que o(a) Sr.(a) não seja um(a) grande profissional!
+      a9: Verifica-se através de algumas perguntas iniciais que não levam mais do que 1-2 minutos.
+      a10: Sim. Neste caso não vamos pedir que complete a pesquisa de 15 a 40 minutos, mas recompensaremos essas tentativas de 1-2 minutos, com o 10% do honorário prometido para a pesquisa completa. A quantia será depositada na sua conta bancária quando o crédito acumulado seja superior a $500 (Mexico) / 150$ (Argentina) / R$100 (Brasil) ou junto com a próxima entrevista completa.
+      a11: Dependerá das pesquisas disponíveis referentes a sua especialidade, mas provavelmente sim! Nossa organização realiza mais de 100 estudos médicos por ano com diferentes tipos de especialistas, por tanto,terá muitas probabilidades de participar.
+      a12: O método que sugerimos por velocidade e segurança é o depósito na sua conta bancária. Se o(a) Sr.(a) preferir, também podemos enviar um cheque por correio ao seu consultório. Após cada estudo os dados de pagamento são confirmados segundo sua preferência.
+      a13: Os pagamentos de incentivos são realizados dentro das 4 semanas após sua participação em uma entrevista completa. O(a) Sr.(a) receberá um correio eletrônico confirmando as informações de pagamento, data e quantia, assim que o pagamento tiver sido realizado.
+      a14: O Fine Panel permite um acesso transparente a seus créditos e participações. Se deseja verificar seu crédito pode fazê-lo em qualquer momento logo após completar uma primeira entrevista. Deve ir á página www.fine-panel.com/medicos e usando o correio ao qual foi convidado como usuário e senha, entre em -Minha Conta- e- Honorários- deste portal. Aí, poderá ver as últimas participações, estado de cada uma, pagamentos realizados e datas de cada depósito.
+    footer_title: Esperamos que estas regras estejam claras.<br/> Nosso lema é que regras claras conservam a amizade!
+    footer_thanks: Obrigado por participar de nossa comunidade!
+
+  support:
+    page_title: Suporte
+    contact_title: Contato
+    other_countries: Outros Países
+    mail_sent:  Mensagem enviada, entraremos em contato com você em breve.
+    mail_error: Houve um problema no envio da mensagem.
+    mail_title: Suporte
+    panelist: Panelista
+    email: suporte@finepanel.net
+    form:
+      title: Como podemos ajudar?
+      type: Tipo de inquérito
+      subject: Assunto
+      survey_code: Código Projeto
+      comment: Comentário
+
+  campaigns:
+    page_title: Campanhas
+    panelists_comments: Comentários de panelistas sobre nossa campanha!
+    total_amount: Queremos compartilhar com nossos panelistas e colaboradores que, segundo nossos registros, o total acumulado por esta campanha da comunidade Fine Panel a começos deste mês foi de
+    side_bar:
+      title: Fine Panel apóia
+      link: Ver Campanha
+    save_the_children:
+      paragraph1: Segue a campanha com Save The Children no México, instituição que desenvolve programas diretos com a participação ativa de mais de 140.000 crianças e jovens em comunidades carentes de 15 Estados da República através de diferentes modalidades de atendimento.
+      paragraph2: Na cidade de México especificamente, a Save the Children coordena uma rede de 140 Centros Comunitários de Desenvolvimento Infantil, nos quais promove a prestação de serviços de educação inicial, pré-escolar e cuidados diários, atingindo mais de 8.000 meninos e meninas
+      mexico_letter: Carta de agradecimento de "Save the Children Mexico" à comunidade de Finepanel
+      haiti_letter: Campanha de Ajuda a Haiti
+      testimonial1: Se todos os seres humanos contribuíssemos neste tipo de iniciativas o mundo no qual vivemos seria diferente e melhor. Parabéns."
+      testimonial2: Gostaria de parabenizar a decisão do Fine Panel de colaborar com este trabalho."
+      testimonial3: Ajudar a quem precisa é extremamente importante, que bom que vocês o estão fazendo através deste caminho."
+      testimonial4: As crianças do mundo devem ser a nossa preocupação continua e é um prazer saber que colaboramos nem que seja com um grão de areia no seu bem estar."
+      testimonial5: É bom fazer parte de uma iniciativa  que consegue resultados."
+      testimonial6: É uma pequena colaboração para o futuro da humanidade."
+      testimonial7: Acho que é uma ideia muito honesta e  gostaria de continuar colaborando."
+      testimonial8: Excelente proposta de ajuda, embora não conheça a fundação."
+      testimonial9: Proposta excelente de poder ajudar a crianças com necessidades e falta de recursos."
+      total_amount_html: Queremos compartilhar com nossos panelistas e colaboradores que, segundo nossos registros, o total acumulado por esta campanha da comunidade Fine Panel a começos deste mês foi de <strong>%{mexico_amount}</strong> para a Save The Children México e <strong>%{colombia_amount}</strong> para Save The Children Colômbia
+    aacd:
+      paragraph1: A comunidade de Fine Panel assinou um acordo com a AACD do Brasil para aqueles médicos que preferem doar seus honorários ao invés de receber os pagamentos na sua conta bancária.
+      paragraph2: É muito importante para a AACD, Associação de Assistência à Criança Deficiente, poder contar com a colaboração de pessoas que acreditam na causa dos deficientes físicos. Afinal,  o apoio da sociedade permite á instituição realizar quase 6.000 atendimentos diários, em suas 9 unidades em todo o Brasil.
+      paragraph3: "Para obter mais informação sobre a AACD e sobre outras formas de colaborar, por favor,acesse: www.aacd.org.br o ligue dentro do país para 0800-771 78 78."
+      paragraph4: Esperamos sua valiosa participação!
+      letter: Carta de agradecimento de "AACD" à comunidade de Finepanel
+
+    icw:
+      paragraph1: A comunidade de Fine Panel assinou um acordo com a ICW - comunidade internacional de mulheres com VIH para seu programa de meninas e adolescentes, para oferecer uma opção aos médicos que preferem doar  seus honorários ao invés de  receber os pagamentos nas suas contas bancárias.
+      paragraph2: A ICW Global apoia, informa e representa às mulheres e meninas com VIH-SIDA, promovendo sua participação em espaços onde são debatidas as políticas públicas que as afetam. Desde 2007 impulsiona a campanha mundial MAIS PAZ MENOS SIDA como ferramenta para deter a pandemia. Para consultas escreva para info@icwglobal.org
+      paragraph3: Para obter mais informação sobre a ICW e outras formas de colaborar, pode escrever para info@icwglobal.org
+      paragraph4: Aguardamos sua valiosa participação!
+      letter: Carta de agradecimento de "ICW" à comunidade de Fine Panel
+
+  commitments:
+    page_title: Compromisso ético
+    page_subtitle: Regras que regem esta comunidade
+    standards: PADRÕES.
+    standards_p: As pesquisas da Fine Panel em toda a América Latina são realizadas em conformidade com os estritos padrões de ética das organizações internacionais mais prestigiosas que regulam a atividade na Europa (EPHMRA e ESOMAR) e nos Estados Unidos (PMRG).
+    privacy: PRIVACIDADE.
+    privacy_p: Os dados pessoais dos panelistas participantes não serão em caso algum compartilhados com terceiros, nem vinculados de forma alguma com suas respostas em qualquer uma das pesquisas realizadas. A única exceção a esta regra é em casos de saúde pública ou no caso de apresentação de Eventos Adversos (AE) de algum tratamento, e apenas em casos em que os entrevistados tenham aceitado, previamente, compartilhar seus dados.
+    fees: PAGAMENTO DE HONORÁRIOS.
+    fees_p: "A Fine Panel pagará sempre nos prazos e formas combinados,  todos os honorários prometidos pela participação em pesquisas segundo as  regras voluntariamente aceitas pelos  panelistas participantes. Para garantir a transparência no depósito de honorários seguiremos as regras a seguir:"
+    fees_li1: Após cada participação efetiva o participante receberá um correio eletrônico informando o  resultado de sua participação, o valor creditado e o nome do projeto completado.
+    fees_li2: Os depósitos serão feitos dentro das 4 semanas seguintes a sua participação.
+    fees_li3: Os panelistas receberão, no dia do pagamento, um e-mail informando a data de pagamento, modalidade de pagamento e quantia creditada.
+    fees_li4: Caso for requerido, poderão solicitar o comprovante bancário da transferência.
+    fees_li5: Em todo momento poderão verificar o resultado de suas participações e os pagamentos recentes, acessando sua conta.
+    fees_li6: Os pagamento serão realizados, salvo indicação em contrário no convite da pesquisa, em moeda local através de transferência ou deposito bancário.
+    fees_li7: A Fine Panel sempre identificará com seu nome no assunto, os convites para participar em estudos de forma de evitar confusões com outras organizações que possam ter outras práticas ou compromissos de pagamentos. Lembre-se sempre de conferir que o convite recebido venha da Fine Panel.
+    fees_li8: O honorário será creditado a quem tenha o perfil procurado e complete a pesquisa até o final, as quais normalmente levam entre 15 e 45 minutos. Caso o participante não tenha o perfil procurado para uma pesquisa - o qual será verificado após 1-2 minutos nas primeiras perguntas - a Fine Panel informará esta situação ao panelista e encerrará a pesquisa. Neste caso não se creditará o valor por completo, mas se o participante tiver investido pelo menos um minuto será pago até 10% dos honorários, algo que nos diferencia de outras organizações de pesquisa. A Fine Panel vai convidar-lhe a pesquisas que, segundo os nossos dados, poderão ser possivelmente adequadas ao seu perfil.
+    fees_li9: Em todo momento pode escrever para honorarios@finepanel.net por qualquer consulta sobre suas participações e pagamentos.
+    social_responsibility: RESPONSABILIDADE SOCIAL.
+    social_responsibility_p: Na Fine Panel acreditamos na responsabilidade social comunitária nos países de América Latina onde desenvolvemos nossa atividade. Nesta área colaboramos ativamente com a Save The Children no México, a Associação de Assistência à Criança Deficiente (AACD) no Brasil e a Comunidade Internacional de Mulheres vivendo com HIV na Argentina (ICW).
+    transparency: TRANSPARÊNCIAS DAS DOAÇÕES.
+    transparency_p: "Para garantir a transparência da doação de créditos pela participação em pesquisas, quando os panelistas o escolherem, serão seguidas estas regras:"
+    transparency_li1: Após cada participação efetiva onde o panelista decidir doar seu crédito, o participante receberá um correio eletrônico com copia à instituição informando a doação.
+    transparency_li2: Em todo momento as  instituições poderão verificar na Fine Panel o valor acumulado pelas doações realizadas.
+    willfulness: VOLUNTARIEDADE.
+    willfulness_p: A participação na Fine Panel é voluntária. O(a) Sr.(a) poderá cadastrar-se, convidar outros colegas, atualizar a sua informação em qualquer momento e também poderá escolher ser excluído de nossa base de dados clicando no link de exclusão que está incluso em cada convite.
+    mission: MISSÃO.
+    mission_p: A Fine Panel é um instrumento de pesquisa e comunicação, a través da difusão de novidades, a troca de opiniões e a pesquisa de práticas relativas ao cuidado da saúde, o qual pode colaborar no desenvolvimento do conhecimento das necessidades de médicos e pacientes, e eventualmente contribuir na implementação de tratamentos adequados para a atenção dos mesmos.
+    scope: ABRANGÊNCIA.
+    scope_p: A Fine Panel é uma comunidade de participantes em pesquisas e um fórum de informação e intercâmbio com centros de apoio no Brasil, México, Chile, Argentina, Colômbia, Venezuela e cobertura em toda a América Latina, direcionado exclusivamente a médicos e profissionais de saúde legalmente registrados nestes países.
+    responsibility: RESPONSABILIDADE.
+    responsibility_p: As opiniões médicas ou de outro tipo expressadas durante o preenchimento das pesquisas ou dentro da rede social da Fine Panel, seja no mural ou compartilhando documento ou arquivos, é de autoria e responsabilidade exclusiva dos panelistas participantes.
+    autonomy: AUTONOMIA.
+    autonomy_p: A Fine Panel não realiza atividades de promoção, publicidade nem estudos clínicos  limitando sua atividade à realização de pesquisa de mercado e opinião, apresentação de novos conceitos com fins de pesquisa e/ou divulgação de informação de artigos publicados em revistas de sociedades médicas credenciadas.
+
+  interests:
+    created: A área de interesse foi criada com sucesso.
+    add: Adicionar a minhas áreas
+    remove: Remover de minhas áreas
+    all: Tudo
+    comments: Comentários
+    documents: Documentos
+    videos: Vídeos
+    images: Imagens
+    news: Notícias
+    error: Ocorreu um erro
+    updates_summary: Resumo de atualizações
+    no_posts_yet: Não há publicações
+    other_areas: Procure ou crie novas áreas
+    list:
+      area_of_interest: Área de interesse
+      members: Membros
+      last_post: Última atualização
+
+  invitations:
+    new:
+      title: Enviar convite
+      description: Convide seu colega a participar do Fine Panel. Preencha o formulário a seguir e pressione o botão de "Enviar".
+    show:
+      title: O(a) Sr.(a) recebeu um convite para participar da comunidade Fine Panel
+      message: O(a) Sr.(a) foi convidado(a) por %{user_name}
+      question: Deseja se cadastrar? Apenas levará um minuto e poderá fazer parte de nossa comunidade.
+    accept: Aceitar
+    reject: Rejeitar
+    send: Enviar convite
+    reject_future_invitations: Rejeitar convites no futuro
+    not_found: O convite solicitado não foi achado.
+    create_success: O convite foi enviado. ¡Obrigado! O(a) Sr.(a) pode convidar mais colegas caso o deseje.
+    create_errors: Um ou mais erros foram achados.
+
+  notifications:
+    in_the_group: no grupo
+    shared_male: compartilhou uma %{link}
+    shared_female: compartilhou uma %{link}
+
+  posts:
+    share_a_comment: Compartilhar um comentário
+    share_an_image: Compartilhar uma imagem
+    share_a_video: Compartilhar um  vídeo
+    share_a_document: Compartilhar um documento
+    attach_a_file: Anexar um arquivo
+    attach_a_url: Anexar uma URL
+    file_types_info: "JPEG, GIF, PNG ou BMP"
+    file_size_info: "Tamanho máximo: 10 MB"
+    shared_a_comment: compartilhou um comentário
+    shared_a_document: compartilhou um documento
+    shared_an_image: o(a) Sr.(a) compartilhou uma imagem
+    shared_a_video: o(a) Sr.(a) compartilhou um vídeo
+    download_file: Descarregar documento
+    read_more: ler mais
+    zero_state: Não há nenhuma postagem. Comece criando uma.
+    shared_in: en %{interest_area}
+    publications_of: Publicações de %{doctor_name}
+    mailer_subject: Novo comentário na Fine Panel
+    comments:
+      has_one_comment: "pessoa fez um comentário:"
+      has_many_comments: "pessoas fez um commentário:"
+      no_comments: Não há comentários ainda
+    news:
+      published_at: "Publicado o %{date}"
+      recent_article: Artigo recente
+      source: "Fonte:"
+
+  articles:
+    search: Pesquisar artigos
+    search_results: "%{quantity} artigos coincidem com sua pesquisa “%{term}”:"
+    categories: Categorias
+    in_your_language: Em português
+    in_english: Em inglês
+    view_more_articles_in_your_language: Ver mais artigos em português
+    view_more_articles_in_english: Ver mais artigos em inglês
+    not_found: Não foram achados artigos para listar nesta categoria.
+
+  registrations:
+    register: Cadastro de usuário
+    update: Atualização de dados de Usuário
+    password_recovery:
+      title: Recuperação da senha
+      description: Insira seu endereço de correio eletrônico de Fine Panel e pressione o botão Enviar. Receberá instruções por correio eletrônico.
+      email_not_found: O correio eletrônico inserido não foi achado.
+      password_sent: Em breve receberá um correio eletrônico com instruções para recuperar sua senha.
+
+  mailers:
+    registration:
+      password_recovery:
+        subject: Sua senha de Fine Panel
+        title: Sua senha de Fine Panel
+        paragraph: O(a) Sr.(a) solicitou que lhe enviemos uma senha para acessar sua conta de Fine Panel
+        password_pre: 'Sua senha é: %{password}'
+        notice: 'Entre em %{link} com seu nome de usuário (endereço de e-mail) e a senha que lhe enviamos.'
+    new_comment:
+      p1_1: "O seu colega <strong>%{colleague_name}</strong> respondeu o comentário:"
+      p1_2: "<strong>&ldquo;%{post_text}&rdquo;</strong>"
+      p1_3: "para vê-lo pode ir para http://finepanel.net e digite seu e-mail e senha"
+      signature: Comunidade FinePanel
+
+  bank_account_types:
+    checking_account: Conta corrente
+    saving_account: Caixa de poupança
+    other: Outro
+
+  suffixes:
+    Dra: Dra.
+    Dr: Dr.
+    Enf: Enf.
+    Farm: Farm.
+
+  specialties:
+    s32: Alergia e imunologia
+    s31: Anestesiologia
+    s1: Cardiologia
+    s30: Cardiologia Intervencionista
+    s2: Cirurgia Cardiovascular
+    s3: Cirurgia Geral
+    s41: Cirurgia de transplante
+    s4: Cirurgia Plástica
+    s5: Dermatologia
+    s7: Endocrinologia/Diabetologia
+    s8: Enfermaria
+    s28: Farmacêutica
+    s10: Gastroenterologia
+    s39: Geriatria
+    s11: Ginecologia
+    s23: Hematologia
+    s21: Hepatologia
+    s38: HIV (especialista em)
+    s27: Infectologia
+    s33: Laboratório
+    s42: Mastologia
+    s9: Medicina da dor
+    s12: Medicina Geral / de família / Clínico
+    s29: Medicina Interna
+    s13: Nefrologia
+    s34: Pneumologia
+    s25: Neurologia
+    s37: Nutrição
+    s22: Odontologia
+    s15: Oftalmologia
+    s16: Oncologia
+    s17: Ortopedia
+    s6: Otorrinolaringologia
+    s18: Pediatria
+    s19: Psiquiatria
+    s20: Radiologia
+    s24: Reumatologia
+    s14: Sexologia
+    s40: Terapia Intensiva
+    s26: Urologia
+    s36: Veterinária
+    s98: Sem especificar
+    s43: Administraçao Hospitalar
+    s44: Agente de compras
+    s45: Cirurgia de Tórax
+    s46: Cirurgía Maxilofacial
+    s47: Cirurgia Bariátrica
+    s48: Cirurgia de Cabeça e Pescoço
+    s49: Cirurgia do Aparelho Digestivo / Gastrointestinal
+    s50: Cuidados Paliativos
+    s51: Eduacação em Diabetes
+    s52: Eletrofisiologista
+    s53: Emergentologista
+    s54: Fisioterapia / Reabilitação
+    s55: Fonoaudiologia
+    s56: Genetista
+    s57: Homeopatia e Acupuntura
+    s58: Medicina Nuclear
+    s59: Microbiologista/Virologista
+    s60: Neonatologista
+    s61: Neurocirurgia
+    s62: Optico / Contatologia / Optometrista
+    s63: Patologista / Anatomia Patológica
+    s64: Proctologista / coloproctologista
+    s65: Radioterapia
+
+  work_at_options:
+    w1: Principalmente no meu consultório
+    w2: Principalmente num hospital público
+    w3: 50% em consultório e50% em hospital
+    w4: Outro
+    w5: Em pesquisa/ensino
+    w6: Principalmente num hospital privado
+
+  messages:
+    error:
+      login: Nome de usuário ou senha é inválida. Clique no -Esqueceu sua senha-, se você não lembra a senha e se o problema continua, favor escrever para suporte@finepanel.net
+      unexpected: Ocorreu um erro inesperado enquanto a operação estava sendo executada. Tente novamente mais tare.
+      errors: Um ou mais erros foram achados.
+      wrong_size: "is the wrong size (should be %{file_size})"
+      size_too_small: "is too small (should be at least %{file_size})"
+      size_too_big: "is too big (should be at most %{file_size})"
+    success:
+    alert:
+      couldnt_login: Não foi possível iniciar a sessão.
+    notice:
+      logout: Saiu corretamente.
+      login: Entrou corretamente.
+      success: A ação foi realizada com sucesso.
+      user_updated: Seus dados foram modificados.
+      user_created: O(a)Sr.(a) foi cadastrado em nosso sistema corretamente. Verifique a caixa de entrada de seu correio eletrônico para mais informação.
+      user_already_registered: O(a) Sr.(a) já tinha se cadastrado anteriormente. Enviaremos uma senha por correio electrônico.
+      survey_participation_ended: Muito obrigado por participar da pesquisa.
+  activerecord:
+    models:
+      user: Usuário
+
+    attributes:
+      user:
+        suffix: Título
+        first_name: Nome(s)
+        last_name: Sobrenome(s)
+        email: Correio eletrônico
+        alternate_email: Correio eletrônico alternativo
+        phone: Telefone
+        country_id: País
+        country_text: País
+        city_id: Cidade
+        city_text: Cidade
+        specialty_id: Especialidade
+        specialty_text: Especialidade
+        alternate_specialty_id: Outra especialidade
+        crm: CRM
+        work_at_id: Local de trabalho
+        work_at_label: Qual das frases a seguir melhor descreve o local onde o(a) Sr.(a) trabalha a maior parte do tempo?
+        bank_name: Nome do Banco
+        bank_branch: Agência
+        bank_account_type: Tipo de Conta
+        bank_account_number: Número de conta
+        bank_account_name: Ao nome de quem esta essa conta
+        bank_account_owner: A conta esta ao seu nome?
+      invitation:
+        suffix: Título
+        first_name: Nome(s)
+        last_name: Sobrenome(s)
+        email: Correio eletrônico
+        specialty_id: Especialidade
+
+    errors:
+      models:
+        invitation:
+          rejected: Foi solicitado não receber futuros convites  no correio eletrônico indicado.
+          already_invited: O(a) Sr.(a) já tem um convite pendente.
+      messages:
+        blank: não pode ser deixado em branco
+        invalid: não é válido
+  will_paginate:
+    previous_label: "&laquo;"
+    next_label: "&raquo;"
+    page_gap: "&hellip;"
+
+    page_entries_info:
+      single_page:
+        zero: "No %{model} found"
+        one: "Displaying 1 %{model}"
+        other: "Displaying all %{count} %{model}"
+      single_page_html:
+        zero: "No %{model} found"
+        one: "Displaying <b>1</b> %{model}"
+        other: "Displaying <b>all&nbsp;%{count}</b> %{model}"
+
+      multi_page: "Displaying %{model} %{from} - %{to} of %{count} in total"
+      multi_page_html: "Displaying %{model} <b>%{from}&nbsp;-&nbsp;%{to}</b> of <b>%{count}</b> in total"
+
+  time:
+    formats:
+      default: "%-d de %b de %Y"
+      participation_date: "%-d de %B de %Y"
+
+  date:
+    month_names: [~, Janeiro, Fevereiro, Março, Abril, Maio, Junho, Julho, Agosto, Setembro, Outubro, Novembro, Dezembro]
+    abbr_month_names: [~, Jan, Fev, Mar, Abr, Mai, Jun, Jul, Ago, Set, Out, Nov, Dez]
+
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: aproximadamente 1 hora
+        other: aproximadamente %{count} horas
+      about_x_months:
+        one: aproximadamente 1 mês
+        other: aproximadamente %{count} meses
+      about_x_years:
+        one: aproximadamente 1 ano
+        other: aproximadamente %{count} anos
+      almost_x_years:
+        one: quase 1 ano
+        other: quase %{count} anos
+      half_a_minute: meio minuto
+      less_than_x_minutes:
+        one: menos de 1 minuto
+        other: menos de %{count} minutos
+      less_than_x_seconds:
+        one: menos de 1 segundo
+        other: menos de %{count} segundos
+      over_x_years:
+        one: mais de 1 ano
+        other: mais de %{count} anos
+      x_days:
+        one: 1 dia
+        other: ! '%{count} dias'
+      x_minutes:
+        one: 1 minuto
+        other: ! '%{count} minutos'
+      x_months:
+        one: 1 mês
+        other: ! '%{count} meses'
+      x_seconds:
+        one: 1 segundo
+        other: ! '%{count} segundos'
+  number:
+      currency:
+        format:
+          delimiter: ! ','
+          format: ! '%u%n'
+          precision: 0
+          separator: .
+          significant: false
+          strip_insignificant_zeros: false
+          unit: $
+      format:
+        delimiter: ! ','
+        precision: 2
+        separator: .
+        significant: false
+        strip_insignificant_zeros: false
+      human:
+        decimal_units:
+          format: ! '%n %u'
+          units:
+            billion: mil milhões
+            million: milhão
+            quadrillion: mil bilhões
+            thousand: mil
+            trillion: bilhão
+            unit: ''
+        format:
+          delimiter: ! ','
+          precision: 3
+          significant: true
+          strip_insignificant_zeros: true
+        storage_units:
+          format: ! '%n %u'
+          units:
+            byte:
+              one: Byte
+              other: Bytes
+            gb: GB
+            kb: KB
+            mb: MB
+            tb: TB

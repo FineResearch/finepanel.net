@@ -1,0 +1,76 @@
+@mixin clearfix() {
+  display: block;
+
+  &:after {
+    clear: both;
+    content: ".";
+    display: block;
+    font-size: 0;
+    height: 0;
+    line-height: 0;
+    visibility: hidden;
+  }
+}
+
+/**/
+
+$logos-layout:vertical;
+@import "logos/*.png";
+
+
+@mixin logos($logo) {
+  @include logos-sprite($logo);
+  height: logos-sprite-height($logo);
+  width: logos-sprite-width($logo);
+  display:block;
+}
+
+$doctors-layout:vertical;
+@import "doctors/*.png";
+
+@mixin doctors($doctor) {
+  @include doctors-sprite($doctor);
+  height: doctors-sprite-height($doctor);
+  width: doctors-sprite-width($doctor);
+  display:block;
+  float:left;
+  position: absolute;
+  bottom: 0;
+}
+
+@import "flags/*.png";
+
+@mixin flags($flag) {
+  @include flags-sprite($flag);
+  height: flags-sprite-height($flag);
+  width: flags-sprite-width($flag);
+  display: block;
+  float: left;
+  margin-right: 5px;
+}
+
+/*Diapo background*/
+@mixin diapo($diapo-color) {
+  background: ($diapo-color);
+  display:inline-block;
+  @include border-radius(1000px);
+  @include text-shadow(0 -1px rgba(0, 0, 0, 0.3));
+  font-size:10px;
+  color: lighten($diapo-color, 75%);
+  padding: 0 ms(-1);
+  line-height:ms(1);
+  font-weight:bold;
+  &:hover{
+    background: darken($diapo-color, 10%);
+  }
+}
+
+@mixin fuente($fuente-color) {
+  @include diapo($fuente-color);
+  background: rgba(0, 0, 0, 0.5);
+  position: relative;
+  top:-2px;
+  &:hover{
+    background: rgba(0, 0, 0, 0.5);
+  }
+}

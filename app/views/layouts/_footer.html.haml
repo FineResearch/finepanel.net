@@ -1,0 +1,13 @@
+.row#footer
+  .columns
+    %ul.left.link-list
+      %li
+        = link_to t("footer.account"), root_path
+      %li
+        = link_to t("footer.faq"), root_path
+      %li
+        = link_to t("footer.contact"), root_path
+    .right
+      = image_tag('/assets/logos/save_the_children.png', class: "save_the_children")
+      = image_tag('/assets/logos/aacd.png', class: "aacd")
+      = image_tag('/assets/logos/icw.png', class: "icw")

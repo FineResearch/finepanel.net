@@ -1,0 +1,13 @@
+.language.dropdown.button
+  - if params[:locale] == 'es'
+    = link_to content_tag(:span, ""), '#', class: "flag current esp dropdown-toggle", data: { toggle: 'menu' }
+  - elsif params[:locale] == 'pt'
+    = link_to content_tag(:span, ""), '#', class: "flag current port dropdown-toggle", data: { toggle: 'menu' }
+  .dropdown-menu
+    %ul
+      %li
+        = link_to content_tag(:span, "") + "Português", url_for( locale: 'pt' ), class: "flag port"
+      %li
+        = link_to content_tag(:span, "") + "Español", url_for( locale: 'es' ), class: "flag esp"
+      %li
+        = link_to content_tag(:span, "")+ "English", 'http://www.fine-research.com/', class: "flag eng"
