@@ -1,0 +1,84 @@
+.row.collapse#faq
+  %h3
+    = t('faq.page_title')
+  %hr
+
+  .columns.small-12.medium-3
+    %ul#side-nav.side-nav
+      %li.active
+        %a{ :href => "#q1", :class => "faq_toc" }= t('faq.questions.q1')
+      %li
+        %a{ :href => "#q2", :class => "faq_toc" }= t('faq.questions.q2')
+      %li
+        %a{ :href => "#q3", :class => "faq_toc" }= t('faq.questions.q3')
+      %li
+        %a{ :href => "#q4", :class => "faq_toc" }= t('faq.questions.q4')
+      %li
+        %a{ :href => "#q5", :class => "faq_toc" }= t('faq.questions.q5')
+      %li
+        %a{ :href => "#q6", :class => "faq_toc" }= t('faq.questions.q6')
+      %li
+        %a{ :href => "#q7", :class => "faq_toc" }= t('faq.questions.q7')
+      %li
+        %a{ :href => "#q8", :class => "faq_toc" }= t('faq.questions.q8')
+      %li
+        %a{ :href => "#q9", :class => "faq_toc" }= t('faq.questions.q9')
+      %li
+        %a{ :href => "#q11", :class => "faq_toc" }= t('faq.questions.q11')
+      %li
+        %a{ :href => "#q12", :class => "faq_toc" }= t('faq.questions.q12')
+      %li
+        %a{ :href => "#q13", :class => "faq_toc" }= t('faq.questions.q13')
+      %li
+        %a{ :href => "#q14", :class => "faq_toc" }= t('faq.questions.q14')
+
+  %dl.columns.small-12.medium-7.end.small-offset-1
+    %dt#q1.active
+      %h5= t('faq.questions.q1')
+    %dd= t('faq.answers.a1')
+    %dt#q2
+      %h5= t('faq.questions.q2')
+    %dd= t('faq.answers.a2')
+    %dt#q3
+      %h5= t('faq.questions.q3')
+    %dd= t('faq.answers.a3')
+    %dt#q4
+      %h5= t('faq.questions.q4')
+    %dd= t('faq.answers.a4')
+    %dt#q5
+      %h5= t('faq.questions.q5')
+    %dd= t('faq.answers.a5')
+    %dt#q6
+      %h5= t('faq.questions.q6')
+    %dd= t('faq.answers.a6')
+    %dt#q7
+      %h5= t('faq.questions.q7')
+    %dd= t('faq.answers.a7')
+    %dt#q8
+      %h5= t('faq.questions.q8')
+    %dd= t('faq.answers.a8')
+    %dt#q9
+      %h5= t('faq.questions.q9')
+    %dd= t('faq.answers.a9')
+    %dt#q11
+      %h5= t('faq.questions.q11')
+    %dd= t('faq.answers.a11')
+    %dt#q12
+      %h5= t('faq.questions.q12')
+    %dd= t('faq.answers.a12')
+    %dt#q13
+      %h5= t('faq.questions.q13')
+    %dd= t('faq.answers.a13')
+    %dt#q14
+      %h5= t('faq.questions.q14')
+    %dd= t('faq.answers.a14')
+    %hr
+    %h5
+      = t('faq.footer_title').html_safe
+    %h4
+      = t('faq.footer_thanks')
+  #back-top
+    %a{ :href => '#top'}
+      %span.glyph w
+      %span.small
+        = t "faq.up"
