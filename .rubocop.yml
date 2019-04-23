@@ -8,6 +8,7 @@ AllCops:
     - 'test/**/*'
     - 'vendor/**/*'
     - 'app/helpers/application_helper.rb'
+    - 'lib/configuration_reader.rb'
 
 Metrics/LineLength:
   Max: 120
@@ -17,6 +18,9 @@ Metrics/ClassLength:
 
 Metrics/AbcSize:
   Max: 18
+
+Metrics/MethodLength:   
+  Max: 20
 
 Documentation: 
   Enabled: false

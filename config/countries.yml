@@ -1,0 +1,632 @@
+countries:
+  co1:
+    id: 1
+    name: Brasil
+    cities:
+      ci1:
+        id: 1
+        name: Sao Paulo
+      ci2:
+        id: 2
+        name: Rio de Janeiro
+      ci3:
+        id: 3
+        name: Belo Horizonte
+      ci4:
+        id: 4
+        name: Porto Alegre
+      ci5:
+        id: 5
+        name: Recife
+      ci6:
+        id: 6
+        name: Brasilia
+      ci7:
+        id: 7
+        name: Fortaleza
+      ci8:
+        id: 8
+        name: Salvador
+      ci9:
+        id: 9
+        name: Curitiba
+      ci10:
+        id: 10
+        name: Campinas
+      ci11:
+        id: 11
+        name: Belem
+      ci12:
+        id: 12
+        name: Goiania
+      ci13:
+        id: 13
+        name: Manaus
+      ci14:
+        id: 14
+        name: Santos
+      ci15:
+        id: 15
+        name: Vitoria
+      ci16:
+        id: 16
+        name: Sao Luis
+      ci17:
+        id: 17
+        name: Natal
+      ci18:
+        id: 18
+        name: Maceio
+      ci19:
+        id: 19
+        name: Joinville
+    language_code: '1046'
+    country_code: BR
+    language_iso: 'pt'
+  co2:
+    id: 2
+    name: México
+    cities:
+      ci1:
+        id: 1
+        name: Ciudad de México
+      ci2:
+        id: 2
+        name: Guadalajara
+      ci3:
+        id: 3
+        name: Monterrey
+      ci4:
+        id: 4
+        name: Puebla
+      ci5:
+        id: 5
+        name: Tijuana
+      ci6:
+        id: 6
+        name: Toluca
+      ci7:
+        id: 7
+        name: León
+      ci8:
+        id: 8
+        name: Ciudad Juárez
+      ci9:
+        id: 9
+        name: Torreón
+      ci10:
+        id: 10
+        name: Mexicali
+      ci11:
+        id: 11
+        name: Culiacan
+      ci12:
+        id: 12
+        name: San Luis Potosi
+      ci13:
+        id: 13
+        name: Acapulco
+      ci14:
+        id: 14
+        name: Merida
+      ci15:
+        id: 15
+        name: Cuernavaca
+      ci16:
+        id: 16
+        name: Veracruz
+      ci17:
+        id: 17
+        name: Queretaro
+      ci18:
+        id: 18
+        name: Aguascalientes
+      ci19:
+        id: 19
+        name: Chihuahua
+      ci20:
+        id: 20
+        name: Villahermosa
+      ci21:
+        id: 21
+        name: Morelia
+      ci22:
+        id: 22
+        name: Tampico
+      ci23:
+        id: 23
+        name: Hermosillo
+      ci24:
+        id: 24
+        name: Saltillo
+      ci25:
+        id: 25
+        name: Irapuato
+    language_code: '2058'
+    country_code: MX
+    language_iso: 'es'
+  co3:
+    id: 3
+    name: Argentina
+    cities:
+      ci1:
+        id: 1
+        name: Bahía Blanca
+      ci2:
+        id: 2
+        name: Ciudad Autónoma de Buenos Aires
+      ci3:
+        id: 3
+        name: Córdoba
+      ci4:
+        id: 4
+        name: Corrientes
+      ci5:
+        id: 5
+        name: Formosa
+      ci6:
+        id: 6
+        name: Godoy Cruz
+      ci7:
+        id: 7
+        name: GBA/Conurbano
+      ci8:
+        id: 8
+        name: La Plata
+      ci9:
+        id: 9
+        name: Las Heras
+      ci10:
+        id: 10
+        name: Mar del Plata
+      ci11:
+        id: 11
+        name: Neuquén
+      ci12:
+        id: 12
+        name: Paraná
+      ci13:
+        id: 13
+        name: Pilar
+      ci14:
+        id: 14
+        name: Posadas
+      ci15:
+        id: 15
+        name: Resistencia
+      ci16:
+        id: 16
+        name: Rosario
+      ci17:
+        id: 17
+        name: Salta
+      ci18:
+        id: 18
+        name: San Miguel de Tucumán
+      ci19:
+        id: 19
+        name: San Salvador de Jujuy
+      ci20:
+        id: 20
+        name: Santa Fe
+      ci21:
+        id: 21
+        name: Santiago del Estero
+    language_code: '2058'
+    country_code: AR
+    language_iso: 'es'
+  co4:
+    id: 4
+    name: Chile
+    cities:
+      ci1:
+        id: 1
+        name: Santiago
+      ci2:
+        id: 2
+        name: Antofagasta
+      ci3:
+        id: 3
+        name: Arica
+      ci4:
+        id: 4
+        name: Calama
+      ci5:
+        id: 5
+        name: Chillán
+      ci6:
+        id: 6
+        name: Concepción
+      ci7:
+        id: 7
+        name: Copiapó
+      ci8:
+        id: 8
+        name: Curicó
+      ci9:
+        id: 9
+        name: Iquique
+      ci10:
+        id: 10
+        name: La Serena
+      ci11:
+        id: 11
+        name: Los Ángeles
+      ci12:
+        id: 12
+        name: Osorno
+      ci13:
+        id: 13
+        name: Puerto Montt
+      ci14:
+        id: 14
+        name: Punta Arenas
+      ci15:
+        id: 15
+        name: Quillota
+      ci16:
+        id: 16
+        name: Rancagua
+      ci17:
+        id: 17
+        name: San Antonio
+      ci18:
+        id: 18
+        name: Talca
+      ci19:
+        id: 19
+        name: Temuco
+      ci20:
+        id: 20
+        name: Valdivia
+      ci21:
+        id: 21
+        name: Valparaiso
+    language_code: '2058'
+    country_code: CL
+    language_iso: 'es'
+  co5:
+    id: 5
+    name: Colombia
+    cities:
+      ci1:
+        id: 1
+        name: Bogotá
+      ci2:
+        id: 2
+        name: Barranquilla
+      ci3:
+        id: 3
+        name: Bello
+      ci4:
+        id: 4
+        name: Bucamaranga
+      ci5:
+        id: 5
+        name: Buenaventura
+      ci6:
+        id: 6
+        name: Cali
+      ci7:
+        id: 7
+        name: Cartagena
+      ci8:
+        id: 8
+        name: Cúcuta
+      ci9:
+        id: 9
+        name: Inagué
+      ci10:
+        id: 10
+        name: Manizales
+      ci11:
+        id: 11
+        name: Medellín
+      ci12:
+        id: 12
+        name: Montería
+      ci13:
+        id: 13
+        name: Neiva
+      ci14:
+        id: 14
+        name: Pasto
+      ci15:
+        id: 15
+        name: Pereira
+      ci16:
+        id: 16
+        name: Santa Marta
+      ci17:
+        id: 17
+        name: Soacha
+      ci18:
+        id: 18
+        name: Soledad
+      ci19:
+        id: 19
+        name: Valledupar
+      ci20:
+        id: 20
+        name: Villavicencio
+    language_code: '2058'
+    country_code: CO
+    language_iso: 'es'
+  co6:
+    id: 6
+    name: Venezuela
+    cities:
+      ci1:
+        id: 1
+        name: Caracas
+      ci2:
+        id: 2
+        name: Acarigua-Araure
+      ci3:
+        id: 3
+        name: Barcelona
+      ci4:
+        id: 4
+        name: Barinas
+      ci5:
+        id: 5
+        name: Barquisimeto
+      ci6:
+        id: 6
+        name: Cabimas
+      ci7:
+        id: 7
+        name: Ciudad Bolívar
+      ci8:
+        id: 8
+        name: Ciudad Ojeda
+      ci9:
+        id: 9
+        name: Coro
+      ci10:
+        id: 10
+        name: Cumaná
+      ci11:
+        id: 11
+        name: Guarenas
+      ci12:
+        id: 12
+        name: Los Teques
+      ci13:
+        id: 13
+        name: Maracaibo
+      ci14:
+        id: 14
+        name: Maracay
+      ci15:
+        id: 15
+        name: Maturín
+      ci16:
+        id: 16
+        name: Mérida
+      ci17:
+        id: 17
+        name: Puerto La Cruz
+      ci18:
+        id: 18
+        name: Punto Fijo
+      ci19:
+        id: 19
+        name: San Cristóbal
+      ci20:
+        id: 20
+        name: Valencia
+    language_code: '2058'
+    country_code: VE
+    language_iso: 'es'
+  co7:
+    id: 7
+    name: Null Island
+    cities:
+      ci1:
+        id: 1
+        name: N/A
+  co8:
+    id: 8
+    name: Perú
+    cities:
+      ci1:
+        id: 1
+        name: Lima
+      ci2:
+        id: 2
+        name: Arequipa
+      ci3:
+        id: 3
+        name: Trujillo
+    language_code: '2058'
+    country_code: PE
+    language_iso: 'es'
+  co9:
+    id: 9
+    name: Uruguay
+    cities:
+      ci1:
+        id: 1
+        name: Montevideo
+    language_code: '2058'
+    country_code: UY
+    language_iso: 'es'
+  co10:
+    id: 10
+    name: Paraguay
+    cities:
+      ci1:
+        id: 1
+        name: Asunción
+    language_code: '2058'
+    country_code: PY
+    language_iso: 'es'
+  co11:
+    id: 11
+    name: Bolivia
+    cities:
+      ci1:
+        id: 1
+        name: La Paz
+    language_code: '2058'
+    country_code: BO
+    language_iso: 'es'
+  co12:
+    id: 12
+    name: El Salvador
+    cities:
+      ci1:
+        id: 1
+        name: San Salvador
+    language_code: '2058'
+    country_code: SV
+    language_iso: 'es'
+  co13:
+    id: 13
+    name: Guatemala
+    cities:
+      ci1:
+        id: 1
+        name: Ciudad de Guatemala
+    language_code: '2058'
+    country_code: GT
+    language_iso: 'es'
+  co14:
+    id: 14
+    name: Honduras
+    cities:
+      ci1:
+        id: 1
+        name: Tegucigalpa
+    language_code: '2058'
+    country_code: HN
+    language_iso: 'es'
+  co15:
+    id: 15
+    name: Nicaragua
+    cities:
+      ci1:
+        id: 1
+        name: Managua
+    language_code: '2058'
+    country_code: NI
+    language_iso: 'es'
+  co16:
+    id: 16
+    name: Panamá
+    cities:
+      ci1:
+        id: 1
+        name: Ciudad de Panamá
+    language_code: '2058'
+    country_code: PA
+    language_iso: 'es'
+  co17:
+    id: 17
+    name: República Dominicana
+    cities:
+      ci1:
+        id: 1
+        name: Santo Domingo
+    language_code: '2058'
+    country_code: DO
+    language_iso: 'es'
+  co18:
+    id: 18
+    name: Puerto Rico
+    cities:
+      ci1:
+        id: 1
+        name: San Juan
+    language_code: '2058'
+    country_code: PR
+    language_iso: 'es'
+  co19:
+    id: 19
+    name: España
+    cities:
+      ci1:
+        id: 1
+        name: Alicante
+      ci2:
+        id: 2
+        name: Badalona
+      ci3:
+        id: 3
+        name: Barcelona
+      ci4:
+        id: 4
+        name: Bilbao
+      ci5:
+        id: 5
+        name: Córdoba
+      ci6:
+        id: 6
+        name: Granada
+      ci7:
+        id: 7
+        name: Madrid
+      ci8:
+        id: 8
+        name: Málaga
+      ci9:
+        id: 9
+        name: Salamanca
+      ci10:
+        id: 10
+        name: San Sebastián
+      ci11:
+        id: 11
+        name: Santiago de Compostela
+      ci12:
+        id: 12
+        name: Sevilla
+      ci13:
+        id: 13
+        name: Valencia
+      ci14:
+        id: 14
+        name: Vitoria
+    language_code: '2058'
+    country_code: ES
+    language_iso: 'es'
+  co20:
+    id: 20
+    name: Portugal
+    cities:
+      ci1:
+        id: 1
+        name: Lisboa
+      ci2:
+        id: 2
+        name: Porto
+    language_code: '1046'
+    country_code: PT
+    language_iso: 'pt'
+  co21:
+    id: 21
+    name: Ecuador
+    cities:
+      ci1:
+        id: 1
+        name: Quito
+      ci2:
+        id: 2
+        name: Guayaquil
+    language_code: '2058'
+    country_code: EC
+    language_iso: 'es'
+  co22:
+    id: 22
+    name: Costa Rica
+    cities:
+      ci1:
+        id: 1
+        name: San José
+    language_code: '2058'
+    country_code: CR
+    language_iso: 'es'
+default_country_code: 'MX'
+default_language_code: '2058'
+default_language_iso: 'es'

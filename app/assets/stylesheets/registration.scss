@@ -1,0 +1,46 @@
+.registration-form{ 
+  width: -webkit-fill-available;
+  
+  select{
+    height: 31px;
+    font-size: 14px;
+    margin: 0 0 12px 0;
+    padding: 5px 22px 5px 5px;
+  }
+
+  .row{
+    margin: 0 -6px;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    
+    .column{
+      padding: 0 6px;
+    }
+  }
+  label{
+    line-height: 2.3;
+    font-size: 14px;
+    color: #4d4d4d;
+    font-weight: 500;
+  }
+
+  .button{
+    width: auto;
+    background: #00b2b2;
+    border: 1px solid #006565;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset;
+    font-family: "Helvetica Neue","Helvetica",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+    padding: 10px 20px 11px;
+    outline: none;
+  }
+}
+.right{ 
+  float: right;
+  @media #{$mediaSmall} {
+    float: left;
+  }
+}
