@@ -86,6 +86,8 @@ a.glyph, a.glyph * {
 h1, h2, h3, h4, h5, h6{
   font-family:"Open Sans";
   color:darken($mainColor, 25%);
+  margin-bottom: 14px;
+  margin-top: 14px;
 }
 
 ul, ol{
@@ -101,7 +103,7 @@ div.panel.callout{
   box-shadow: none;
   h1, h2, h3, h4, h5, h6{
     color:#fff;
-    //@include text-shadow(0 -1px rgba(0, 0, 0, 0.3));
+    text-shadow: 0 -1px rgba(0,0,0,0.3);
   }
   a{
     color:$highlightColor;
@@ -120,9 +122,12 @@ div.panel.callout{
   }
   span {
     text-align: center;
+    text-shadow: 0 -1px rgba(0,0,0,0.3);
   }
   .pending_money h2{
-    //@include text-shadow(2px 2px darken($sidebarColor, 15%));
+    text-shadow: 2px 2px #15425f;
+    font-weight: bold;
+    font-size: 37px;
   }
   &.payment-info{
     background: darken($sidebarColor, 8%);
@@ -135,6 +140,7 @@ div.panel.callout{
       margin-bottom: 18px;
       list-style-type: none;
     }
+    ul{ margin-left: 0px; }
   }
   .button{
     &.payment-button{
@@ -313,6 +319,15 @@ form{
     }
   }
 }
+
+.green-button{
+  background: #00b2b2;
+  border: 1px solid #006565;
+  -webkit-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+}
+
+.left{ float: left; }
+.right{ float: right; }
 
 /* -----------------------------------------
    Header and Footer
@@ -538,7 +553,82 @@ form{
       }
     }
   }
+}
 
+.header-nav-menu{
+  margin: auto;
+}
+
+.language-mobile{
+  display: none;
+}
+nav{
+  width: 100%;
+
+  ul{
+    margin: 0 auto;
+    padding: 0;
+    margin-top: 65px;
+  }
+
+  ul li{
+    list-style: none;
+    display: inline-block;
+    padding: 0 15px;
+
+    &.language{ float: right; }
+  }
+
+  a{
+    text-decoration: none;
+    font-weight: bold;
+    color: #4c4c4c;
+    font-size: 14px;
+  }
+
+  .toggle{
+    width: 100%;
+    padding: 10px 10px;
+    text-align: right;
+    box-sizing: border-box;
+    
+    font-size: 30px;
+    display: none;
+  }
+
+  button{
+    background: none !important;
+    border: none !important;
+  }
+  .user-name{ 
+    color: #4c4c4c;
+  }
+
+  .dropdown-menu-mobile{ 
+    display: none;
+  }
+  .dropdown-menu{
+    display: block;
+  }
+
+  .language.dropdown.button{
+    display: block;
+  }
+
+  .home-language{
+    .dropdown-menu{
+      text-align: -webkit-auto;
+    }
+  }
+
+  .nav-item{
+    font-size: 14px;
+    padding: 12px;
+  }
+
+  .nav-sub-item{
+    background: #eee;
+  }
 }
 
 /**/
@@ -561,8 +651,6 @@ form{
       color: #4c4c4c;
     }
   }
-  .left{ float: left; }
-  .right{ float: right; }
   .save_the_children{
     //@include logos(save_the_children);
     margin: 17px 17px 0;

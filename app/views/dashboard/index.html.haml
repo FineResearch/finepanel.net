@@ -1,0 +1,23 @@
+.row#main-content
+  .small-12.medium-12.columns
+    .row.main
+      #sidebar.small-12.medium-4.columns.updates.medium-push-8
+        .row
+          .columns.small-12.medium-12
+            = render 'payment_panel'
+            #invite
+      #main.small-12.medium-8.columns.medium-pull-4
+        .medium-12.columns
+          #participate_btn_text.hide
+            = t('dashboard.participate')
+          #project_text.hide
+            = t('dashboard.project')
+        #available-surveys.medium-12.columns
+          %h4= t('dashboard.survey_list.available_surveys')
+        #survey-history.medium-12.columns
+          .row
+    .row
+      .small-12.medium-8.columns
+      .small-12.medium-4.columns
+        #faq-sidebar
+          = render 'faq_sidebar'

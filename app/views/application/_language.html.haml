@@ -11,3 +11,10 @@
         = link_to content_tag(:span, "") + "Español", url_for( locale: 'es' ), class: "flag esp"
       %li
         = link_to content_tag(:span, "")+ "English", 'http://www.fine-research.com/', class: "flag eng"
+
+.language-mobile
+  %ul
+    %li.nav-item
+      = link_to content_tag(:span, "") + "Português", url_for( locale: 'pt' ), class: "flag port flag-port-mobile"
+    %li.nav-item
+      = link_to content_tag(:span, "") + "Español", url_for( locale: 'es' ), class: "flag esp flag-port-mobile"

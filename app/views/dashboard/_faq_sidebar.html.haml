@@ -1,0 +1,12 @@
+#faq-questions
+  %h5
+    = t('faq.page_title')
+  %ul
+    %li
+      = link_to t('faq.questions.q1'), faq_url()
+    %li
+      = link_to t('faq.questions.q2'), faq_url()
+    %li
+      = link_to t('faq.questions.q3'), faq_url()
+  %div.text-center
+    = link_to t('faq.all_questions'), faq_url, class: 'green-button button small'
