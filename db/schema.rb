@@ -10,10 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_04_11_145959) do
+ActiveRecord::Schema.define(version: 2019_05_02_171206) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "survey_links", force: :cascade do |t|
+    t.string "project_id", default: "", null: false
+    t.string "resp_id", default: "", null: false
+    t.string "spanel", default: "", null: false
+    t.string "link", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "encrypted_email", default: "", null: false
@@ -23,6 +32,7 @@ ActiveRecord::Schema.define(version: 2019_04_11_145959) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["encrypted_email"], name: "index_users_on_encrypted_email", unique: true
+    t.index ["spanel"], name: "index_users_on_spanel"
   end
 
 end

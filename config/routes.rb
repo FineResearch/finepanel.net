@@ -3,7 +3,6 @@ Rails.application.routes.draw do
   authenticated :user do
     root to: 'dashboard#index'
   end
-  
   root to: 'home#index'
 
   get 'faq', to: 'home#faq'
