@@ -1,0 +1,8 @@
+- if flash.keys.any?
+  .row.collapse
+    .columns.small-8.small-centered
+      - flash.each do |key, value|
+        .alert-box{ :class => key.in?(%i(alert error)) ? 'error' : '' }
+          = value
+          = link_to('&times;'.html_safe, '#', :class => 'close')
+          

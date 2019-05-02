@@ -7,12 +7,16 @@ AllCops:
     - 'Gemfile'
     - 'test/**/*'
     - 'vendor/**/*'
+    - 'app/helpers/application_helper.rb'
 
 Metrics/LineLength:
-  Max: 100
+  Max: 120
 
 Metrics/ClassLength:
   Max: 150
+
+Metrics/AbcSize:
+  Max: 18
 
 Documentation: 
   Enabled: false

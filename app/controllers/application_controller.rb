@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class ApplicationController < ActionController::Base
+  protect_from_forgery
   before_action :set_locale
 
   def set_locale
@@ -10,6 +11,19 @@ class ApplicationController < ActionController::Base
 
   def default_url_options(_options = {})
     { locale: cookies[:locale] || I18n.locale }
+  end
+
+  def current_user
+    user = super
+    user.email = session[:user_email] if user.present?
+    user
+  end
+
+  protected
+
+  def after_sign_in_path_for(resource)
+    session[:user_email] = resource.email
+    super
   end
 
   private

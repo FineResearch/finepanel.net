@@ -5,29 +5,55 @@
         .columns.small-12.medium-3
           %h1#logo
             = link_to(content_tag(:span, "Finepanel"), root_path)
-        .columns.small-12.medium-9
-          .row#login
-            %form.columns.small-12.medium-7
-              .row
-                .columns.small-12.medium-5.mobile-four
-                  %input#email{ name: "email", placeholder: t('forms.email'), type: "text" }/
-                .columns.small-12.medium-5.mobile-four
-                  %input#password.right{ name: "password", placeholder: t('forms.password'), type: "password", :value => "" }/
-                .columns.small-12.medium-2.mobile-four
-                  %button.button.small{ name: "button", type: "submit" } Ingresar
-              .row
-                .columns.small-12.medium-6.mobile-two
-                  %label.grey
-                    = check_box_tag :remember_me
-                    = t('forms.remember')
-                .columns.small-12.medium-6.mobile-two
-                  %label
-                    = link_to(content_tag(:span, t('header.forgot_password')), root_path)
+        - unless user_signed_in?
+          .columns.small-12.medium-9
+            .row#login
+              = form_for(User.new, as: :user, url: session_path(:user), html: { class: 'columns small-7' } ) do |f|
+                .row
+                  .columns.small-12.medium-5.mobile-four
+                    = f.email_field :email, autocomplete: "email", placeholder: t('forms.email'), id: 'email'
+                  .columns.small-12.medium-5.mobile-four
+                    = f.password_field :password, autocomplete: "current-password", placeholder: t('forms.password'), class: 'right'
+                  .columns.small-12.medium-2.mobile-four
+                    = f.submit t('header.login'), class: "button small btn-login"
+                .row
+                  .columns.small-12.medium-6.mobile-two
+                    %label.grey
+                      = check_box_tag :remember_me
+                      = t('forms.remember')
+                  .columns.small-12.medium-6.mobile-two
+                    %label
+                      = link_to(content_tag(:span, t('header.forgot_password')), root_path)
 
-            .links.columns.small-12.medium-5.padding-home
-              .row.collapse
-                .columns.small-12.medium-3.mobile-two
+              .links.columns.small-12.medium-5.padding-home
+                .row.collapse
+                  .columns.small-12.medium-3.mobile-two
+                    .home-language
+                      = render "language"
+                  .columns.small-12.medium-7.mobile-two#new-account
+                    = link_to t('header.get_an_account'), root_path, class: "button secondary round small"
+        - else
+          .columns.small-12.medium-9
+            .navigation
+              %ul.nav-bar.left.ul-signed-in
+                %li.has-flyout.li-signed-in.nav-item
+                  .dropdown
+                    = button_tag class: 'dropdown-toggle user-name', data: { toggle: 'menu' } do
+                      = current_user.email
+                    .dropdown-menu
+                      %ul.flyout
+                        %li
+                          = link_to t('header.logout'), destroy_user_session_path, method: :delete
+                %li.nav-item
+                  %a{:href => root_path}
+                    = t ('header.support')
+                %li.nav-item
+                  %a{:href => root_path}
+                    = t ('header.my_areas_of_interest')
+
+                %li.nav-item
+                  %a{:href => root_path}
+                    = t "header.news"
+                %li.language
                   .home-language
                     = render "language"
-                .columns.small-12.medium-7.mobile-two#new-account
-                  = link_to t('header.get_an_account'), root_path, class: "button secondary round small"
