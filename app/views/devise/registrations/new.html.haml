@@ -1,0 +1,7 @@
+.row.inner-content
+  .columns.small-12.medium-12
+    %h3
+      = t('registrations.register')
+    %hr
+    .row.collapse
+      = render 'form', user: @user, method: :post

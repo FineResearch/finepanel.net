@@ -18,6 +18,7 @@
 //= require foundation
 //= require responsive-tables
 //= require home
+//= require registrations
 //= require_self
 
 

@@ -1,3 +1,4 @@
+.row{ max-width: 1000px; }
 .inner-row{
   padding: 0;
 }
@@ -284,6 +285,7 @@ div.alert-box {
     opacity: 0.2;
     padding: 4px;
   }
+  &.alert{ background-color: #de2b0f; }
 }
 
 /* Errors */
@@ -300,7 +302,17 @@ div.alert-box {
   line-height: 2em;
 }
 
-
+form{
+  margin: 0 0 19.41641px;
+  input{
+    &[type="text"], &[type="password"], &[type="email"]{
+      height: 31px;
+      border-radius: 2px;
+      font-size: 14px;
+      margin: 0 0 12px 0;
+    }
+  }
+}
 
 /* -----------------------------------------
    Header and Footer
@@ -361,15 +373,6 @@ div.alert-box {
     margin-left: 20px;
     width: auto;
     form{
-      margin: 0 0 19.41641px;
-      input{
-        &[type="text"], &[type="password"], &[type="email"]{
-          margin-bottom:5px;
-          height: 31px;
-          border-radius: 2px;
-          font-size: 14px;
-        }
-      }
       button{
         .small{
           color: #fff;
@@ -913,6 +916,20 @@ div.alert-box {
   }
 }
 
+h3, h4, h5{ font-weight: bold; }
+h3{
+  font-size: 27px;
+  margin-bottom: 14px;
+  margin-top: 14px;
+}
+h5{
+  font-size: 17px;
+  line-height: 1.1;
+  margin-bottom: 14px;
+  margin-top: 14px;
+}
+h4{ font-size: 23px; }
+
 #faq{
   display: block;
   padding: 0px 20px;
@@ -924,20 +941,6 @@ div.alert-box {
       line-height:16px;
     }
   }
-  
-  h3, h4, h5{ font-weight: bold; }
-  h3{
-    font-size: 27px;
-    margin-bottom: 14px;
-    margin-top: 14px;
-  }
-  h5{
-    font-size: 17px;
-    line-height: 1.1;
-    margin-bottom: 14px;
-    margin-top: 14px;
-  }
-  h4{ font-size: 23px; }
   ul{ list-style-type: none; }
   li{
     line-height: 16px;
@@ -954,7 +957,6 @@ div.alert-box {
   position: fixed;
   bottom: 30px;
   right: 10px;
-  display: none;
   a, a * {
     cursor: pointer;
   }

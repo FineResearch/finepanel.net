@@ -1,0 +1,7 @@
+.alert-box.alert
+  %ul.disc.small
+    - messages.each do |error|
+      %li
+        = error
+  =link_to('&times;'.html_safe, '#', class: 'close')
+  
