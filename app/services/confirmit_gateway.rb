@@ -21,6 +21,29 @@ class ConfirmitGateway
       get_active_surveys_for_user(surveys)
     end
 
+    def get_payments_for_user(user)
+      user_url = user_profile_url(user)
+      response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
+
+      p_list = Nokogiri::HTML.parse(response.body).xpath('//p')
+      return nil unless p_list[1].present?
+      return nil unless p_list[1].children[0].present?
+
+      parse_payment_attrs(p_list[1].children[0])
+    end
+
+    def parse_payment_attrs(attrs)
+      user_attrs =  attrs.text.split('&').map { |user_attr| user_attr.split('=') }
+      total_payments = user_attrs.select { |attr| attr[0] == 'totalpagos' }[0]
+      credit = user_attrs.select { |attr| attr[0] == 'credito' }[0]
+      total = total_payments[1].to_i + credit[1].to_i
+      {
+        total_payments: total_payments[1],
+        credit: credit[1],
+        total: total.to_s
+      }
+    end
+
     def user_profile_url(user)
       user.user_profile_url(user.email)
     end
