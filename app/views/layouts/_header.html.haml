@@ -1,8 +1,8 @@
 .row.margin-home
-  .twelve.columns
+  .medium-12.columns
     #header
-      .row
-        .columns.small-12.medium-3
+      .row.header-row
+        .div
           %h1#logo
             = link_to(content_tag(:span, "Finepanel"), root_path)
         - unless user_signed_in?
@@ -33,8 +33,11 @@
                   .columns.small-12.medium-7.mobile-two#new-account
                     = link_to t('header.get_an_account'), new_user_registration_path, class: "button secondary round small"
         - else
-          .columns.small-12.medium-9
-            .navigation
+          .header-nav-menu
+            %nav
+              .toggle
+                %li.toggle-topbar.menu-icon.header-menu
+                  %a{href: ""}
               %ul.nav-bar.left.ul-signed-in
                 %li.has-flyout.li-signed-in.nav-item
                   .dropdown
@@ -44,6 +47,11 @@
                       %ul.flyout
                         %li
                           = link_to t('header.logout'), destroy_user_session_path, method: :delete
+                    .dropdown-menu-mobile
+                      %ul
+                        %li.nav-item.nav-sub-item
+                          = link_to t('header.logout'), destroy_user_session_path, method: :delete
+
                 %li.nav-item
                   %a{:href => root_path}
                     = t ('header.support')

@@ -1,6 +1,6 @@
 .registration-form{ 
   width: -webkit-fill-available;
-  
+
   select{
     height: 31px;
     font-size: 14px;
@@ -37,10 +37,11 @@
     padding: 10px 20px 11px;
     outline: none;
   }
-}
-.right{ 
-  float: right;
-  @media #{$mediaSmall} {
-    float: left;
+  
+  .right{ 
+    float: right;
+    @media #{$mediaSmall} {
+      float: left;
+    }
   }
 }

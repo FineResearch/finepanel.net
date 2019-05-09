@@ -1,0 +1,274 @@
+// Place all the styles related to the dashboard controller here.
+// They will automatically be included in application.css.
+// You can use Sass (SCSS) here: http://sass-lang.com/
+
+form#new_post {
+  ul.tabs-content {
+    margin: 0;
+    hr.first-separator {
+      display: block;
+    }
+  }
+}
+#invite{
+  margin: 25px 0 0 0;
+  .button{
+    width: 100%;
+    background-color: transparent;
+    border: 1px solid $white;
+    border-radius: 3px;
+    line-height: 35px;
+    font-size: 17px;
+    &:hover{
+      background-color: darken($mainColor, 2%) !important;
+    }
+  }
+}
+#survey-history{
+  background-color: $white;
+  table{
+    margin-top: 15px;
+    border: none;
+    border-radius: 0;
+    td{
+      font-size: 13px;
+      height: 70px;
+    }
+  }
+  h4 {
+    margin-top: 0;
+    color: #4c4c4c;
+    padding: 10px;
+  }
+}
+#new-message{
+  a{
+    border-radius: 3px;
+    margin-top:12px;
+  }
+}
+#main-content{
+  .main{
+    padding: 15px 0;
+    background-color: $mainColor;
+    margin-bottom: 20px;
+  }
+  #available-surveys, #wall-comments {
+    padding: 0;
+    background-color: white;
+    margin-bottom: 25px;
+    h4 {
+      margin-top: 0;
+      color: #4c4c4c;
+      padding: 10px;
+    }
+    .loading{
+      margin-left: 15px;
+    }
+  }
+  table{
+    margin-top: 15px;
+    margin-bottom: 0;
+    border: none;
+    border-radius: 0;
+    border-collapse: collapse;
+    tbody tr:nth-child(even) {
+      background: $lightGrey;
+    }
+    td{
+      vertical-align: middle;
+    }
+  }
+  .button{
+    &.answer{
+      background-color: $sidebarColor;
+      border: 1px solid darken($sidebarColor, 3%);
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    &:hover{
+      background-color: darken($sidebarColor, 5%)
+    }
+  }
+  div{
+    &.subject{
+      color: $sidebarColor;
+      font-size: 17px;
+      font-weight: bold;
+      &:first-letter{
+        text-transform: uppercase;
+      }
+    }
+    &.code{
+      margin-top: 2px;
+      font-size: 13px;
+      span.time{
+        font-style: italic;
+        margin-left: 10%;
+      }
+    }
+  }
+  #survey_list_small{
+    width: 100%;
+    td{
+      height: 70px;
+      width: 70%;
+    }
+  }
+}
+#faq-sidebar{
+  content: "faq sidebar";
+}
+#faq-questions{
+  background-color: $lightGrey;
+  padding: 15px;
+  h5{
+    color: $black;
+  }
+  ul{
+    margin-top: 15px;
+    margin-left: 0px;
+  }
+  li{
+    list-style: none;
+    margin-bottom: 5px;
+    margin-top: 10px;
+  }
+  a{
+    color: $mainColor;
+    font-size: 12px;
+    font-weight: 400;
+    &:hover{
+      color: darken($mainColor, 8%);
+    }
+    &.button{
+      color: $white;
+      border-radius: 3px;
+      text-align: center;
+      font-weight: bold;
+    }
+  }
+  .button{
+    &:hover{
+      background-color: darken($mainColor, 3%);
+    }
+  }
+
+}
+#faq_support{
+  padding: 10px;
+  background-color: $mainColor;
+  a{
+    background-image: url('icon-support-white.png');
+    background-repeat: no-repeat;
+    background-position: 7px 50%;
+    margin: 0 20px;
+    border: 1px solid $white;
+    display: block;
+    text-align: center;
+    padding: 25px;
+    &:hover{
+      background-color: darken($mainColor, 3%);
+    }
+  }
+  .button{
+    &:hover{
+      background-color: darken($mainColor, 3%);
+    }
+  }
+  span{
+    margin-left: 17px;
+    font-size: 14px;
+  }
+}
+
+#campaigns-sidebar{
+  border: 1px solid #d3d3d3;
+  margin-top: 20px;
+  h5{
+    color: black;
+  }
+  .campaign-image{
+    width: 100%;
+    background-color: white;
+  }
+  .button{
+    margin-top: 15px;
+  }
+  a{
+    font-size: 11px;
+    margin-top: -30px;
+    color: #4c4c4c;
+  }
+}
+
+#campaings-info {
+  ul{
+    margin: 20px;
+  }
+  h5{
+    margin-left: 15px;
+  }
+  li{
+    list-style: none;
+    margin: 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid $lightGrey;
+  }
+  li:last-child{
+    border-bottom: none;
+  }
+}
+
+#stc-letter-sidebar {
+    border: 1px solid #d3d3d3;
+    margin-top: 20px;
+    p {
+      margin-bottom: 0px;
+    }
+}
+
+#history_payment_table{
+  border-collapse: collapse;
+  tr.payment-row{
+    background-color: lighten(#98bbd3, 20%);
+  }
+   width: 100%;
+  th {
+    font-size: 15px;
+  }
+  .today-credits{
+    background-color: #f2dede;
+  }
+}
+#history_payment_modal{
+  small.history-disclaimer{
+    font-size: 12px;
+    color: #FF4136;
+  }
+}
+#support-link{
+  color: #98bbd3;
+  margin-top: 20px;
+  text-align: center;
+  text-decoration: underline;
+  &:hover{
+    color: lighten(#98bbd3, 5%);
+  }
+}
+#stc-letter-modal{
+  top: 0px;
+}
+
+iframe {
+  border: 0px none;
+  margin-left: -176px;
+  height: 1101px;
+  margin-top: -485px;
+  width: 926px;
+  -ms-transform: scale(0.25);
+  -moz-transform: scale(0.25);
+  -o-transform: scale(0.25);
+  -webkit-transform: scale(0.25);
+  transform: scale(0.67);
+}

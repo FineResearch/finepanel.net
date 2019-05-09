@@ -131,10 +131,9 @@ $(document).on('ready turbolinks:load', function() {
   $('.button.dropdown.up.small > ul').css('top', 'auto').css('bottom', smallButtonHeight - 2);
   $('.button.dropdown.up.tiny > ul').css('top', 'auto').css('bottom', tinyButtonHeight - 2);
 
-  $( ".menu" ).click(function() {
-    $(".navigation").toggleClass("open")
-  });
-
+  $(".header-menu").click(function(){
+    $("ul").toggleClass("active");
+  })
 
   $(function(){ $(document).foundation(); });
 
