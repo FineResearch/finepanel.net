@@ -30,4 +30,13 @@ class User < ApplicationRecord
     val = ((val - 240) / 370 * 10_000).floor
     val.to_s
   end
+
+  def user_profile_url(email)
+    respid = hash_respid.to_i - User.automated_password(email).to_i
+    ConfigurationReader.user_profile_path + '&r=' + respid.to_s + '&s=' + spanel
+  end
+
+  def surveys
+    ConfirmitGateway.get_surveys_for_user(self)
+  end
 end

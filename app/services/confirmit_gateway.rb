@@ -13,6 +13,63 @@ class ConfirmitGateway
       sanitize_user_params(params, user_params)
     end
 
+    def get_surveys_for_user(user)
+      user_url = user_profile_url(user)
+      response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
+      surveys = get_surveys_from_response(response.body).to_a
+
+      get_active_surveys_for_user(surveys)
+    end
+
+    def user_profile_url(user)
+      user.user_profile_url(user.email)
+    end
+
+    def get_surveys_from_response(raw_response)
+      p_list = Nokogiri::HTML.parse(raw_response).xpath('//p')
+      return nil unless p_list[2].present?
+      return nil unless p_list[2].children[0].present?
+
+      parse_projects_attrs(p_list[2].children[0])
+    end
+
+    def parse_projects_attrs(projects)
+      projects.text.split('///').map { |survey| survey.split(';') }.map do |survey|
+        {
+          project_id: survey[0],
+          name: survey[3],
+          resp_id: survey[5]
+        }
+      end
+    end
+
+    def get_active_surveys_for_user(surveys)
+      survey_links = SurveyLink.none
+      surveys.each do |survey|
+        survey_links = survey_links.or(SurveyLink.where(project_id: survey[:project_id], resp_id: survey[:resp_id]))
+      end
+      survey_links = survey_links.group_by(&:project_id)
+
+      valid_surveys(surveys, survey_links)
+    end
+
+    def valid_surveys(surveys, survey_links)
+      result = []
+      surveys.each do |survey|
+        survey_link  = survey_links[survey[:project_id]]&.first
+        next if survey_link.blank? || !survey_link.valid_link?
+
+        survey[:link] = survey_link.link
+        result << survey
+      end.compact
+      result
+    end
+
+    def valid_survey_link?(link)
+      response = Net::HTTP.post_form(URI(link), 'q' => 'ruby', 'max' => '50')
+      response.body.downcase.include?('legalmente') && response.code != 404
+    end
+
     def sanitize_params_for_create(params)
       {
         emailr: params[:email],

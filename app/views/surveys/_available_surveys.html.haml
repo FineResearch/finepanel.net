@@ -1,0 +1,15 @@
+%table
+  %tbody
+    - if @survey_list.any?
+      - @survey_list.each do |survey|
+        %tr
+          %td
+            = survey[:project_id]
+          %td
+            = survey[:name]
+          %td
+            = link_to "Participe!", survey[:link], target: :_blank
+    - else
+      %tr
+        %td{colspan: 5}
+          = t('dashboard.survey_list.there_is_no_information_about_surveys_to_show')
