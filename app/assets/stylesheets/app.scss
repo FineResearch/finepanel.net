@@ -629,6 +629,10 @@ nav{
   .nav-item{
     font-size: 14px;
     padding: 12px;
+
+    .logout-item{
+      width: -webkit-fill-available;
+    }
   }
 
   .nav-sub-item{

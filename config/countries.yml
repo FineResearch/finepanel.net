@@ -63,6 +63,7 @@ countries:
     language_code: '1046'
     country_code: BR
     language_iso: 'pt'
+    currency: 'R$'
   co2:
     id: 2
     name: México
@@ -145,6 +146,7 @@ countries:
     language_code: '2058'
     country_code: MX
     language_iso: 'es'
+    currency: '$Mx'
   co3:
     id: 3
     name: Argentina
@@ -215,6 +217,7 @@ countries:
     language_code: '2058'
     country_code: AR
     language_iso: 'es'
+    currency: '$Ar'
   co4:
     id: 4
     name: Chile
@@ -285,6 +288,7 @@ countries:
     language_code: '2058'
     country_code: CL
     language_iso: 'es'
+    currency: '$Cl'
   co5:
     id: 5
     name: Colombia
@@ -352,6 +356,7 @@ countries:
     language_code: '2058'
     country_code: CO
     language_iso: 'es'
+    currency: '$Col'
   co6:
     id: 6
     name: Venezuela
@@ -419,6 +424,7 @@ countries:
     language_code: '2058'
     country_code: VE
     language_iso: 'es'
+    currency: 'Bol.'
   co7:
     id: 7
     name: Null Island
@@ -442,6 +448,7 @@ countries:
     language_code: '2058'
     country_code: PE
     language_iso: 'es'
+    currency: 'Soles '
   co9:
     id: 9
     name: Uruguay
@@ -452,6 +459,7 @@ countries:
     language_code: '2058'
     country_code: UY
     language_iso: 'es'
+    currency: '$Uy'
   co10:
     id: 10
     name: Paraguay
@@ -462,6 +470,7 @@ countries:
     language_code: '2058'
     country_code: PY
     language_iso: 'es'
+    currency: 'Guaranies '
   co11:
     id: 11
     name: Bolivia
@@ -472,6 +481,7 @@ countries:
     language_code: '2058'
     country_code: BO
     language_iso: 'es'
+    currency: '$Bol'
   co12:
     id: 12
     name: El Salvador
@@ -482,6 +492,7 @@ countries:
     language_code: '2058'
     country_code: SV
     language_iso: 'es'
+    currency: 'USD'
   co13:
     id: 13
     name: Guatemala
@@ -492,6 +503,7 @@ countries:
     language_code: '2058'
     country_code: GT
     language_iso: 'es'
+    currency: 'USD'
   co14:
     id: 14
     name: Honduras
@@ -502,6 +514,7 @@ countries:
     language_code: '2058'
     country_code: HN
     language_iso: 'es'
+    currency: 'USD'
   co15:
     id: 15
     name: Nicaragua
@@ -512,6 +525,7 @@ countries:
     language_code: '2058'
     country_code: NI
     language_iso: 'es'
+    currency: 'USD'
   co16:
     id: 16
     name: Panamá
@@ -522,6 +536,7 @@ countries:
     language_code: '2058'
     country_code: PA
     language_iso: 'es'
+    currency: 'USD'
   co17:
     id: 17
     name: República Dominicana
@@ -532,6 +547,7 @@ countries:
     language_code: '2058'
     country_code: DO
     language_iso: 'es'
+    currency: 'USD'
   co18:
     id: 18
     name: Puerto Rico
@@ -542,6 +558,7 @@ countries:
     language_code: '2058'
     country_code: PR
     language_iso: 'es'
+    currency: 'USD'
   co19:
     id: 19
     name: España
@@ -591,6 +608,7 @@ countries:
     language_code: '2058'
     country_code: ES
     language_iso: 'es'
+    currency: 'EUR'
   co20:
     id: 20
     name: Portugal
@@ -604,6 +622,7 @@ countries:
     language_code: '1046'
     country_code: PT
     language_iso: 'pt'
+    currency: 'EUR'
   co21:
     id: 21
     name: Ecuador
@@ -617,6 +636,7 @@ countries:
     language_code: '2058'
     country_code: EC
     language_iso: 'es'
+    currency: 'Sucres '
   co22:
     id: 22
     name: Costa Rica
@@ -627,6 +647,7 @@ countries:
     language_code: '2058'
     country_code: CR
     language_iso: 'es'
+    currency: 'USD'
 default_country_code: 'MX'
 default_language_code: '2058'
 default_language_iso: 'es'

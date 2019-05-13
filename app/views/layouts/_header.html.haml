@@ -45,7 +45,7 @@
                       = current_user.email
                     .dropdown-menu
                       %ul.flyout
-                        %li
+                        %li.logout-item
                           = link_to t('header.logout'), destroy_user_session_path, method: :delete
                     .dropdown-menu-mobile
                       %ul

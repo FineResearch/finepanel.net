@@ -79,8 +79,12 @@ form#new_post {
     td{
       vertical-align: middle;
     }
+    tbody{
+      border: none;
+    }
   }
   .button{
+    -webkit-box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset;
     &.answer{
       background-color: $sidebarColor;
       border: 1px solid darken($sidebarColor, 3%);
@@ -117,6 +121,18 @@ form#new_post {
     }
   }
 }
+
+.survey-info{
+  width: 70%;
+}
+.survey-list-btn{
+  width: 30%;
+  text-align: right;
+  .survey-item-btn{
+    margin-bottom: 0px;
+  }
+}
+      
 #faq-sidebar{
   content: "faq sidebar";
 }

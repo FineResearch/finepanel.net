@@ -1,14 +1,18 @@
 %table
   %tbody
+    %tr
     - if @survey_list.any?
       - @survey_list.each do |survey|
         %tr
-          %td
-            = survey[:project_id]
-          %td
-            = survey[:name]
-          %td
-            = link_to "Participe!", survey[:link], target: :_blank
+          %td.survey-info
+            .subject
+              = survey[:subject]
+            .code
+              = "#{survey[:name]}: "
+              %span.time 
+                = survey[:duration]
+          %td.survey-list-btn
+            = link_to "Participe! #{t('dashboard.participate')} #{survey[:fee]}", survey[:link], target: :_blank, class: "button small answer survey-item-btn"
     - else
       %tr
         %td{colspan: 5}
