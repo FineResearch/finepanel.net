@@ -3,7 +3,7 @@
     .small-12.medium-12.columns
       %span.pending_money
         %h2
-          $500
+          = "$#{@payment_info[:credit]}"
         %h5
           = t('dashboard.balance.pending')
 
@@ -15,9 +15,9 @@
           %span
             = t('dashboard.balance.paid')
           %span.right
-            $4,000
+            = "$#{@payment_info[:total_payments]}"
         %li
           %span
             = t('dashboard.balance.total_fees')
           %span.right
-            $4,500
+            = "$#{@payment_info[:total]}"

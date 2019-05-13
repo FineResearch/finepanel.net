@@ -39,4 +39,8 @@ class User < ApplicationRecord
   def surveys
     ConfirmitGateway.get_surveys_for_user(self)
   end
+
+  def payment_info
+    ConfirmitGateway.get_payments_for_user(self)
+  end
 end

@@ -611,9 +611,13 @@ nav{
     display: block;
   }
 
-  .language.dropdown.button{
+  .language.dropdown.button {
     display: block;
     margin-top: 5px;
+
+    &:active {
+      margin-top: 5px;
+    }
   }
 
   .home-language{
