@@ -13,6 +13,19 @@ module Users
       end
     end
 
+    def redirect_user_login
+      resource = User.find_from_respid_spanel_and_encrypted_email(params[:r], params[:s], params[:e])
+      if resource.present?
+        sign_in(resource_name, resource)
+        session[:respid] = params[:r]
+        session[:user_email] = resource.email
+        redirect_to root_path 
+      else
+        flash[:error] = t('messages.error.login')
+        redirect_to root_path
+      end
+    end
+
     def destroy
       super
       reset_session

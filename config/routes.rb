@@ -5,6 +5,10 @@ Rails.application.routes.draw do
   end
   root to: 'home#index'
 
+  devise_scope :user do
+    get 'users/redirect_user_login', to: 'users/sessions#redirect_user_login'
+  end
+  
   get 'faq', to: 'home#faq'
   get 'countries/cities/:country_id', to: 'countries#cities'
 end
