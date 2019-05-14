@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'net/http'
+require 'configuration_reader'
 
 class ConfirmitGateway
   class << self
@@ -36,16 +37,32 @@ class ConfirmitGateway
       user_attrs =  attrs.text.split('&').map { |user_attr| user_attr.split('=') }
       total_payments = user_attrs.select { |attr| attr[0] == 'totalpagos' }[0]
       credit = user_attrs.select { |attr| attr[0] == 'credito' }[0]
-      total = total_payments[1].to_i + credit[1].to_i
       {
         total_payments: total_payments[1],
         credit: credit[1],
-        total: total.to_s
+        total: (total_payments[1].to_i + credit[1].to_i).to_s
       }
     end
 
     def user_profile_url(user)
       user.user_profile_url(user.email)
+    end
+
+    def get_currency_for_user(user)
+      user_url = user_profile_url(user)
+      response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
+
+      p_list = Nokogiri::HTML.parse(response.body).xpath('//p')
+      return nil unless p_list[1].present?
+      return nil unless p_list[1].children[0].present?
+
+      user_attrs = p_list[1].children[0].text.split('&').map { |user_attr| user_attr.split('=') }
+      country_id = user_attrs.select { |attr| attr[0] == 'country_id' }[0]
+      currency_by_country(country_id[1])
+    end
+
+    def currency_by_country(country_id)
+      ConfigurationReader.currency(country_id)
     end
 
     def get_surveys_from_response(raw_response)
@@ -60,7 +77,6 @@ class ConfirmitGateway
       projects.text.split('///').map { |survey| survey.split(';') }.map do |survey|
         {
           project_id: survey[0],
-          name: survey[3],
           resp_id: survey[5]
         }
       end
@@ -80,17 +96,49 @@ class ConfirmitGateway
       result = []
       surveys.each do |survey|
         survey_link  = survey_links[survey[:project_id]]&.first
-        next if survey_link.blank? || !survey_link.valid_link?
+        next if survey_link.blank?
+
+        survey_data = survey_link.data_from_valid_survey
+        next unless survey_data.present?
 
         survey[:link] = survey_link.link
+
+        survey[:name] = survey_data[:name]
+        survey[:subject] = survey_data[:subject]
+        survey[:duration] = survey_data[:duration]
+        survey[:fee] = survey_data[:fee]
+        survey[:priority] = survey_data[:priority]
+
         result << survey
       end.compact
-      result
+
+      first_priority_surveys = result.select { |survey| survey[:priority] == '1' }
+      return first_priority_surveys if first_priority_surveys.present?
+
+      result.sort_by { |survey| survey['priority'] }
     end
 
     def valid_survey_link?(link)
       response = Net::HTTP.post_form(URI(link), 'q' => 'ruby', 'max' => '50')
       response.body.downcase.include?('legalmente') && response.code != 404
+    end
+
+    def data_from_valid_survey(link)
+      response = Net::HTTP.post_form(URI(link), 'q' => 'ruby', 'max' => '50')
+      return nil unless response.body.downcase.include?('legalmente') && response.code != 404
+
+      survey_data = Nokogiri::HTML.parse(response.body).xpath('//div[@id="Filtro_text"]').children[0].children[0]
+      sanitize_data_from_survey(survey_data)
+    end
+
+    def sanitize_data_from_survey(survey_data)
+      {
+        name: survey_data.children[1].text.split(': ')[1],
+        subject: survey_data.children[2].text.split(': ')[1],
+        duration: survey_data.children[4].text.split(': ')[1],
+        fee: survey_data.children[5].text.split(': ')[1],
+        priority: survey_data.children[6].text.split(': ')[1]
+      }
     end
 
     def sanitize_params_for_create(params)

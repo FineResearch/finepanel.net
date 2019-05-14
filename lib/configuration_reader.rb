@@ -32,6 +32,11 @@ module ConfigurationReader
     end
   end
 
+  def self.currency(country_id)
+    countries = load_config('countries', COUNTRY_FILE_NAME)
+    countries["co#{country_id}"]['currency']
+  end
+
   def self.user_profile_path
     load_config('user_profile_path', CONSTANTS_FILE_NAME)
   end
