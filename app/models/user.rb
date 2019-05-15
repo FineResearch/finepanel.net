@@ -20,6 +20,16 @@ class User < ApplicationRecord
     User.automated_password(email) == password ? user : nil
   end
 
+  def self.find_from_respid_spanel_and_encrypted_email(respid, spanel, encrypted_email)
+    user = find_by(spanel: spanel, encrypted_email: encrypted_email)
+    return nil unless user.present?
+    data = user.profile_data(respid)
+    user.email = data[:email]
+
+    user.hash_respid == (respid + automated_password(user.email)) ? user : nil
+    user
+  end
+
   def self.automated_password(email)
     # Algorithm used to create passwords inside confirmit
     span = email[2..6]
@@ -31,9 +41,23 @@ class User < ApplicationRecord
     val.to_s
   end
 
-  def user_profile_url(email)
-    respid = hash_respid.to_i - User.automated_password(email).to_i
+  def user_profile_url(respid)
     ConfigurationReader.user_profile_path + '&r=' + respid.to_s + '&s=' + spanel
+  end
+
+  def user_respid(email)
+    hash_respid.to_i - self.class.automated_password(email).to_i
+  end
+
+  def profile_data_from_email(email)
+    respid = hash_respid.to_i - self.class.automated_password(email).to_i
+    profile_data(respid)
+  end
+
+  def profile_data(respid)
+    @profile_data ||= ConfirmitGateway
+      .get_user_attrs_from_profile(user_profile_url(respid))
+      .with_indifferent_access
   end
 
   def surveys

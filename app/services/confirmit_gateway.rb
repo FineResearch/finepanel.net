@@ -14,55 +14,38 @@ class ConfirmitGateway
       sanitize_user_params(params, user_params)
     end
 
-    def get_surveys_for_user(user)
-      user_url = user_profile_url(user)
+    def get_surveys_for_user(user, respid)
+      user_url = user_profile_url(user, respid)
       response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
       surveys = get_surveys_from_response(response.body).to_a
 
       get_active_surveys_for_user(surveys)
     end
 
-    def get_payments_for_user(user)
-      user_url = user_profile_url(user)
-      response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
-
-      p_list = Nokogiri::HTML.parse(response.body).xpath('//p')
-      return nil unless p_list[1].present?
-      return nil unless p_list[1].children[0].present?
-
-      parse_payment_attrs(p_list[1].children[0])
-    end
-
-    def parse_payment_attrs(attrs)
-      user_attrs =  attrs.text.split('&').map { |user_attr| user_attr.split('=') }
-      total_payments = user_attrs.select { |attr| attr[0] == 'totalpagos' }[0]
-      credit = user_attrs.select { |attr| attr[0] == 'credito' }[0]
+    def get_payments_for_user(user_data)
       {
-        total_payments: total_payments[1],
-        credit: credit[1],
-        total: (total_payments[1].to_i + credit[1].to_i).to_s
+        total_payments: user_data[:totalpagos],
+        credit: user_data[:credito],
+        total: (user_data[:totalpagos].to_i + user_data[:credito].to_i).to_s
       }
     end
 
-    def user_profile_url(user)
-      user.user_profile_url(user.email)
-    end
-
-    def get_currency_for_user(user)
-      user_url = user_profile_url(user)
-      response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
+    def get_user_attrs_from_profile(url)
+      response = Net::HTTP.post_form(URI(url), 'q' => 'ruby', 'max' => '50')
 
       p_list = Nokogiri::HTML.parse(response.body).xpath('//p')
       return nil unless p_list[1].present?
-      return nil unless p_list[1].children[0].present?
-
-      user_attrs = p_list[1].children[0].text.split('&').map { |user_attr| user_attr.split('=') }
-      country_id = user_attrs.select { |attr| attr[0] == 'country_id' }[0]
-      currency_by_country(country_id[1])
+      return nil unless p_list[1].children[0].present? 
+      attrs = p_list[1].children[0].text.split('&').map { |user_attr| user_attr.split('=') }
+      Hash[attrs.map {|key, value| [key, value]}]
     end
 
-    def currency_by_country(country_id)
-      ConfigurationReader.currency(country_id)
+    def user_profile_url(user, respid)
+      user.user_profile_url(respid)
+    end
+
+    def get_currency_for_user(user_data)
+      ConfigurationReader.currency(user_data[:country_id])
     end
 
     def get_surveys_from_response(raw_response)

@@ -42,7 +42,7 @@
                 %li.has-flyout.li-signed-in.nav-item
                   .dropdown
                     = button_tag class: 'dropdown-toggle user-name', data: { toggle: 'menu' } do
-                      = current_user.email
+                      = session[:user_email]
                     .dropdown-menu
                       %ul.flyout
                         %li.logout-item

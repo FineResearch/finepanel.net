@@ -22,6 +22,7 @@ class ApplicationController < ActionController::Base
   protected
 
   def after_sign_in_path_for(resource)
+    session[:respid] = resource.user_respid(resource.email)
     session[:user_email] = resource.email
     super
   end
