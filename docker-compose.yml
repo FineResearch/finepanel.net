@@ -21,3 +21,9 @@ services:
       - $PWD/app:/usr/src/app
     depends_on:
       - postgres
+      - redis
+      - sidekiq
+  redis:
+    image: redis:latest
+    expose:
+      - 6379
