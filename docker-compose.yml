@@ -21,9 +21,19 @@ services:
       - $PWD/app:/usr/src/app
     depends_on:
       - postgres
-      - redis
       - sidekiq
+      - redis
   redis:
     image: redis:latest
     expose:
       - 6379
+
+  sidekiq:
+    build:
+      context: app
+    image: finepanel:latest
+    command: bundle exec sidekiq
+    depends_on:
+      - redis
+    volumes:
+      - $PWD/app:/usr/src/app
