@@ -1,0 +1,17 @@
+version: '3.5'
+
+services:
+
+  app:
+    build:
+      dockerfile: Dockerfile.dev
+      labels:
+        - "com.mooveit.description=Finepanel"
+        - "com.mooveit.department=mooveit"
+        - "com.mooveit.environment=dev"
+        - "com.mooveit.label-with-empty-value"
+    command: bash -c "bundle exec puma"
+    ports:
+      - 3000:3000
+    depends_on:
+      - postgres
