@@ -23,6 +23,7 @@ services:
       - postgres
       - sidekiq
       - redis
+
   redis:
     image: redis:latest
     expose:
@@ -32,7 +33,6 @@ services:
     build:
       context: app
     image: finepanel:latest
-    command: bundle exec sidekiq
     depends_on:
       - redis
     volumes:

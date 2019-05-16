@@ -13,3 +13,7 @@ services:
     command: bash -c "bundle exec puma"
     ports:
       - 3000:3000
+  sidekiq:
+    build:
+      dockerfile: Dockerfile.dev
+    command: bundle exec sidekiq
