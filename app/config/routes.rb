@@ -5,6 +5,8 @@ Rails.application.routes.draw do
   end
   root to: 'home#index'
 
+  post 'mailer', to: 'mailer#sync'
+
   devise_scope :user do
     get 'users/redirect_user_login', to: 'users/sessions#redirect_user_login'
   end
