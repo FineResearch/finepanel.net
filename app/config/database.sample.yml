@@ -1,0 +1,16 @@
+common: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: 5
+  username: postgres
+  port: 5432
+  password: postgres
+  host: postgres
+
+development:
+  <<: *default
+  database: finepanel_dev
+
+test:
+  <<: *default
+  database: finepanel_test

@@ -1,0 +1,24 @@
+FROM ruby:2.5.1
+
+# throw errors if Gemfile has been modified since Gemfile.lock
+RUN bundle config --global frozen 1 && \
+  apt-get update && \
+  curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
+  apt-get install -y nodejs && \
+  apt-get clean
+
+WORKDIR /usr/src/app
+
+COPY Gemfile Gemfile.lock ./
+
+RUN bundle install
+
+COPY . ./
+
+COPY entrypoint.sh /usr/bin/
+RUN chmod +x /usr/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
+
+EXPOSE 3000
+
+CMD ["bundle", "exec", "puma"]
