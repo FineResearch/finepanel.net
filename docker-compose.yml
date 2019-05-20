@@ -37,3 +37,5 @@ services:
       - redis
     volumes:
       - $PWD/app:/usr/src/app
+    env_file:
+      - app/.env
