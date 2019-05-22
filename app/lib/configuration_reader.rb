@@ -41,6 +41,18 @@ module ConfigurationReader
     load_config('user_profile_path', CONSTANTS_FILE_NAME)
   end
 
+  def self.project_id
+    load_config('project_id', CONSTANTS_FILE_NAME)
+  end
+
+  def self.sender_email
+    load_config('sender_email', CONSTANTS_FILE_NAME)
+  end
+
+  def self.sender_email_alternative
+    load_config('sender_email_alternative', CONSTANTS_FILE_NAME)
+  end
+
   def self.load_config(enum, file_name)
     YAML.safe_load(File.open(Rails.root.join('config', file_name)))[enum]
   end
