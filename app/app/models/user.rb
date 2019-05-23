@@ -57,7 +57,6 @@ class User < ApplicationRecord
   def profile_data(respid)
     @profile_data ||= ConfirmitGateway
       .get_user_attrs_from_profile(user_profile_url(respid))
-      .with_indifferent_access
   end
 
   def surveys

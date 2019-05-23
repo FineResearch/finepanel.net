@@ -15,15 +15,22 @@ class ApplicationController < ActionController::Base
 
   def current_user
     user = super
-    user.email = session[:user_email] if user.present?
+    user.email = cookies[:user_email] if user.present?
     user
   end
 
   protected
 
   def after_sign_in_path_for(resource)
-    session[:respid] = resource.user_respid(resource.email)
-    session[:user_email] = resource.email
+    expires_at = resource.remember_me.present? ? Devise.remember_for : nil
+    cookies[:user_email] = { value: resource.email, expires: expires_at }
+    cookies[:respid] = { value: resource.user_respid(resource.email), expires: expires_at }
+    super
+  end
+
+  def after_sign_out_path_for(resource)
+    cookies.delete :user_email
+    cookies.delete :respid
     super
   end
 
