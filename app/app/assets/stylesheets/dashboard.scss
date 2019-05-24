@@ -26,13 +26,16 @@ form#new_post {
 }
 #survey-history{
   background-color: $white;
-  table{
-    margin-top: 15px;
+  table.responsive {
+    margin-top: 0px;
     border: none;
     border-radius: 0;
     td{
       font-size: 13px;
       height: 70px;
+    }
+    th{
+      font-size: 14px;
     }
   }
   h4 {

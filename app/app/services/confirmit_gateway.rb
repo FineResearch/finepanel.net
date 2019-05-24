@@ -30,14 +30,33 @@ class ConfirmitGateway
       }
     end
 
+    def get_participations_for_user(user_data)
+      last_participations = []
+      1.upto(5) do |i|
+        next unless user_data["detalle#{i}"].present?
+
+        survey_detail = user_data["detalle#{i}"].split('*')
+        participation = {
+          project: survey_detail[0],
+          status: survey_detail[1],
+          fee: survey_detail[2],
+          payment_date: survey_detail[3],
+          date: I18n.l(user_data["datapart#{i}"].to_time, format: :participation_date)
+        }
+        last_participations << participation
+      end
+      last_participations
+    end
+
     def get_user_attrs_from_profile(url)
       response = Net::HTTP.post_form(URI(url), 'q' => 'ruby', 'max' => '50')
 
       p_list = Nokogiri::HTML.parse(response.body).xpath('//p')
       return nil unless p_list[1].present?
-      return nil unless p_list[1].children[0].present? 
+      return nil unless p_list[1].children[0].present?
+
       attrs = p_list[1].children[0].text.split('&').map { |user_attr| user_attr.split('=') }
-      Hash[attrs.map {|key, value| [key, value]}]
+      Hash[attrs.map { |key, value| [key, value] }]
     end
 
     def user_profile_url(user, respid)

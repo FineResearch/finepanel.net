@@ -1,0 +1,21 @@
+%h4
+  = t('dashboard.survey_history.survey_history')
+%table#survey_history.responsive
+  %tbody
+    %tr
+      %th= t('dashboard.project')
+      %th= t('dashboard.survey_history.fee')
+      %th= t('dashboard.survey_history.status')
+      %th= t('dashboard.survey_history.participation_date')
+      %th= t('dashboard.survey_history.date')
+    - if @participations.any?
+      - @participations.each do |survey|
+        %tr
+          %td= survey[:project]
+          %td= "#{@currency}#{survey[:fee]}"
+          %td= survey_status(survey[:status].to_i)
+          %td= survey[:date]
+          %td= survey[:payment_date]
+    - else
+      %tr
+        %td{colspan: 5}= t('dashboard.survey_history.there_is_no_information_in_your_history_to_show')
