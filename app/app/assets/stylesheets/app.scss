@@ -559,6 +559,12 @@ form{
   margin: auto;
 }
 
+.dropdown-menu#user_options{
+  li:hover{
+    background: #eee;
+  }
+}
+
 .language-mobile{
   display: none;
 }
@@ -988,22 +994,22 @@ nav{
     text-indent: 35px;
     margin-bottom:0;
     &.br{
-      //@include flags(br);
+      @include flags(br);
       float: none;
       width: 100%;
     }
     &.mx{
-      //@include flags(mx);
+      @include flags(mx);
       float: none;
       width: 100%;
     }
     &.ar{
-      //@include flags(ar);
+      @include flags(ar);
       float: none;
       width: 100%;
     }
     &.cl{
-      //@include flags(cl);
+      @include flags(cl);
       float: none;
       width: 100%;
     }

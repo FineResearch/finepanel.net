@@ -27,6 +27,13 @@ $(window).load(function() {
         $('.dropdown').removeClass('open');
       }
     });
-
   }).call(this);
+
+  $(".user-menu").hover(function(e) {
+    $("#user_options").css("visibility", "visible");
+    $("#user_options").css("opacity", "1");
+  }, function(){
+    $("#user_options").css("visibility", "hidden");
+    $("#user_options").css("opacity", "0");
+  });
 });

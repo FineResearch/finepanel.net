@@ -16,5 +16,6 @@ Rails.application.routes.draw do
   end
   
   get 'faq', to: 'home#faq'
+  get 'contact', to: 'home#contact'
   get 'countries/cities/:country_id', to: 'countries#cities'
 end
