@@ -1,6 +1,11 @@
 version: '3.5'
 
 services:
+  postgres:
+    environment:
+      - POSTGRES_DB=finepanel_prod
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
 
   app:
     build:
@@ -9,11 +14,11 @@ services:
         - "com.mooveit.description=Finepanel"
         - "com.mooveit.department=mooveit"
         - "com.mooveit.environment=prod"
-        - "com.mooveit.label-with-empty-value"
     restart: always
     command: bash -c "bundle exec puma"
     ports:
       - 80:3000
+
   sidekiq:
     build:
       dockerfile: Dockerfile.prod

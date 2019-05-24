@@ -1,15 +1,10 @@
 version: '3.5'
 
 services:
-
   postgres:
     image: postgres:10
     volumes:
       - ./data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=finepanel_dev
-      - POSTGRES_PASSWORD=postgres
     expose:
       - 5432
 
