@@ -7,6 +7,15 @@ class ConfirmitGateway
   class << self
     def new_account(params)
       sanitized_params = sanitize_params_for_create(params)
+      params_for_create_user(params, sanitized_params)
+    end
+
+    def new_colleague(params)
+      sanitized_params = sanitize_params_for_create_colleague(params)
+      params_for_create_user(params, sanitized_params)
+    end
+
+    def params_for_create_user(params, sanitized_params)
       create_account_url = "https://survey.finepanel.net//wix/p785267057.aspx?#{sanitized_params.to_query}"
 
       response = Net::HTTP.post_form(URI(create_account_url), 'q' => 'ruby', 'max' => '50')
@@ -180,6 +189,19 @@ class ConfirmitGateway
         specialty_text: params[:specialty_text],
         exit: 'updateportal',
         fuente: 'RegistroPortal2019'
+      }
+    end
+
+    def sanitize_params_for_create_colleague(params)
+      {
+        emailr: params[:email],
+        namer: params[:first_name],
+        apellidor: params[:last_name],
+        titulor: params[:suffix],
+        espr: params[:specialty_id],
+        pais: params[:country_id],
+        exit: 'updateportal',
+        fuente: params[:fuente]
       }
     end
 

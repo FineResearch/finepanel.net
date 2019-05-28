@@ -5,6 +5,13 @@ Rails.application.routes.draw do
   authenticated :user do
     root to: 'dashboard#index'
     mount Sidekiq::Web => '/sidekiq'
+
+    devise_scope :user do
+      namespace :users do
+        get 'refer_colleague', to: 'registrations#refer_colleague'
+        post 'create_colleague', to: 'registrations#create_colleague'
+      end
+    end
   end
 
   root to: 'home#index'

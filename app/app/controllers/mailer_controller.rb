@@ -3,17 +3,15 @@
 require 'zip'
 
 class MailerController < ApplicationController
-   skip_before_action :verify_authenticity_token, only: [:sync]
+  skip_before_action :verify_authenticity_token, only: [:sync]
 
   def sync
     file = params[:attachment1]
     sender = params[:from].scan(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)[0].strip
 
     if sender == ConfigurationReader.sender_email.strip || sender == ConfigurationReader.sender_email_alternative.strip
-      file_root_path  = Rails.root.join('tmp', 'feed_files')
-      unless File.directory?(file_root_path)
-        FileUtils.mkdir_p file_root_path
-      end
+      file_root_path = Rails.root.join('tmp', 'feed_files')
+      FileUtils.mkdir_p file_root_path unless File.directory?(file_root_path)
 
       file_path = File.join(file_root_path, file.original_filename)
       FileUtils.mv file.path, file_path

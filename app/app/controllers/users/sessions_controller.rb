@@ -20,11 +20,13 @@ module Users
         sign_in(resource_name, resource)
         cookies[:respid] = params[:r]
         cookies[:user_email] = resource.email
-        redirect_to root_path 
+        user_data = resource.profile_data_from_email(resource.email)
+        cookies[:country_id] = user_data[:country_id]
+        cookies[:locale] = ConfigurationReader.language(user_data[:country_id])
       else
         flash[:error] = t('messages.error.login')
-        redirect_to root_path
       end
+      redirect_to root_path
     end
 
     def destroy
