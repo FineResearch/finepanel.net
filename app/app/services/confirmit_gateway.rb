@@ -104,7 +104,6 @@ class ConfirmitGateway
         next unless survey_data.present?
 
         survey[:link] = survey_link.link
-
         survey[:name] = survey_data[:name]
         survey[:subject] = survey_data[:subject]
         survey[:duration] = survey_data[:duration]
@@ -117,7 +116,7 @@ class ConfirmitGateway
       first_priority_surveys = result.select { |survey| survey[:priority] == '1' }
       return first_priority_surveys if first_priority_surveys.present?
 
-      result.sort_by { |survey| survey['priority'] }
+      result.sort_by { |survey| survey[:priority] }
     end
 
     def valid_survey_link?(link)
@@ -126,21 +125,33 @@ class ConfirmitGateway
     end
 
     def data_from_valid_survey(link)
-      response = Net::HTTP.post_form(URI(link), 'q' => 'ruby', 'max' => '50')
+      response = Net::HTTP.post_form(URI(link + '&__qid=Filtro'), 'q' => 'ruby', 'max' => '50')
       return nil unless response.body.downcase.include?('legalmente') && response.code != 404
 
-      survey_data = Nokogiri::HTML.parse(response.body).xpath('//div[@id="Filtro_text"]').children[0].children[0]
-      sanitize_data_from_survey(survey_data)
+      survey_data = Nokogiri::HTML.parse(response.body).xpath('//div[@id="Filtro_text"]')
+      sanitize_data_from_survey(survey_data.children[0].children[0]) if survey_data.present?
     end
 
     def sanitize_data_from_survey(survey_data)
-      {
-        name: survey_data.children[1].text.split(': ')[1],
-        subject: survey_data.children[2].text.split(': ')[1],
-        duration: survey_data.children[4].text.split(': ')[1],
-        fee: survey_data.children[5].text.split(': ')[1],
-        priority: survey_data.children[6].text.split(': ')[1]
+      data = {
+        name: sanitize_survey_attribute(survey_data.children[1]),
+        subject: sanitize_survey_attribute(survey_data.children[2]),
+        duration: sanitize_survey_attribute(survey_data.children[4]),
+        fee: sanitize_survey_attribute(survey_data.children[5]),
+        priority: sanitize_survey_attribute(survey_data.children[6])
       }
+
+      check_empty_values(data)
+    end
+
+    def check_empty_values(data)
+      data.select { |_, v| v.nil? || v == '' }.blank? ? data : nil
+    end
+
+    def sanitize_survey_attribute(attribute)
+      return '' unless attribute.present?
+
+      attribute.text.split(': ')[1]
     end
 
     def sanitize_params_for_create(params)
