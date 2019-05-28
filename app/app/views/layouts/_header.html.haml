@@ -41,9 +41,9 @@
               %ul.nav-bar.left.ul-signed-in
                 %li.has-flyout.li-signed-in.nav-item
                   .dropdown
-                    = button_tag class: 'dropdown-toggle user-name', data: { toggle: 'menu' } do
+                    = button_tag class: 'dropdown-toggle user-name user-menu', data: { toggle: 'menu' } do
                       = current_user.email
-                    .dropdown-menu
+                    .dropdown-menu.user-menu#user_options
                       %ul.flyout
                         %li.logout-item
                           = link_to t('header.logout'), destroy_user_session_path, method: :delete
@@ -51,10 +51,6 @@
                       %ul
                         %li.nav-item.nav-sub-item
                           = link_to t('header.logout'), destroy_user_session_path, method: :delete
-
-                %li.nav-item
-                  %a{:href => root_path}
-                    = t ('header.support')
                 %li.language
                   .home-language
                     = render "language"
