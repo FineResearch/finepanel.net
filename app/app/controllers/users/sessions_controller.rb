@@ -5,6 +5,7 @@ module Users
     def create
       resource = User.find_from_email_and_password(params[:user][:email], params[:user][:password])
       if resource.present?
+        resource.remember_me = params[:remember_me]
         sign_in(resource_name, resource)
         respond_with resource, location: after_sign_in_path_for(resource)
       else
@@ -17,8 +18,8 @@ module Users
       resource = User.find_from_respid_spanel_and_encrypted_email(params[:r], params[:s], params[:e])
       if resource.present?
         sign_in(resource_name, resource)
-        session[:respid] = params[:r]
-        session[:user_email] = resource.email
+        cookies[:respid] = params[:r]
+        cookies[:user_email] = resource.email
         redirect_to root_path 
       else
         flash[:error] = t('messages.error.login')

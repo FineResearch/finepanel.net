@@ -56,7 +56,7 @@ class ConfirmitGateway
       return nil unless p_list[1].children[0].present?
 
       attrs = p_list[1].children[0].text.split('&').map { |user_attr| user_attr.split('=') }
-      Hash[attrs.map { |key, value| [key, value] }]
+      Hash[attrs.map { |key, value| [key, value] }].with_indifferent_access
     end
 
     def user_profile_url(user, respid)

@@ -19,7 +19,7 @@
                 .row
                   .columns.small-12.medium-6.mobile-two
                     %label.grey
-                      = check_box_tag :remember_me
+                      = check_box_tag :remember_me, 1, true
                       = t('forms.remember')
                   .columns.small-12.medium-6.mobile-two
                     %label
@@ -42,7 +42,7 @@
                 %li.has-flyout.li-signed-in.nav-item
                   .dropdown
                     = button_tag class: 'dropdown-toggle user-name', data: { toggle: 'menu' } do
-                      = session[:user_email]
+                      = current_user.email
                     .dropdown-menu
                       %ul.flyout
                         %li.logout-item
