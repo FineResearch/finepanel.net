@@ -635,6 +635,7 @@ nav{
   .nav-item{
     font-size: 14px;
     padding: 12px;
+    cursor: pointer;
 
     .logout-item{
       width: -webkit-fill-available;
@@ -693,6 +694,25 @@ nav{
    Blocks
 ----------------------------------------- */
 
+.dropdown.dropdown-user-menu{
+  margin-top: -2px;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  float: right;
+  &:after {
+    content: '';
+    border: inset 0.4em transparent;
+    border-top: 0.4em solid #4d4d4d;
+    margin-left: 5px;
+    margin-bottom: 3px;
+    display: inline-block;
+    vertical-align: -webkit-baseline-middle;
+  }
+}
 
 .language.button.dropdown,
 .language.button.dropdown:active{
