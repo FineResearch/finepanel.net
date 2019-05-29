@@ -1,19 +1,26 @@
 FROM ruby:2.5.1
 
-# throw errors if Gemfile has been modified since Gemfile.lock
-RUN bundle config --global frozen 1 && \
-  apt-get update && \
+RUN apt-get update && \
   curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
   apt-get install -y nodejs && \
   apt-get clean
 
 WORKDIR /usr/src/app
 
+ENV RAILS_ENV production
+ENV RAILS_SERVE_STATIC_FILES true
+
 COPY Gemfile Gemfile.lock ./
 
-RUN bundle install
+# Throw errors if Gemfile has been modified since Gemfile.lock
+
+RUN bundle config --global frozen 1
+RUN bundle install --without development test
 
 COPY . ./
+
+RUN bundle exec rails assets:clobber && \
+    bundle exec rails assets:precompile
 
 COPY entrypoint.sh /usr/bin/
 RUN chmod +x /usr/bin/entrypoint.sh
