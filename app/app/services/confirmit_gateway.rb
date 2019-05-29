@@ -41,11 +41,18 @@ class ConfirmitGateway
           status: survey_detail[1],
           fee: survey_detail[2],
           payment_date: survey_detail[3],
-          date: I18n.l(user_data["datapart#{i}"].to_time, format: :participation_date)
+          date: user_data["datapart#{i}"].to_time
         }
         last_participations << participation
       end
-      last_participations
+
+      sort_last_participations!(last_participations).each do |participation|
+        participation[:date] = I18n.l(participation[:date], format: :participation_date)
+      end
+    end
+
+    def sort_last_participations!(participations)
+      participations.sort_by { |survey| survey[:date] }.reverse!
     end
 
     def get_user_attrs_from_profile(url)

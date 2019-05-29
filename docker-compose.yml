@@ -34,3 +34,4 @@ services:
       - $PWD/app:/usr/src/app
     env_file:
       - app/.env
+    command: bundle exec sidekiq -C config/sidekiq.yml

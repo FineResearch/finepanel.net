@@ -40,8 +40,8 @@
                   %a{href: ""}
               %ul.nav-bar.left.ul-signed-in
                 %li.has-flyout.li-signed-in.nav-item
-                  .dropdown
-                    = button_tag class: 'dropdown-toggle user-name user-menu', data: { toggle: 'menu' } do
+                  .dropdown.dropdown-user-menu.dropdown-toggle
+                    = button_tag class: 'dropdown-toggle user-name user-menu' do
                       = current_user.email
                     .dropdown-menu.user-menu#user_options
                       %ul.flyout

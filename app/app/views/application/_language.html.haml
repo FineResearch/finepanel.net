@@ -1,8 +1,8 @@
-.language.dropdown.button
+.language.dropdown.button.dropdown-toggle
   - if params[:locale] == 'es'
-    = link_to content_tag(:span, ""), '#', class: "flag current esp dropdown-toggle", data: { toggle: 'menu' }
+    = link_to content_tag(:span, ""), '#', class: "flag current esp "
   - elsif params[:locale] == 'pt'
-    = link_to content_tag(:span, ""), '#', class: "flag current port dropdown-toggle", data: { toggle: 'menu' }
+    = link_to content_tag(:span, ""), '#', class: "flag current port"
   .dropdown-menu
     %ul
       %li

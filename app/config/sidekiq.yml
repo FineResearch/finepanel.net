@@ -1,0 +1,7 @@
+---
+
+:concurrency: 5
+staging:
+  :concurrency: <%= ENV['SIDEKIQ_CONCURRENCY'] || 2 %>
+production:
+  :concurrency: <%= ENV['SIDEKIQ_CONCURRENCY'] || 5 %>

@@ -25,6 +25,8 @@ class ApplicationController < ActionController::Base
     expires_at = resource.remember_me.present? ? Devise.remember_for : nil
     cookies[:user_email] = { value: resource.email, expires: expires_at }
     cookies[:respid] = { value: resource.user_respid(resource.email), expires: expires_at }
+    user_data = resource.profile_data_from_email(resource.email)
+    cookies[:locale] = ConfigurationReader.language(user_data[:country_id])
     super
   end
 
