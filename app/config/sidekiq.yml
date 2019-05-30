@@ -1,5 +1,4 @@
 ---
-
 :concurrency: 5
 staging:
   :concurrency: <%= ENV['SIDEKIQ_CONCURRENCY'] || 2 %>

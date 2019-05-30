@@ -22,4 +22,6 @@ services:
   sidekiq:
     build:
       dockerfile: Dockerfile.prod
-    command: bundle exec sidekiq
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    environment:
+      - SIDEKIQ_CONCURRENCY=5
