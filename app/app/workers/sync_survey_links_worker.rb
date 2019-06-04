@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'csv'
 
 class SyncSurveyLinksWorker
@@ -12,7 +14,7 @@ class SyncSurveyLinksWorker
       Rails.logger.info(survey.errors.first[1]) unless survey.valid?
     end
 
-     File.delete(feed_file_path)
-     File.delete(file_path)
+    File.delete(feed_file_path)
+    File.delete(file_path)
   end
 end

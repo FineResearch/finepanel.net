@@ -6,6 +6,7 @@
           .columns.small-12.medium-12
             = render 'payment_panel'
             #invite
+              = link_to t('dashboard.invite_collegues'), users_refer_colleague_path, class: 'button invite'
       #main.small-12.medium-8.columns.medium-pull-4
         .medium-12.columns
           #participate_btn_text.hide

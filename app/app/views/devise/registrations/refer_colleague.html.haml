@@ -1,0 +1,49 @@
+.row.inner-content
+  .medium-12.samll-12.columns
+    %h3
+      = t('invitations.new.title')
+    %hr
+    %p
+      =t('invitations.new.description')
+.row
+  .columns.medium-8.medium-centered
+    = form_tag(users_create_colleague_path(@user), { method: 'post', class: 'custom registration-form' }) do
+      = resource_error_messages(@user)
+      .row
+        .medium-3.small-12.columns.text-right
+          = label_tag :suffix, t('activerecord.attributes.invitation.suffix'), :class => 'inline right required'
+        .medium-9.small-12.columns
+          = select_tag :suffix, options_for_suffix_select(@user), {:include_blank => t('forms.select'), :class => 'inline right required', 'data-other' => t('forms.other'), required: true }
+      .row
+        .medium-3.small-12.columns.text-right
+          = label_tag :first_name, t('activerecord.attributes.invitation.first_name'), :class => 'inline right required'
+        .medium-9.small-12.columns
+          = text_field_tag :first_name, nil, required: true
+      .row
+        .medium-3.small-12.columns.text-right
+          = label_tag :last_name, t('activerecord.attributes.invitation.last_name'), :class => 'inline right required'
+        .medium-9.small-12.columns
+          = text_field_tag :last_name, nil, required: true
+      .row
+        .medium-3.small-12.columns.text-right
+          = label_tag :email, t('activerecord.attributes.invitation.email'), :class => 'inline right required'
+        .medium-9.small-12.columns
+          = text_field_tag :email, nil, required: true
+      .row
+        .medium-3.small-12.columns.text-right
+          = label_tag :country_id, t('activerecord.attributes.user.country_id'), :class => 'inline right required'
+        .medium-9.small-12.columns
+          = select_tag :country_id, options_for_country_select(@user, selected: cookies[:country_id]), {:include_blank => t('forms.select'), :class => 'inline right required', 'data-other' => t('forms.other'), required: true}
+      .row
+        .medium-3.small-12.columns.text-right
+          = label_tag :specialty_id, t('activerecord.attributes.invitation.specialty_id'), :class => 'inline right required'
+        .medium-9.small-12.columns
+          = select_tag :specialty_id, options_for_specialty_select(@user), {:include_blank => t('forms.select'), :class => 'inline right required', required: true}
+      .row
+        .medium-9.small-12.columns.medium-offset-3.text-right
+          %span.gray
+            %small
+              = t('forms.required_fields_notice')
+      .row
+        .medium-9.columns.medium-offset-3
+          = submit_tag t('invitations.send'), :class => 'regular button'

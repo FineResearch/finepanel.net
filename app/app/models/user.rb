@@ -23,6 +23,7 @@ class User < ApplicationRecord
   def self.find_from_respid_spanel_and_encrypted_email(respid, spanel, encrypted_email)
     user = find_by(spanel: spanel, encrypted_email: encrypted_email)
     return nil unless user.present?
+
     data = user.profile_data(respid)
     user.email = data[:email]
 
@@ -56,7 +57,7 @@ class User < ApplicationRecord
 
   def profile_data(respid)
     @profile_data ||= ConfirmitGateway
-      .get_user_attrs_from_profile(user_profile_url(respid))
+                      .get_user_attrs_from_profile(user_profile_url(respid))
   end
 
   def surveys

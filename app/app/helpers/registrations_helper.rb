@@ -3,9 +3,9 @@
 require 'configuration_reader'
 
 module RegistrationsHelper
-  def options_for_country_select(_resource = nil)
+  def options_for_country_select(_resource = nil, country_id = nil)
     countries = ConfigurationReader.countries.map { |country| [t(country[0]), country[1]] }
-    options_for_select(countries.sort, nil)
+    options_for_select(countries.sort, country_id)
   end
 
   def options_for_city_select(country_id = 1)
