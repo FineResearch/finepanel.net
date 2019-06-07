@@ -67,4 +67,9 @@ class User < ApplicationRecord
   def payment_info
     ConfirmitGateway.get_payments_for_user(self)
   end
+
+  def language_param(respid)
+    country_id = profile_data(respid)[:country_id]
+    ConfigurationReader.language_code(country_id)
+  end
 end
