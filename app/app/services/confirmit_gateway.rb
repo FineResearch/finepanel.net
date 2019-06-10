@@ -141,23 +141,39 @@ class ConfirmitGateway
     end
 
     def data_from_valid_survey(link)
-      response = Net::HTTP.post_form(URI(link + '&__qid=Filtro'), 'q' => 'ruby', 'max' => '50')
+      response = Net::HTTP.post_form(URI(link), 'q' => 'ruby', 'max' => '50')
       return nil unless response.body.downcase.include?('legalmente') && response.code != 404
 
-      survey_data = Nokogiri::HTML.parse(response.body).xpath('//div[@id="Filtro_text"]')
-      sanitize_data_from_survey(survey_data.children[0].children[0]) if survey_data.present?
+      survey_data = get_survey_data_from_response(response.body)
+      check_empty_values(survey_data)
+    end
+
+    def get_survey_data_from_response(raw_response)
+      survey_data = Nokogiri::HTML.parse(raw_response).xpath('//div[@id="Filtro_text"]')
+      return sanitize_data_from_survey(survey_data.children[0].children[0]) if survey_data.present?
+
+      survey_data = Nokogiri::HTML.parse(raw_response).xpath('//div[@id="avisodeinc_text"]')
+      sanitize_data_from_initiated_survey(survey_data)
     end
 
     def sanitize_data_from_survey(survey_data)
-      data = {
+      {
         name: sanitize_survey_attribute(survey_data.children[1]),
         subject: sanitize_survey_attribute(survey_data.children[2]),
         duration: sanitize_survey_attribute(survey_data.children[4]),
         fee: sanitize_survey_attribute(survey_data.children[5]),
         priority: sanitize_survey_attribute(survey_data.children[6])
       }
+    end
 
-      check_empty_values(data)
+    def sanitize_data_from_initiated_survey(survey_data)
+      {
+        name: sanitize_survey_attribute(survey_data.children[0]),
+        subject: sanitize_survey_attribute(survey_data.children[1]),
+        duration: sanitize_survey_attribute(survey_data.children[3]),
+        fee: sanitize_survey_attribute(survey_data.children[4]),
+        priority: sanitize_survey_attribute(survey_data.children[5])
+      }
     end
 
     def check_empty_values(data)
