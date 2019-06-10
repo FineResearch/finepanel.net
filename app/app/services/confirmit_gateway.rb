@@ -28,7 +28,8 @@ class ConfirmitGateway
       response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
       surveys = get_surveys_from_response(response.body).to_a
 
-      get_active_surveys_for_user(surveys)
+      language_param = user.language_param(respid)
+      get_active_surveys_for_user(surveys, language_param)
     end
 
     def get_payments_for_user(user_data)
@@ -100,26 +101,26 @@ class ConfirmitGateway
       end
     end
 
-    def get_active_surveys_for_user(surveys)
+    def get_active_surveys_for_user(surveys, language_param)
       survey_links = SurveyLink.none
       surveys.each do |survey|
         survey_links = survey_links.or(SurveyLink.where(project_id: survey[:project_id], resp_id: survey[:resp_id]))
       end
       survey_links = survey_links.group_by(&:project_id)
 
-      valid_surveys(surveys, survey_links)
+      valid_surveys(surveys, survey_links, language_param)
     end
 
-    def valid_surveys(surveys, survey_links)
+    def valid_surveys(surveys, survey_links, language_param)
       result = []
       surveys.each do |survey|
         survey_link  = survey_links[survey[:project_id]]&.first
         next if survey_link.blank?
 
-        survey_data = survey_link.data_from_valid_survey
+        survey_data = survey_link.data_from_valid_survey(language_param)
         next unless survey_data.present?
 
-        survey[:link] = survey_link.link
+        survey[:link] = survey_link.link + '&l=' + language_param
         survey[:name] = survey_data[:name]
         survey[:subject] = survey_data[:subject]
         survey[:duration] = survey_data[:duration]
@@ -140,29 +141,45 @@ class ConfirmitGateway
       response.body.downcase.include?('legalmente') && response.code != 404
     end
 
-    def data_from_valid_survey(link)
-      response = Net::HTTP.post_form(URI(link), 'q' => 'ruby', 'max' => '50')
+    def data_from_valid_survey(link, language_param)
+      response = Net::HTTP.post_form(URI(link + '&l=' + language_param), 'q' => 'ruby', 'max' => '50')
       return nil unless response.body.downcase.include?('legalmente') && response.code != 404
 
-      survey_data = get_survey_data_from_response(response.body)
+      survey_data = get_survey_data_from_response(response.body, language_param)
       check_empty_values(survey_data)
     end
 
-    def get_survey_data_from_response(raw_response)
+    def get_survey_data_from_response(raw_response, language_param)
       survey_data = Nokogiri::HTML.parse(raw_response).xpath('//div[@id="Filtro_text"]')
-      return sanitize_data_from_survey(survey_data.children[0].children[0]) if survey_data.present?
 
+      return survey_data_from_initiated_survey(raw_response) unless survey_data.present?
+      return sanitize_data_from_survey_lang_pt(survey_data.children[0].children[0]) if language_pt?(language_param)
+
+      sanitize_data_from_survey_lang_es(survey_data.children[1].children[0].children[0])
+    end
+
+    def survey_data_from_initiated_survey(raw_response)
       survey_data = Nokogiri::HTML.parse(raw_response).xpath('//div[@id="avisodeinc_text"]')
       sanitize_data_from_initiated_survey(survey_data)
     end
 
-    def sanitize_data_from_survey(survey_data)
+    def sanitize_data_from_survey_lang_pt(survey_data)
       {
         name: sanitize_survey_attribute(survey_data.children[1]),
         subject: sanitize_survey_attribute(survey_data.children[2]),
         duration: sanitize_survey_attribute(survey_data.children[4]),
         fee: sanitize_survey_attribute(survey_data.children[5]),
         priority: sanitize_survey_attribute(survey_data.children[6])
+      }
+    end
+
+    def sanitize_data_from_survey_lang_es(survey_data)
+      {
+        name: sanitize_survey_attribute(survey_data.children[0]),
+        subject: sanitize_survey_attribute(survey_data.children[1]),
+        duration: sanitize_survey_attribute(survey_data.children[3]),
+        fee: sanitize_survey_attribute(survey_data.children[4]),
+        priority: sanitize_survey_attribute(survey_data.children[5])
       }
     end
 
@@ -233,6 +250,10 @@ class ConfirmitGateway
       document = Nokogiri::HTML.parse(raw_response)
       inputs = document.xpath('//input')
       inputs.select { |input| input['name'].in?(%w[r s]) }.map { |v| [v['name'], v['value']] }.to_h
+    end
+
+    def language_pt?(language)
+      language == ConfigurationReader.language_code('1')
     end
   end
 end

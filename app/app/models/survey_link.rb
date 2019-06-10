@@ -5,7 +5,7 @@ class SurveyLink < ApplicationRecord
     ConfirmitGateway.valid_survey_link?(link) && created_at >= Time.now - 60.days
   end
 
-  def data_from_valid_survey
-    ConfirmitGateway.data_from_valid_survey(link)
+  def data_from_valid_survey(language_param)
+    ConfirmitGateway.data_from_valid_survey(link, language_param)
   end
 end
