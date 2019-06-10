@@ -146,20 +146,23 @@ class ConfirmitGateway
       return nil unless response.body.downcase.include?('legalmente') && response.code != 404
 
       survey_data = get_survey_data_from_response(response.body, language_param)
+      return nil unless survey_data.present?
+      
       check_empty_values(survey_data)
     end
 
     def get_survey_data_from_response(raw_response, language_param)
-      survey_data = Nokogiri::HTML.parse(raw_response).xpath('//div[@id="Filtro_text"]')
+      survey_data = Nokogiri::HTML.parse(raw_response).css('#Filtro_text')
 
       return survey_data_from_initiated_survey(raw_response) unless survey_data.present?
       return sanitize_data_from_survey_lang_pt(survey_data.children[0].children[0]) if language_pt?(language_param)
+      return nil unless survey_data.children[1].children[0].present?
 
       sanitize_data_from_survey_lang_es(survey_data.children[1].children[0].children[0])
     end
 
     def survey_data_from_initiated_survey(raw_response)
-      survey_data = Nokogiri::HTML.parse(raw_response).xpath('//div[@id="avisodeinc_text"]')
+      survey_data = Nokogiri::HTML.parse(raw_response).css('#avisodeinc_text')
       sanitize_data_from_initiated_survey(survey_data)
     end
 
