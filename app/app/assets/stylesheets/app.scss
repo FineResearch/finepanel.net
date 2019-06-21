@@ -324,6 +324,8 @@ form{
   background: #00b2b2;
   border: 1px solid #006565;
   -webkit-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  outline: none;
+  margin-bottom: 0;
 }
 
 .left{ float: left; }
@@ -966,8 +968,6 @@ nav{
 }
 #new-post{
   dl.tabs{
-    padding-left:10px;
-    height:30px;
     dd {
       a {
         height:30px;
@@ -1138,7 +1138,7 @@ div.modal_table_container {
     display: block;
     float: left;
     margin-right: 1px;
-    padding: 7px 7px;
+    padding: 3px 7px;
   }
 
   .disabled {
@@ -1333,5 +1333,3 @@ ul.flyout li a, .nav-bar li ul li a {
     text-align: left;
   }
 }
-
-

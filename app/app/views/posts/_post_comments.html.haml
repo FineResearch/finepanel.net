@@ -1,0 +1,19 @@
+- if comments.count > 0
+  %p
+    = hidden_field_tag :has_one_comment, t("posts.comments.has_one_comment")
+    = hidden_field_tag :has_many_comments, t("posts.comments.has_many_comments")
+    .comments_count
+      %span.count
+        #{comments.count}
+      = comments.count == 1 ? t("posts.comments.has_one_comment") : t("posts.comments.has_many_comments")
+  %hr
+  - comments.each do |comment|
+    = render 'posts/comment', comment: comment
+- else
+  %p.no-comments
+    = hidden_field_tag :has_one_comment, t("posts.comments.has_one_comment")
+    = hidden_field_tag :has_many_comments, t("posts.comments.has_many_comments")
+  .comments_count
+    = t "posts.comments.no_comments"
+  %hr
+= image_tag('loader_small.gif', :class => "post-loader")

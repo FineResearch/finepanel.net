@@ -1,0 +1,15 @@
+- if posts.count > 0
+  %div#posts
+    = render posts, type: :small
+  - if show_pagination
+    .pagination-new
+      = will_paginate posts
+  - else
+    .show-all
+      = link_to(t("home.read_more"), controller: "dashboard", action: "finepanel_wall")
+      %br
+      %br
+- else
+  %div#posts
+    %p.zero-state
+      = t("posts.zero_state")

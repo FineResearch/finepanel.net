@@ -5,6 +5,9 @@ class User < ApplicationRecord
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable, :registerable, :rememberable
 
+  has_many :posts
+  has_many :comments
+
   validates :encrypted_email, presence: true, uniqueness: true
 
   attr_accessor :email, :encrypted_password
@@ -71,5 +74,21 @@ class User < ApplicationRecord
   def language_param(respid)
     country_id = profile_data(respid)[:country_id]
     ConfigurationReader.language_code(country_id)
+  end
+
+  def info_for_post(respid)
+    user_data = profile_data(respid)
+    return nil unless user_data.present?
+
+    complete_name = user_data[:suffix] + ' ' + user_data[:last_name]
+    specialty_id = user_data[:specialty_id]
+    country = ConfigurationReader.country_name(user_data[:country_id]) if user_data[:country_id].present?
+    city = ConfigurationReader.city_name(user_data[:country_id], user_data[:city_id]) if user_data[:city_id].present?
+    {
+      complete_name: complete_name,
+      specialty: specialty_id,
+      country: country,
+      city: city
+    }
   end
 end

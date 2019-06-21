@@ -19,3 +19,6 @@
         #survey-history.columns.medium-12
           .row
             = render 'surveys/last_surveys'
+    .row
+      .medium-8.small-12.columns
+        = render 'finepanel_wall', posts: @posts, show_pagination: true

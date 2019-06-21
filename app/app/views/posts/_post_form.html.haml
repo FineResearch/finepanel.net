@@ -1,0 +1,51 @@
+#new-post.panel
+  %dl.tabs
+    %dd.active
+      = link_to(content_tag(:span, '[', :class => 'glyph tip-top', :title => t('posts.share_a_comment')), '#comment')
+    %dd
+      = link_to(content_tag(:span, '.', :class => 'glyph tip-top', :title => t('posts.share_an_image')), '#image')
+    %dd
+      = link_to(content_tag(:span, ',', :class => 'glyph tip-top', :title => t('posts.share_a_video')), '#video')
+    %dd
+      = link_to(content_tag(:span, 'j', :class => 'glyph tip-top', :title => t('posts.share_a_document')), '#document')
+  = form_for(:post, :url => posts_path(@post), :html => {:multipart => true, :id => 'new_post', :class => "mini"}, authenticity_token: true, :remote => true) do |f|
+    %ul.tabs-content
+      %li#commentTab.active
+        = f.hidden_field :kind, :value => Post::TYPE[:text]
+        = f.text_area(:text, :placeholder => t('forms.placeholders.share_information_with_your_field_colleagues'), :rows => 3, :class => "comment-text")
+      %li#imageTab
+        = f.hidden_field :kind, :value => Post::TYPE[:with_image]
+        = link_to t('posts.attach_a_url'), '#', :class => 'button round small secondary', "data-bind" => "attach-url"
+        %p.small.right
+          = t('posts.file_types_info')
+          %b
+            = t('posts.file_size_info')
+        .select-file
+          = f.file_field :media, :class => "image-file-field"
+          = f.text_field :external_media_url, :class => "external-url-input", :style => "display: none"
+        = f.text_area(:text, :placeholder => t('forms.placeholders.write_a_description_about_the_image'), :rows => 3)
+      %li#videoTab
+        = f.hidden_field :kind, :value => Post::TYPE[:with_video]
+        %p.small
+          = t('forms.video_tab_description')
+          %small
+            %em (ie. http://www.youtube.com/watch?v=txqiwrbYGrs)
+        .select-file
+          %p.small
+            = t('forms.insert_video_url')
+          = f.text_field :external_media_url, :class => "external-url-input"
+        = f.text_area(:text, :placeholder => t('forms.placeholders.write_a_description_about_the_video'), :rows => 3)
+      %li#documentTab
+        = f.hidden_field :kind, :value => Post::TYPE[:with_document]
+        %p.small.right
+          %b
+            = t('posts.file_size_info')
+        .select-file
+          = f.file_field :media, :class => "document-file-field"
+        = f.text_area(:text, :placeholder => t('forms.placeholders.write_a_description_about_the_document'), :rows => 3)
+      %hr
+      = f.submit t('forms.publish'), :class => 'button small green-button', disable_with: t('forms.publishing')
+      = image_tag('loader_small.gif', :class => "post-loader")
+  
+  .post-errors
+    %span#postErrors

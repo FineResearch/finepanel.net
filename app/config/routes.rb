@@ -12,6 +12,13 @@ Rails.application.routes.draw do
         post 'create_colleague', to: 'registrations#create_colleague'
       end
     end
+
+    resources :posts, only: [:create, :show] do
+      member do
+        get "download"
+      end
+    end
+    resources :comments, only: [:create]
   end
 
   root to: 'home#index'

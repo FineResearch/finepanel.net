@@ -1,0 +1,12 @@
+.row.collapse{:class => post.kind}
+  - if post.user_info.present?
+    = show_post_by_kind(post)
+    / = render 'posts/types/comment_post', post: post, type: 'text'
+  .medium-1.small-12.columns
+  .medium-11.small-12.columns
+    .secondary.posts_comments
+      = render "posts/post_comments", comments: post.comments
+      = form_for(:comment, :html => {:id => "new_comment"}, :url => comments_path, :remote => true) do |f|
+        = f.text_field :text, :class => "comment-input", :value => ""
+        = f.hidden_field :parent_post_id, value: post.id
+%hr

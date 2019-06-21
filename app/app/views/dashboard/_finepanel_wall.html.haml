@@ -1,0 +1,9 @@
+.row
+  .medium-9.medium-centered.columns
+    %h5
+      = t('dashboard.contact_with_finepanel')
+
+.row
+  .medium-9.medium-centered.columns
+    = render partial: 'posts/post_form'
+    = render 'posts/wall', posts: posts, show_pagination: true

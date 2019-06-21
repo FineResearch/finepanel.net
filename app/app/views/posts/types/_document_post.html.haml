@@ -1,0 +1,21 @@
+.medium-1.small-12.columns
+  -if news_comment?(post.user)
+    = news_image
+  -elsif support_comment?(post.user_info)
+    = support_image
+  -else
+    .glyph.big j
+.medium-11.small-12.columns
+  %p
+    = post.user_info['complete_name']
+    = " - #{t('specialties.s' + post.user_info['specialty'].to_s)}" if post.user_info['specialty'].present?
+    = t('posts.shared_a_document')
+    %small.small
+      %em
+        = t "posts.news.published_at", date: l(post.created_at)
+  %p.small
+    = post.text
+  %p
+    = link_to download_post_path(post) do
+      %span.glyph 9
+      = t("posts.download_file")

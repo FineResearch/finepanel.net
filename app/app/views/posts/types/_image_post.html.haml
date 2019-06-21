@@ -1,0 +1,22 @@
+.medium-1.small-12.columns
+  -if news_comment?(post.user)
+    = news_image
+  -elsif support_comment?(post.user_info)
+    = support_image
+  -else
+    .glyph.big .
+.medium-11.small-12.columns
+  %p
+    = post.user_info['complete_name']
+    = " - #{t('specialties.s' + post.user_info['specialty'].to_s)}" if post.user_info['specialty'].present?
+    = t("posts.shared_an_image")
+    %small.small
+      %em
+        = t "posts.news.published_at", date: l(post.created_at)
+  .medium-4.small-12.columns
+    - if post.external_media_url.present?
+      = link_to image_tag(post.external_media_url), post.external_media_url, :class => 'medium-11 columns post_image'
+    - else
+      = link_to image_tag(post.media.url), post.media.url, :class => 'medium-11 columns post_image'
+  %p.small
+    = post.text

@@ -19,6 +19,8 @@
 //= require responsive-tables
 //= require home
 //= require registrations
+//= require posts
+//= require jquery.remotipart
 //= require_self
 
 

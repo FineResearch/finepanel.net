@@ -1,0 +1,10 @@
+%p.posts_comment
+  = support_image('support-icon-wall-comment') if support_comment?(comment.user_info)
+  %blockquote.small
+    = comment.text
+    %cite
+      = comment.user_info['complete_name']
+      = " - #{t('specialties.s' + comment.user_info['specialty'].to_s)}" if comment.user_info['specialty'].present?
+      = " - #{comment.user_info['country']}"
+      = " - #{comment.user_info['city']}" if comment.user_info['city'].present?
+%hr
