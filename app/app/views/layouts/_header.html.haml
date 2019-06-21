@@ -6,7 +6,7 @@
           %h1#logo
             = link_to(content_tag(:span, "Finepanel"), root_path)
         - unless user_signed_in?
-          .columns.small-12.medium-9
+          .columns.small-12.medium-9.header-nav-menu
             .row#login
               = form_for(User.new, as: :user, url: session_path(:user), html: { class: 'columns small-7' } ) do |f|
                 .row
