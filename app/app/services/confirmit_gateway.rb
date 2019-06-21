@@ -29,7 +29,8 @@ class ConfirmitGateway
       surveys = get_surveys_from_response(response.body).to_a
 
       language_param = user.language_param(respid)
-      get_active_surveys_for_user(surveys, language_param)
+      survey_list = get_active_surveys_for_user(surveys, language_param)
+      add_next_surveys_to_links(survey_list)
     end
 
     def get_payments_for_user(user_data)
@@ -123,9 +124,15 @@ class ConfirmitGateway
         survey[:link] = survey_link.link + '&l=' + language_param
         survey[:name] = survey_data[:name]
         survey[:subject] = survey_data[:subject]
+        survey[:profile] = survey_data[:profile]
         survey[:duration] = survey_data[:duration]
         survey[:fee] = survey_data[:fee]
         survey[:priority] = survey_data[:priority]
+        survey[:status] = survey_data[:status]
+
+        survey[:project_id] = survey[:link].match(%r{/(p\d*).})[1]
+        survey[:respid] = survey[:link].match(/r=(.*?)&/)[1]
+        survey[:spanel] = survey[:link].match(/s=(.*?)&/)[1]
 
         result << survey
       end.compact
@@ -147,7 +154,7 @@ class ConfirmitGateway
 
       survey_data = get_survey_data_from_response(response.body, language_param)
       return nil unless survey_data.present?
-      
+
       check_empty_values(survey_data)
     end
 
@@ -170,9 +177,11 @@ class ConfirmitGateway
       {
         name: sanitize_survey_attribute(survey_data.children[1]),
         subject: sanitize_survey_attribute(survey_data.children[2]),
+        profile: sanitize_survey_attribute(survey_data.children[3]),
         duration: sanitize_survey_attribute(survey_data.children[4]),
         fee: sanitize_survey_attribute(survey_data.children[5]),
-        priority: sanitize_survey_attribute(survey_data.children[6])
+        priority: sanitize_survey_attribute(survey_data.children[6]),
+        status: '0'
       }
     end
 
@@ -180,9 +189,11 @@ class ConfirmitGateway
       {
         name: sanitize_survey_attribute(survey_data.children[0]),
         subject: sanitize_survey_attribute(survey_data.children[1]),
+        profile: sanitize_survey_attribute(survey_data.children[2]),
         duration: sanitize_survey_attribute(survey_data.children[3]),
         fee: sanitize_survey_attribute(survey_data.children[4]),
-        priority: sanitize_survey_attribute(survey_data.children[5])
+        priority: sanitize_survey_attribute(survey_data.children[5]),
+        status: '0'
       }
     end
 
@@ -190,9 +201,11 @@ class ConfirmitGateway
       {
         name: sanitize_survey_attribute(survey_data.children[0]),
         subject: sanitize_survey_attribute(survey_data.children[1]),
+        profile: sanitize_survey_attribute(survey_data.children[2]),
         duration: sanitize_survey_attribute(survey_data.children[3]),
         fee: sanitize_survey_attribute(survey_data.children[4]),
-        priority: sanitize_survey_attribute(survey_data.children[5])
+        priority: sanitize_survey_attribute(survey_data.children[5]),
+        status: '66'
       }
     end
 
@@ -203,7 +216,30 @@ class ConfirmitGateway
     def sanitize_survey_attribute(attribute)
       return '' unless attribute.present?
 
-      attribute.text.split(': ')[1]
+      attribute.text.split(': ')[1].strip.delete("\u00A0")
+    end
+
+    def add_next_surveys_to_links(surveys)
+      surveys.each_with_index do |_survey, i|
+        (1..5).each do |n|
+          break if surveys[i + n].blank?
+
+          surveys[i][:link] += next_survey_params(surveys[i], surveys[i + n], n)
+        end
+      end
+    end
+
+    def next_survey_params(_current_survey, next_survey, n)
+      params = ''
+      params += "&RFP#{n}=" + next_survey[:name].tr(' ', '+')
+      params += "&Rasunto#{n}=" + next_survey[:subject].tr(' ', '+')
+      params += "&Rperfil#{n}=" + next_survey[:profile].tr(' ', '+')
+      params += "&Rdura#{n}=" + next_survey[:duration].tr(' ', '+')
+      params += "&Rhono#{n}=" + next_survey[:fee].tr(' ', '+')
+      params += "&Rp#{n}=" + next_survey[:project_id]
+      params += "&Rrespid#{n}=" + next_survey[:respid]
+      params += "&Rs#{n}=" + next_survey[:spanel]
+      params += "&Rstatus#{n}=" + next_survey[:status]
     end
 
     def sanitize_params_for_create(params)

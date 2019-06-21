@@ -1,6 +1,5 @@
 = form_tag(user_registration_path(user), { method: method, class: 'custom registration-form' }) do
   .columns.medium-8.end.medium-offset-4
-    = resource_error_messages(user)
   .row
     .columns.medium-4.small-12
       = label_tag :suffix, t('activerecord.attributes.user.suffix'), :class => 'inline right required'
