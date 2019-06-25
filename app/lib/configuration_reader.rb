@@ -70,6 +70,8 @@ module ConfigurationReader
 
   def self.city_name(country_id, city_id)
     countries = load_config('countries', COUNTRY_FILE_NAME)
+    return nil unless countries["co#{country_id}"]['cities']["ci#{city_id}"].present?
+
     countries["co#{country_id}"]['cities']["ci#{city_id}"]['name']
   end
 
