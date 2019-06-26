@@ -17,9 +17,14 @@ services:
     command: bash -c "bundle exec puma"
     ports:
       - 3000:3000
+    volumes:
+      - $PWD/app:/usr/src/app
+
   sidekiq:
     build:
       dockerfile: Dockerfile.dev
     command: bundle exec sidekiq -C config/sidekiq.yml
     environment:
       - SIDEKIQ_CONCURRENCY=2
+    volumes:
+      - $PWD/app:/usr/src/app

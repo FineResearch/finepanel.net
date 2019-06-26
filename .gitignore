@@ -35,3 +35,6 @@
 
 /data
 /docker-compose.override.yml
+
+conf/acme.json
+conf/traefik.toml
