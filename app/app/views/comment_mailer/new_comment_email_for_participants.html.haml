@@ -1,0 +1,12 @@
+!!! 5
+%html
+  %head
+    %meta{ :content => "text/html; charset=UTF-8", "http-equiv" => "Content-Type" }
+  %body
+    %p
+      = raw t('mailers.new_comment.p1_1', colleague_name: @comment.user_info['complete_name'])
+      = raw t('mailers.new_comment.p1_2', post_text: @comment.post.text)
+      = raw t('mailers.new_comment.p1_3')
+    %p
+      = raw t('mailers.new_comment.signature')
+

@@ -1,0 +1,16 @@
+!!! 5
+%html
+  %head
+    %meta{:content => "text/html; charset=UTF-8", "http-equiv" => "Content-Type" }
+  %body
+    %h1
+      = "#{@comment.user_info['complete_name']} (#{@comment.user_info['country']}) ha comentado un post"
+    %p{:style => "font-size: 24px"}
+      = "\"#{@comment.text}\""
+    %p
+      = "ref - #{@respid}"
+    %p
+      = "email - #{@comment.user_info['email']}"
+    %p
+      = "Si desea eliminar este contenido haga click en el siguiente link "
+      = link_to delete_comment_url(@comment.id, :locale => 'es'), delete_comment_url(@comment.id, :locale => 'es')

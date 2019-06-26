@@ -11,4 +11,10 @@ class CommentsController < ApplicationController
       render body: nil, status: :unprocessable_entity
     end
   end
+
+  def delete
+    @comment = Comment.find_by(id: params[:id])&.destroy
+    
+    redirect_to root_path
+  end
 end

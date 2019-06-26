@@ -12,13 +12,6 @@ Rails.application.routes.draw do
         post 'create_colleague', to: 'registrations#create_colleague'
       end
     end
-
-    resources :posts, only: [:create, :show] do
-      member do
-        get "download"
-      end
-    end
-    resources :comments, only: [:create]
   end
 
   root to: 'home#index'
@@ -27,6 +20,18 @@ Rails.application.routes.draw do
 
   devise_scope :user do
     get 'users/redirect_user_login', to: 'users/sessions#redirect_user_login'
+  end
+
+  resources :posts, only: [:create, :show] do
+    member do
+      get "download"
+      get "delete"
+    end
+  end
+  resources :comments, only: [:create] do
+    member do
+      get "delete"
+    end
   end
   
   get 'faq', to: 'home#faq'
