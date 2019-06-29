@@ -19,4 +19,8 @@ module DashboardHelper
       t ('dashboard.survey_status.not_paid_for_duplicity')
     end
   end
+
+  def survey_progress_status(code)
+    return 'Iniciada' if code == ConfigurationReader.status_initiated_survey
+  end
 end

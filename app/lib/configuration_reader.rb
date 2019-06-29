@@ -75,6 +75,14 @@ module ConfigurationReader
     countries["co#{country_id}"]['cities']["ci#{city_id}"]['name']
   end
 
+  def self.status_new_survey
+    load_config('status_new_survey', CONSTANTS_FILE_NAME)
+  end
+
+  def self.status_initiated_survey
+    load_config('status_initiated_survey', CONSTANTS_FILE_NAME)
+  end
+
   def self.load_config(enum, file_name)
     YAML.safe_load(File.open(Rails.root.join('config', file_name)))[enum]
   end
