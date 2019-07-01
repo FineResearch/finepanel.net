@@ -30,5 +30,19 @@ module Users
         redirect_to action: 'refer_colleague'
       end
     end
+
+    def password_recovery
+    end
+
+    def send_password
+      if params[:email].present? && User.find_from_email(params[:email]).present?
+        RegistrationMailer.password_recovery_email(params[:email], User.automated_password(params[:email])).deliver
+        flash[:notice] = t('registrations.password_recovery.password_sent')
+        redirect_to root_path
+      else
+        flash.now[:alert] = t('registrations.password_recovery.email_not_found')
+        render :password_recovery
+      end
+    end
   end
 end
