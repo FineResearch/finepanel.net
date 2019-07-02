@@ -81,14 +81,14 @@ class User < ApplicationRecord
     return nil unless user_data.present?
 
     complete_name = user_data[:suffix] + ' ' + user_data[:last_name]
-    specialty_id = user_data[:specialty_id]
     country = ConfigurationReader.country_name(user_data[:country_id]) if user_data[:country_id].present?
     city = ConfigurationReader.city_name(user_data[:country_id], user_data[:city_id]) if user_data[:city_id].present?
     {
       complete_name: complete_name,
-      specialty: specialty_id,
+      specialty: user_data[:specialty_id],
       country: country,
-      city: city
+      city: city,
+      email: user_data[:email]
     }
   end
 end

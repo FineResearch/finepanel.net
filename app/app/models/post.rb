@@ -10,6 +10,7 @@ class Post < ApplicationRecord
   mount_uploader :media, MediaUploader
 
   after_destroy :delete_media_folder
+  after_create :deliver_notification_mails
   
   # will paginate per page default value for posts
   self.per_page = 5
@@ -23,5 +24,14 @@ class Post < ApplicationRecord
 
   def delete_media_folder
     FileUtils.rm_rf(Rails.root.join('public/uploads/post/media', id.to_s))
+  end
+
+  def participants_emails
+    emails = comments.map{ |comment| comment.user_info['email'] }.uniq
+    emails << user_info['email']
+  end
+
+  def deliver_notification_mails
+    PostMailer.new_post_email(self, user.user_respid(user_info['email'])).deliver
   end
 end

@@ -26,6 +26,8 @@
 /app/public/assets
 /app/.byebug_history
 
+/app/.env
+
 #Ignore the database's configuration
 /app/config/database.yml
 

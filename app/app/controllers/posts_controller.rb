@@ -22,6 +22,12 @@ class PostsController < ApplicationController
     send_file file_path, x_sendfile: true
   end
 
+  def delete
+    @post = Post.find_by(id: params[:id])&.destroy
+    
+    redirect_to root_path
+  end
+
   private
   def post_params
     user_info = current_user.info_for_post(cookies[:respid])

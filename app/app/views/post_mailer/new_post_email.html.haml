@@ -1,0 +1,16 @@
+!!! 5
+%html
+  %head
+    %meta{:content => "text/html; charset=UTF-8", "http-equiv" => "Content-Type" }
+  %body
+    %h1
+      = "#{@post.user_info['complete_name']} (#{@post.user_info['country']}) ha creado un post"
+    %p{:style => "font-size: 24px"}
+      = "\"#{@post.text}\""
+    %p
+      = "ref - #{@respid}"
+    %p
+      = "email - #{@post.user_info['email']}"
+    %p
+      = "Si desea eliminar este contenido haga click en el siguiente link "
+      = link_to delete_post_url(@post.id, :locale => 'es'), delete_post_url(@post.id, :locale => 'es')
