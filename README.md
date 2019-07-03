@@ -27,7 +27,7 @@ Have the local environment just like production:
 2. Create the symlink again but with the docker-compose from production:
 `ln -s docker-compose.prod.override.yml docker-compose.override.yml`
 
-Remember the poduction env doesn't have any volumes mounted, so there is no auto reload or things like that. The image is builded with everithing the application needs. If there is any code change then you will have to rebuild the image and start again the cointainer.
+Remember the poduction env doesn't have any volumes mounted, so there is no auto reload or things like that. The image is generated with everything the application needs. If there is any code change then you will have to rebuild the image and start again the cointainer.
 
 
 ## Deploy
