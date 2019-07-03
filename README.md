@@ -20,7 +20,7 @@ To create the symlink needed execute `ln -s docker-compose.override.dev.yml dock
 
 Before doing a deploy to staging, be sure to test on production environment locally.
 
-Docker gets the correct environment trough the `docker-compose.yml` symlink. 
+Docker gets the correct environment trough the `docker-compose.yml` symlink.
 Have the local environment just like production:
 
 1. Remove the local symlink: `rm docker-compose.yml`
@@ -41,6 +41,15 @@ Remember the poduction env doesn't have any volumes mounted, so there is no auto
 4. Execute `docker-compose up -d --build`.
  This will rebuild the image if it's needed, such as if the Dockerfile changed.
 5. Go to <a href="http://staging.finepanel.net" target="_blank">http://staging.finepanel.net</a> and check for the new version.
+
+## Logs
+
+All the logs from the containers are redirected to stdout so they can be picked up by docker.
+This means there is no file under `log/` folder.
+To see the logs from the containers just execute `docker-compose logs [Container name]` where container name is specified inside the docker-compose.yml file.
+Eg: app, redis, sidekiq...
+
+
 
 ## Docker usage
 
