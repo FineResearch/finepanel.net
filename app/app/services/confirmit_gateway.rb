@@ -33,6 +33,16 @@ class ConfirmitGateway
       add_next_surveys_to_links(survey_list)
     end
 
+    def get_surveys_for_redirect_to_portal(user, respid)
+      user_url = user_profile_url(user, respid)
+      response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
+      surveys = get_surveys_from_response(response.body).to_a
+
+      language_param = user.language_param(respid)
+      survey_list = get_active_surveys_for_user(surveys, language_param)
+      surveys_params_for_redirect_to_portal_link(survey_list)
+    end
+
     def get_payments_for_user(user_data)
       {
         total_payments: user_data[:totalpagos],
@@ -234,17 +244,21 @@ class ConfirmitGateway
       attribute.text.split(': ')[1].strip.delete("\u00A0")
     end
 
+    def surveys_params_for_redirect_to_portal_link(surveys)
+      surveys.map.with_index(1){|survey, index| next_survey_params(survey, index)}.reduce(:+)
+    end
+
     def add_next_surveys_to_links(surveys)
       surveys.each_with_index do |_survey, i|
         (1..5).each do |n|
           break if surveys[i + n].blank?
 
-          surveys[i][:link] += next_survey_params(surveys[i], surveys[i + n], n)
+          surveys[i][:link] += next_survey_params(surveys[i + n], n)
         end
       end
     end
 
-    def next_survey_params(_current_survey, next_survey, n)
+    def next_survey_params(next_survey, n)
       params = ''
       params += "&RFP#{n}=" + next_survey[:name].tr(' ', '+')
       params += "&Rasunto#{n}=" + next_survey[:subject].tr(' ', '+')
