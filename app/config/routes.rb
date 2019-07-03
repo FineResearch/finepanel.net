@@ -12,8 +12,8 @@ Rails.application.routes.draw do
         post 'create_colleague', to: 'registrations#create_colleague'
       end
     end
-
     get 'list_all_projects', to: 'surveys#list_all_projects'
+    get 'payment_history', to: 'dashboard#payment_history'
   end
 
   root to: 'home#index'

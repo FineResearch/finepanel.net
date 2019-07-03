@@ -23,10 +23,14 @@ class MailerController < ApplicationController
         File.join(file_root_path, entry.name)
       end
 
-      if feed_file_path.include?(ConfigurationReader.project_id)
-        SyncUsersWorker.perform_async(feed_file_path, file_path)
+      if feed_file_path.include?('PanelistCredits')
+        SyncCreditsAndPaymentsWorker.perform_async(feed_file_path, file_path)
       else
-        SyncSurveyLinksWorker.perform_async(feed_file_path, file_path)
+        if feed_file_path.include?(ConfigurationReader.project_id)
+          SyncUsersWorker.perform_async(feed_file_path, file_path)
+        else
+          SyncSurveyLinksWorker.perform_async(feed_file_path, file_path)
+        end
       end
     end
 

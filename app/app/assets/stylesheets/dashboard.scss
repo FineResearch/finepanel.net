@@ -278,11 +278,22 @@ form#new_post {
   .today-credits{
     background-color: #f2dede;
   }
+  tr.payment-item{
+    th{
+      font-weight: normal;
+    }
+  }
 }
 #history_payment_modal{
   small.history-disclaimer{
     font-size: 12px;
     color: #FF4136;
+  }
+  &.reveal{
+    outline: none;
+    .close-button{
+      outline: none;
+    }
   }
 }
 #support-link{

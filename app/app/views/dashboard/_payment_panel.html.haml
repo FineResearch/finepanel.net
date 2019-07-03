@@ -2,8 +2,8 @@
   .row
     .small-12.medium-12.columns
       %span.pending_money
-        %h2
-          = "#{@currency}#{@payment_info[:credit]}"
+        %h2#pending_credit
+          = "#{cookies[:currency]}#{@payment_info[:credit]}"
         %h5
           = t('dashboard.balance.pending')
 
@@ -15,9 +15,15 @@
           %span
             = t('dashboard.balance.paid')
           %span.right
-            = "#{@currency}#{@payment_info[:total_payments]}"
+            = "#{cookies[:currency]}#{@payment_info[:total_payments]}"
         %li
           %span
             = t('dashboard.balance.total_fees')
           %span.right
-            = "#{@currency}#{@payment_info[:total]}"
+            = "#{cookies[:currency]}#{@payment_info[:total]}"
+  .row
+    .ten.columns.centered
+      %button.button.payment-button.small#payment-history{"data-open" => "history_payment_modal"}
+        = t('dashboard.payment_history.button_text')
+
+= render 'dashboard/payment_history'
