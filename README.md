@@ -16,9 +16,24 @@ To create the symlink needed execute `ln -s docker-compose.override.dev.yml dock
 5. Execute migrations: `docker-compose run app bundle exec rails db:create`.
 
 
+## Developing
+
+Before doing a deploy to staging, be sure to test on production environment locally.
+
+Docker gets the correct environment trough the `docker-compose.yml` symlink.
+Have the local environment just like production:
+
+1. Remove the local symlink: `rm docker-compose.yml`
+2. Create the symlink again but with the docker-compose from production:
+`ln -s docker-compose.prod.override.yml docker-compose.override.yml`
+
+Remember the poduction env doesn't have any volumes mounted, so there is no auto reload or things like that. The image is generated with everything the application needs. If there is any code change then you will have to rebuild the image and start again the cointainer.
+
+
 ## Deploy
 
 1. SSH to the server forwarding the agent to the user `mooveit`: `ssh -A mooveit@staging.finepanel.net`.
+
  *Ask on slack to include your public key to the `mooveit` user.*
 
 2. Inside `~/finepanel` do a pull from the github repo.
@@ -27,8 +42,16 @@ To create the symlink needed execute `ln -s docker-compose.override.dev.yml dock
  This will rebuild the image if it's needed, such as if the Dockerfile changed.
 5. Go to <a href="http://staging.finepanel.net" target="_blank">http://staging.finepanel.net</a> and check for the new version.
 
-## Docker usage
+## Logs
 
+All the logs from the containers are redirected to stdout so they can be picked up by docker.
+This means there is no file under `log/` folder.
+To see the logs from the containers just execute `docker-compose logs [Container name]` where container name is specified inside the docker-compose.yml file.
+Eg: app, redis, sidekiq...
+
+
+
+## Docker usage
 
 Basic Docker knowledge would be good to have. You can check Docker documentation to have more insight on how Dockerfiles or docker-compose works.
 

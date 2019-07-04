@@ -34,6 +34,11 @@ class User < ApplicationRecord
     user
   end
 
+  def self.find_from_email(email)
+    encrypted_email = Digest::MD5.hexdigest(email)
+    User.find_by(encrypted_email: encrypted_email)
+  end
+
   def self.automated_password(email)
     # Algorithm used to create passwords inside confirmit
     span = email[2..6]
