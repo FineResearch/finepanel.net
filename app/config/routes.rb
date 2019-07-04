@@ -19,7 +19,11 @@ Rails.application.routes.draw do
   post 'mailer', to: 'mailer#sync'
 
   devise_scope :user do
-    get 'users/redirect_user_login', to: 'users/sessions#redirect_user_login'
+    namespace :users do
+      get 'redirect_user_login', to: 'sessions#redirect_user_login'
+      get 'password_recovery', to: 'registrations#password_recovery'
+      post 'send_password', to: 'registrations#send_password'
+    end
   end
 
   resources :posts, only: [:create, :show] do
