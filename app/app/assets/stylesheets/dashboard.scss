@@ -128,10 +128,22 @@ form#new_post {
 }
 
 .survey-info{
-  width: 70%;
+  width: 60%;
 }
+
+.survey-status{
+  text-align: right;
+  span{
+    border: 1px solid;
+    padding: 4px 10px;
+    border-radius: 15px;
+    border-color: $sidebarColor;
+    color: $sidebarColor;;
+  }
+}
+
 .survey-list-btn{
-  width: 30%;
+  width: 25%;
   text-align: right;
   .survey-item-btn{
     margin-bottom: 0px;

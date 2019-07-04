@@ -161,16 +161,17 @@ class ConfirmitGateway
     def get_survey_data_from_response(raw_response, language_param)
       survey_data = Nokogiri::HTML.parse(raw_response).css('#Filtro_text')
 
-      return survey_data_from_initiated_survey(raw_response) unless survey_data.present?
+      return survey_data_from_initiated_survey(raw_response, language_param) unless survey_data.present?
       return sanitize_data_from_survey_lang_pt(survey_data.children[0].children[0]) if language_pt?(language_param)
       return nil unless survey_data.children[1].children[0].present?
 
       sanitize_data_from_survey_lang_es(survey_data.children[1].children[0].children[0])
     end
 
-    def survey_data_from_initiated_survey(raw_response)
+    def survey_data_from_initiated_survey(raw_response, language_param)
       survey_data = Nokogiri::HTML.parse(raw_response).css('#avisodeinc_text')
-      sanitize_data_from_initiated_survey(survey_data)
+      return sanitize_data_from_initiated_survey_pt(survey_data) if language_pt?(language_param)
+      sanitize_data_from_initiated_survey_es(survey_data)
     end
 
     def sanitize_data_from_survey_lang_pt(survey_data)
@@ -181,7 +182,7 @@ class ConfirmitGateway
         duration: sanitize_survey_attribute(survey_data.children[4]),
         fee: sanitize_survey_attribute(survey_data.children[5]),
         priority: sanitize_survey_attribute(survey_data.children[6]),
-        status: '0'
+        status: ConfigurationReader.status_new_survey
       }
     end
 
@@ -193,11 +194,11 @@ class ConfirmitGateway
         duration: sanitize_survey_attribute(survey_data.children[3]),
         fee: sanitize_survey_attribute(survey_data.children[4]),
         priority: sanitize_survey_attribute(survey_data.children[5]),
-        status: '0'
+        status: ConfigurationReader.status_new_survey
       }
     end
 
-    def sanitize_data_from_initiated_survey(survey_data)
+    def sanitize_data_from_initiated_survey_pt(survey_data)
       {
         name: sanitize_survey_attribute(survey_data.children[0]),
         subject: sanitize_survey_attribute(survey_data.children[1]),
@@ -205,9 +206,23 @@ class ConfirmitGateway
         duration: sanitize_survey_attribute(survey_data.children[3]),
         fee: sanitize_survey_attribute(survey_data.children[4]),
         priority: sanitize_survey_attribute(survey_data.children[5]),
-        status: '66'
+        status: ConfigurationReader.status_initiated_survey
       }
     end
+
+    def sanitize_data_from_initiated_survey_es(survey_data)
+      {
+        name: sanitize_survey_attribute(survey_data.children[1]),
+        subject: sanitize_survey_attribute(survey_data.children[2]),
+        profile: sanitize_survey_attribute(survey_data.children[3]),
+        duration: sanitize_survey_attribute(survey_data.children[4]),
+        fee: sanitize_survey_attribute(survey_data.children[5]),
+        priority: sanitize_survey_attribute(survey_data.children[6]),
+        status: ConfigurationReader.status_initiated_survey
+      }
+    end
+
+
 
     def check_empty_values(data)
       data.select { |_, v| v.nil? || v == '' }.blank? ? data : nil

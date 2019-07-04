@@ -9,8 +9,12 @@
               = survey[:subject]
             .code
               = "#{survey[:name]}: "
-              %span.time 
+              %span.time
                 = survey[:duration]
+          %td.survey-status
+            - if survey_progress_status(survey[:status]).present? 
+              %span
+                = survey_progress_status(survey[:status])
           %td.survey-list-btn
             = link_to "Participe! #{t('dashboard.participate')} #{survey[:fee]}", survey[:link], target: :_blank, class: "button small answer survey-item-btn"
     - else
