@@ -17,22 +17,39 @@ module Users
     def redirect_user_login
       resource = User.find_from_respid_spanel_and_encrypted_email(params[:r], params[:s], params[:e])
       if resource.present?
-        sign_in(resource_name, resource)
-        cookies[:respid] = params[:r]
-        cookies[:user_email] = resource.email
-        user_data = resource.profile_data_from_email(resource.email)
-        cookies[:country_id] = user_data[:country_id]
-        cookies[:locale] = ConfigurationReader.language(user_data[:country_id])
+        redirect_existent_user_login(resource, exit_param: 'exit')
       else
         flash[:error] = t('messages.error.login')
+        redirect_to root_path
       end
-      redirect_to root_path
     end
 
     def destroy
       super
       reset_session
       flash[:success] = t('messages.notice.logout')
+    end
+
+    private 
+
+    def redirect_existent_user_login(resource, exit_param:)
+      if params[exit_param].present?
+        # redirect to user's portal with surveys info
+        surveys_params = ConfirmitGateway.get_surveys_for_redirect_to_portal(resource, params[:r])
+        redirect_to resource.user_profile_url(params[:r]) + "&#{exit_param}=#{params[exit_param]}" + surveys_params
+      else
+        sign_in(resource_name, resource)
+        set_cookies_for_redirect_user_login(resource)
+        redirect_to root_path
+      end
+    end
+
+    def set_cookies_for_redirect_user_login(resource)
+      cookies[:respid] = params[:r]
+      cookies[:user_email] = resource.email
+      user_data = resource.profile_data_from_email(resource.email)
+      cookies[:country_id] = user_data[:country_id]
+      cookies[:locale] = ConfigurationReader.language(user_data[:country_id])
     end
   end
 end
