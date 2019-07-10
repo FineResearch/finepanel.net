@@ -45,7 +45,10 @@
                       = current_user.email
                     .dropdown-menu.user-menu#user_options
                       %ul.flyout
-                        %li.logout-item
+                        - if current_user.admin?
+                          %li.user-menu-item
+                            = link_to t('available_projects'), list_all_projects_path, method: :get
+                        %li.user-menu-item
                           = link_to t('header.logout'), destroy_user_session_path, method: :delete
                     .dropdown-menu-mobile
                       %ul

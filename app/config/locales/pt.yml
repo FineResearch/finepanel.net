@@ -387,6 +387,8 @@ pt:
       survey_history:
         origin_disclaimer: 'Como o(a) Sr.(a) não recebeu um convite direto realizado desde o Fine Panel, a responsabilidade pelo pagamento é da equipe que entrou em contato com o(a) Sr.(a) conforme o que foi combinado com eles. Para consultar o pagamento ou demora na cobrança pode, de qualquer forma, escrever para honorarios@finepanel.net'
 
+  available_projects: Projetos disponíveis
+
   faq:
     page_title: Perguntas Frequentes
     up: Acima
