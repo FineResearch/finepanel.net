@@ -241,7 +241,8 @@ class ConfirmitGateway
     def sanitize_survey_attribute(attribute)
       return '' unless attribute.present?
 
-      attribute.text.split(': ')[1].strip.delete("\u00A0")
+      sanitized_attribute = attribute.text.split(': ')[1]
+      sanitized_attribute.strip.delete("\u00A0") if sanitized_attribute.present?
     end
 
     def surveys_params_for_redirect_to_portal_link(surveys)
