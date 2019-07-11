@@ -1,3 +1,4 @@
+- user_data ||= {}
 = form_tag(user_registration_path(user), { method: method, class: 'custom registration-form' }) do
   .columns.medium-8.end.medium-offset-4
   .row
@@ -5,39 +6,39 @@
       = label_tag :suffix, t('activerecord.attributes.user.suffix'), :class => 'inline right required'
     .columns.medium-6.small-12.end
       .custom-select
-        = select_tag :suffix, options_for_suffix_select(user), {:include_blank => t('forms.select'), :class => 'inline right required', 'data-other' => t('forms.other'), required: true}
+        = select_tag :suffix, options_for_suffix_select(user, selected: user_data[:suffix]), {:include_blank => t('forms.select'), :class => 'inline right required', 'data-other' => t('forms.other'), required: true}
   .row
     .columns.medium-4.small-12
       = label_tag :first_name, t('activerecord.attributes.user.first_name'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :first_name, nil, required: true
+      = text_field_tag :first_name, user_data[:first_name], required: true
   .row
     .columns.medium-4.small-12
       = label_tag :last_name, t('activerecord.attributes.user.last_name'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :last_name, nil, required: true
+      = text_field_tag :last_name, user_data[:last_name], required: true
   %hr
   .row
     .columns.medium-4.small-12
       = label_tag :email, t('activerecord.attributes.user.email'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :email, nil, required: true
+      = text_field_tag :email, user_data[:email], required: true
   .row
     .columns.medium-4.small-12
       = label_tag :alternate_email, t('activerecord.attributes.user.alternate_email'), :class => 'inline right'
     .columns.medium-6.small-12.end
-      = text_field_tag :alternate_email
+      = text_field_tag :alternate_email, user_data[:alternate_email]
   %hr
   .row
     .columns.medium-4.small-12
       = label_tag :phone, t('activerecord.attributes.user.phone'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :phone, nil, required: true
+      = text_field_tag :phone, user_data[:phone], required: true
   .row
     .columns.medium-4.small-12
       = label_tag :country_id, t('activerecord.attributes.user.country_id'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = select_tag :country_id, options_for_country_select(user), {:include_blank => t('forms.select'), 'data-other' => t('forms.other'), requiered: true}
+      = select_tag :country_id, options_for_country_select(user, selected: user_data[:country_id]), {:include_blank => t('forms.select'), 'data-other' => t('forms.other'), requiered: true}
   #other_country.row
     .columns.medium-6.small-12.end.medium-offset-4
       = text_field_tag :country_text, nil, :placeholder => t('forms.specify')
@@ -45,7 +46,7 @@
     .columns.medium-4.small-12
       = label_tag :city_id, t('activerecord.attributes.user.city_id'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = select_tag :city_id, options_for_city_select(user), {:include_blank => t('forms.select'), 'data-other' => t('forms.other'), required: true}
+      = select_tag :city_id, options_for_city_select(user_data[:country_id], selected: user_data[:city_id]), {:include_blank => t('forms.select'), 'data-other' => t('forms.other'), required: true}
   #other_city.row
     .columns.medium-6.small-12.end.medium-offset-4
       = text_field_tag :city_text, nil, :placeholder => t('forms.specify')
@@ -54,7 +55,7 @@
     .columns.medium-4.small-12
       = label_tag :specialty_id, t('activerecord.attributes.user.specialty_id'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = select_tag :specialty_id, options_for_specialty_select(user), {:include_blank => t('forms.select'), 'data-other' => t('forms.other'), required: true}
+      = select_tag :specialty_id, options_for_specialty_select(user, selected: user_data[:specialty_id]), {:include_blank => t('forms.select'), 'data-other' => t('forms.other'), required: true}
   #other_specialty.row
     .columns.medium-6.small-12.end.medium-offset-4
       = text_field_tag :specialty_text, nil, :placeholder => t('forms.specify')
@@ -62,19 +63,19 @@
     .columns.medium-4.small-12
       = label_tag :alternate_specialty_id, t('activerecord.attributes.user.alternate_specialty_id'), :class => 'inline right'
     .columns.medium-6.small-12.end
-      = select_tag :alternate_specialty_id, options_for_specialty_select(user), {:include_blank => t('forms.select'), 'data-other' => t('forms.other') }
+      = select_tag :alternate_specialty_id, options_for_specialty_select(user, selected: user_data[:alternate_specialty_id]), {:include_blank => t('forms.select'), 'data-other' => t('forms.other') }
   .row
     .columns.medium-4.small-12
       = label_tag :crm, t('activerecord.attributes.user.crm'), :class => 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :crm, nil, required: true
+      = text_field_tag :crm, user_data[:crm], required: true
   %hr
   .row
     .columns.medium-8.small-12.end.medium-offset-4
       %P
         = label_tag :work_at_id, t('activerecord.attributes.user.work_at_label')
     .columns.medium-6.small-12.end.medium-offset-4
-      = select_tag :work_at_id, options_for_work_at_select(user), {:include_blank => t('forms.select'), 'data-other' => t('forms.other')}
+      = select_tag :work_at_id, options_for_work_at_select(user, selected: user_data[:work_at_id]), {:include_blank => t('forms.select'), 'data-other' => t('forms.other')}
   .row
     .columns.medium-4.small-12.medium-offset-8.text-right
       %span.gray.small

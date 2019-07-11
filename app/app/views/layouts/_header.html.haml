@@ -49,6 +49,8 @@
                           %li.user-menu-item
                             = link_to t('available_projects'), list_all_projects_path, method: :get
                         %li.user-menu-item
+                          = link_to t('header.my_personal_data'), edit_user_registration_path, method: :get
+                        %li.user-menu-item
                           = link_to t('header.logout'), destroy_user_session_path, method: :delete
                     .dropdown-menu-mobile
                       %ul
