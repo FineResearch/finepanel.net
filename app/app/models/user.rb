@@ -96,4 +96,9 @@ class User < ApplicationRecord
       email: user_data[:email]
     }
   end
+
+  def admin?
+    admin_users = ConfigurationReader.admin_users
+    admin_users.include?(email)
+  end
 end

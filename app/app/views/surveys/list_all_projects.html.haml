@@ -1,0 +1,20 @@
+#main-content.row
+  #main.small-12.medium-11.medium-centered.columns
+    #available-surveys.medium-12.columns
+      %h4= t('dashboard.survey_list.available_surveys')
+      %table
+        %tbody
+          %tr
+          - if @projects.any?
+            - @projects.each.with_index(1) do |project, index|
+              %tr
+                %td.survey-index
+                  .code
+                    = index
+                %td.survey-info
+                  .code
+                    = project
+          - else
+            %tr
+              %td{colspan: 5}
+                = t('dashboard.survey_list.there_is_no_information_about_surveys_to_show')
