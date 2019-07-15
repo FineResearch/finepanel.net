@@ -1,0 +1,22 @@
+#history_payment_modal.reveal.large{'data-reveal' => ""}
+  %h3
+    = t('dashboard.payment_history.modal_title')
+    %small.history-disclaimer
+  #today_credits_project.hide
+    = t('dashboard.payment_history.today_credit.project')
+  #today_credits_comment_payment.hide
+    = t('dashboard.payment_history.today_credit.comment_pay')
+  #today_credits_comment_credit.hide
+    = t('dashboard.payment_history.today_credit.comment_credit')
+  #today_credits_day.hide
+    = t('dashboard.payment_history.today_credit.day')
+  %button.close-button{"aria-label" => "Close modal", "data-close" => "", :type => "button"}
+    %span{"aria-hidden" => "true"} ×
+
+  .modal_table_container
+    %tr{:class => 'loading'}
+      %td{:colspan => '5'}
+        .loading
+
+  .alert-box.message{:style => 'display:none;'}
+    = t('dashboard.payment_history.no_info')

@@ -26,6 +26,8 @@ module Users
 
     def destroy
       super
+      cookies.delete(:currency)
+      cookies.delete(:country_id)
       reset_session
       flash[:success] = t('messages.notice.logout')
     end
@@ -48,6 +50,7 @@ module Users
       cookies[:respid] = params[:r]
       cookies[:user_email] = resource.email
       user_data = resource.profile_data_from_email(resource.email)
+      cookies[:currency] = ConfirmitGateway.get_currency_for_user(user_data)
       cookies[:country_id] = user_data[:country_id]
       cookies[:locale] = ConfigurationReader.language(user_data[:country_id])
     end
