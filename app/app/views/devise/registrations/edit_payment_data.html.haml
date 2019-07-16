@@ -1,0 +1,7 @@
+.row.inner-content
+  .columns.small-12.medium-12
+    %h3
+      = t('breadcrumbs.my_payment_data')
+    %hr
+      .row.collapse
+        = render 'payment_form', user: current_user, user_data: @user_data, method: :post

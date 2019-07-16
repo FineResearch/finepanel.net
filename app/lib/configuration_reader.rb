@@ -87,6 +87,10 @@ module ConfigurationReader
     load_config('admin_user_emails', CONSTANTS_FILE_NAME)
   end
 
+  def self.bank_account_types
+    load_config('bank_account_types', ENUM_FILE_NAME)
+  end
+
   def self.load_config(enum, file_name)
     YAML.safe_load(File.open(Rails.root.join('config', file_name)))[enum]
   end
