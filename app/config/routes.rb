@@ -10,6 +10,8 @@ Rails.application.routes.draw do
       namespace :users do
         get 'refer_colleague', to: 'registrations#refer_colleague'
         post 'create_colleague', to: 'registrations#create_colleague'
+        get 'edit_payment_data', to: 'registrations#edit_payment_data'
+        post 'update_payment_data', to: 'registrations#update_payment_data'
       end
     end
     get 'list_all_projects', to: 'surveys#list_all_projects'

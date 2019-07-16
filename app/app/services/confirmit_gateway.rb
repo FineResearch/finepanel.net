@@ -20,6 +20,11 @@ class ConfirmitGateway
       update_user_data(sanitized_params)
     end
 
+    def update_user_payment_data(respid, spanel, params)
+      sanitized_params = sanitize_params_for_update_payment_data(respid, spanel, params)
+      update_user_data(sanitized_params)
+    end
+
     def params_for_create_user(params, sanitized_params)
       create_account_url = "https://survey.finepanel.net//wix/p785267057.aspx?#{sanitized_params.to_query}"
 
@@ -28,7 +33,7 @@ class ConfirmitGateway
       sanitize_user_params(params, user_params)
     end
 
-     def update_user_data(sanitized_params)
+    def update_user_data(sanitized_params)
       create_account_url = "https://survey.finepanel.net/wix/p785267057.aspx?#{sanitized_params.to_query}"
       response = Net::HTTP.post_form(URI(create_account_url), 'q' => 'ruby', 'max' => '50')
       response.code == '200'
@@ -338,6 +343,24 @@ class ConfirmitGateway
         pais: params[:country_id],
         exit: 'updateportal',
         fuente: params[:fuente]
+      }
+    end
+
+    def sanitize_params_for_update_payment_data(respid, spanel, params)
+      b1 = User.bank_account_type_param(params[:bank_account_type])
+      b5 = params[:bank_account_owner] == 'true' ? '1' : '2'
+      b6 = params[:bank_account_owner] == 'true' ? ' ' : params[:bank_account_name]
+
+      {
+        r: respid,
+        s: spanel,
+        B1: b1,
+        B2: params[:bank_name],
+        B3: params[:bank_branch],
+        B4: params[:bank_account_number],
+        B5: b5,
+        B6: b6,
+        exit: 'updatepagos'
       }
     end
 

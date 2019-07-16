@@ -33,9 +33,33 @@ module RegistrationsHelper
     options_for_select(create_array_for_select(work_at_options, 'work_at_options.w'), work_at_id)
   end
 
+  def options_for_bank_account_type_select(bank_account_type = nil)
+    bank_account_types = ConfigurationReader.bank_account_types.map { |type| [t("bank_account_types.#{type}"), type] }
+    options_for_select(bank_account_types, bank_account_type)
+  end
+
+  def options_for_account_owner(bank_account_owner = nil)
+    options_for_select({t('common.yes') => 'true',t('common.no') => 'false'}, bank_account_owner)
+  end
+
+  def bank_account_type_key_for_select(type)
+    case type
+      when '1'
+        'saving_account'
+      when '2'
+        'checking_account'
+      when '3'
+        'other'
+      else
+        ''
+    end
+  end
+
   private
 
   def create_array_for_select(array, translate_key)
     array.map { |option| [t(translate_key + option.to_s), option] }.sort_by { |text, _val| text }
   end
+
+  
 end
