@@ -41,7 +41,8 @@ module Users
         redirect_to resource.user_profile_url(params[:r]) + "&#{exit_param}=#{params[exit_param]}" + surveys_params
       else
         sign_in(resource_name, resource)
-        set_cookies_for_redirect_user_login(resource)
+        set_cookies_for_redirect_user_login(resource)  
+        create_post_from_redirect_user_login(resource) if params[:post].present?
         redirect_to root_path
       end
     end
@@ -53,6 +54,11 @@ module Users
       cookies[:currency] = ConfirmitGateway.get_currency_for_user(user_data)
       cookies[:country_id] = user_data[:country_id]
       cookies[:locale] = ConfigurationReader.language(user_data[:country_id])
+    end
+
+    def create_post_from_redirect_user_login(resource)
+      user_info = resource.info_for_post(cookies[:respid])
+      resource.posts.create(text: params[:post], kind: 'text', user_info: user_info)
     end
   end
 end
