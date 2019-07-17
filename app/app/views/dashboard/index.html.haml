@@ -20,5 +20,10 @@
           .row
             = render 'surveys/last_surveys'
     .row
-      .medium-8.small-12.columns
+      .small-12.medium-8.columns
         = render 'finepanel_wall', posts: @posts, show_pagination: true
+      .small-12.medium-4.columns
+        #faq-sidebar
+          = render 'faq_sidebar'
+        #campaigns-sidebar
+          = render 'campaign_sidebar'
