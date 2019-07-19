@@ -21,6 +21,7 @@
 //= require registrations
 //= require posts
 //= require dashboard
+//= require payment
 //= require jquery.remotipart
 //= require_self
 
