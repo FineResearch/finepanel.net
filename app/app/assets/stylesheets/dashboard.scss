@@ -309,15 +309,19 @@ form#new_post {
   top: 0px;
 }
 
+.iframe-container{
+  overflow: hidden;
+  margin: 15px auto;
+  height: 363px;
+  width: 100%;
+  text-align: center;
+}
+
 iframe {
   border: 0px none;
-  margin-left: -176px;
-  height: 1101px;
-  margin-top: -485px;
-  width: 926px;
-  -ms-transform: scale(0.25);
-  -moz-transform: scale(0.25);
-  -o-transform: scale(0.25);
-  -webkit-transform: scale(0.25);
-  transform: scale(0.67);
+  height: 363px;
+  width: 271px;
+  margin-left: auto;
+  margin-right: auto;
+  transform: scale(1);
 }
