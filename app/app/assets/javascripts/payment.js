@@ -92,6 +92,9 @@ PaymentData = (function(){
   }
 })();
 
-$(function() {
-  PaymentData.init();
-});
+var url = window.location.href;
+if (url.match(/users\/edit_payment_data/)){
+  $(function() {
+    PaymentData.init();
+  });
+}
