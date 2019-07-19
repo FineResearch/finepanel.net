@@ -56,7 +56,7 @@ PaymentData = (function(){
   var hideSelects = function(){
     $('form select').each(function(index, node) {
       if ($(node).val() != '') {
-        $(node).after($('<div></div>').html($(`#${node.id} option:selected`).text()).attr('class', 'input-data'));
+        $(node).after($('<div></div>').html($('#' + node.id + ' option:selected').text()).attr('class', 'input-data'));
       } else {
         var input_other = $(node).parents('div.row').first().next('div[id^=\"other_\"]').find('input');
         if (input_other.length) {
