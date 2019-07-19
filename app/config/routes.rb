@@ -41,8 +41,12 @@ Rails.application.routes.draw do
       get "delete"
     end
   end
-  
-  get 'faq', to: 'home#faq'
-  get 'contact', to: 'home#contact'
+
+  controller :home do
+    get 'faq'
+    get 'contact'
+    get 'commitment'
+  end
+
   get 'countries/cities/:country_id', to: 'countries#cities'
 end
