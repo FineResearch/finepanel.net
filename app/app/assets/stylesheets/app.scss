@@ -156,6 +156,7 @@ div.panel.callout{
       font-size: 14px;
       border: none;
       margin-bottom: 15px;
+      outline: none;
     }
   }
   .name{
@@ -254,7 +255,7 @@ div.loading {
 }
 
 div.input-data {
-  margin: 9px 0 0 6px;
+  margin: 2px 0 0 6px;
   font-weight: bold;
   color: #003232;
   display: none;
@@ -643,7 +644,7 @@ nav{
     padding: 12px;
     cursor: pointer;
 
-    .logout-item{
+    .user-menu-item{
       width: -webkit-fill-available;
     }
   }

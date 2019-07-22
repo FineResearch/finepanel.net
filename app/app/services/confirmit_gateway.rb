@@ -15,12 +15,28 @@ class ConfirmitGateway
       params_for_create_user(params, sanitized_params)
     end
 
+    def update_user(respid, spanel, params)
+      sanitized_params = sanitize_params_for_update(respid, spanel, params)
+      update_user_data(sanitized_params)
+    end
+
+    def update_user_payment_data(respid, spanel, params)
+      sanitized_params = sanitize_params_for_update_payment_data(respid, spanel, params)
+      update_user_data(sanitized_params)
+    end
+
     def params_for_create_user(params, sanitized_params)
       create_account_url = "https://survey.finepanel.net//wix/p785267057.aspx?#{sanitized_params.to_query}"
 
       response = Net::HTTP.post_form(URI(create_account_url), 'q' => 'ruby', 'max' => '50')
       user_params = values_from_html(response.body)
       sanitize_user_params(params, user_params)
+    end
+
+    def update_user_data(sanitized_params)
+      create_account_url = "https://survey.finepanel.net/wix/p785267057.aspx?#{sanitized_params.to_query}"
+      response = Net::HTTP.post_form(URI(create_account_url), 'q' => 'ruby', 'max' => '50')
+      response.code == '200'
     end
 
     def get_surveys_for_user(user, respid)
@@ -241,7 +257,8 @@ class ConfirmitGateway
     def sanitize_survey_attribute(attribute)
       return '' unless attribute.present?
 
-      attribute.text.split(': ')[1].strip.delete("\u00A0")
+      sanitized_attribute = attribute.text.split(': ')[1]
+      sanitized_attribute.strip.delete("\u00A0") if sanitized_attribute.present?
     end
 
     def surveys_params_for_redirect_to_portal_link(surveys)
@@ -293,6 +310,29 @@ class ConfirmitGateway
       }
     end
 
+    def sanitize_params_for_update(respid, spanel, params)
+      {
+        r: respid,
+        s: spanel,
+        emailr: params[:email],
+        namer: params[:first_name],
+        apellidor: params[:last_name],
+        titulor: params[:suffix],
+        espr: params[:specialty_id],
+        pais: params[:country_id],
+        telr: params[:phone],
+        esp2r: params[:alternate_specialty_id],
+        lugarr: params[:work_at_id],
+        crmr: params[:crm],
+        alternate_email: params[:alternate_email],
+        city_id: params[:city_id],
+        country_text: params[:country_text],
+        city_text: params[:city_text],
+        specialty_text: params[:specialty_text],
+        exit: 'updateportal'
+      }
+    end
+
     def sanitize_params_for_create_colleague(params)
       {
         emailr: params[:email],
@@ -303,6 +343,24 @@ class ConfirmitGateway
         pais: params[:country_id],
         exit: 'updateportal',
         fuente: params[:fuente]
+      }
+    end
+
+    def sanitize_params_for_update_payment_data(respid, spanel, params)
+      b1 = User.bank_account_type_param(params[:bank_account_type])
+      b5 = params[:bank_account_owner] == 'true' ? '1' : '2'
+      b6 = params[:bank_account_owner] == 'true' ? ' ' : params[:bank_account_name]
+
+      {
+        r: respid,
+        s: spanel,
+        B1: b1,
+        B2: params[:bank_name],
+        B3: params[:bank_branch],
+        B4: params[:bank_account_number],
+        B5: b5,
+        B6: b6,
+        exit: 'updatepagos'
       }
     end
 

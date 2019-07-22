@@ -96,4 +96,22 @@ class User < ApplicationRecord
       email: user_data[:email]
     }
   end
+
+  def admin?
+    admin_users = ConfigurationReader.admin_users
+    admin_users.include?(email)
+  end
+
+  def self.bank_account_type_param(type)
+    case type
+      when 'saving_account'
+        '1'
+      when 'checking_account'
+        '2'
+      when 'other'
+        '3'
+      else
+        ''
+    end
+  end
 end

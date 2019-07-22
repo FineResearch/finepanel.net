@@ -10,8 +10,12 @@ Rails.application.routes.draw do
       namespace :users do
         get 'refer_colleague', to: 'registrations#refer_colleague'
         post 'create_colleague', to: 'registrations#create_colleague'
+        get 'edit_payment_data', to: 'registrations#edit_payment_data'
+        post 'update_payment_data', to: 'registrations#update_payment_data'
       end
     end
+    get 'list_all_projects', to: 'surveys#list_all_projects'
+    get 'payment_history', to: 'dashboard#payment_history'
   end
 
   root to: 'home#index'
@@ -37,8 +41,12 @@ Rails.application.routes.draw do
       get "delete"
     end
   end
-  
-  get 'faq', to: 'home#faq'
-  get 'contact', to: 'home#contact'
+
+  controller :home do
+    get 'faq'
+    get 'contact'
+    get 'commitment'
+  end
+
   get 'countries/cities/:country_id', to: 'countries#cities'
 end

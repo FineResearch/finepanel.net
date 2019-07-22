@@ -23,4 +23,8 @@ module DashboardHelper
   def survey_progress_status(code)
     return 'Iniciada' if code == ConfigurationReader.status_initiated_survey
   end
+
+  def history_payment_concept(concept)
+    concept.downcase == 'filtro' ? t('dashboard.payment_history.history_comment.filter') : concept
+  end
 end

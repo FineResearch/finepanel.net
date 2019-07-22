@@ -15,6 +15,34 @@ module Users
       end
     end
 
+    def edit
+      @user_data = current_user.profile_data(cookies[:respid])
+    end
+
+    def update
+      if ConfirmitGateway.update_user(cookies[:respid], current_user.spanel, params)
+        flash[:notice] = t('messages.notice.user_updated')
+        redirect_to root_path
+      else
+        flash.now[:error] = t('messages.error.errors')
+        render :edit
+      end
+    end
+
+    def edit_payment_data
+      @user_data = current_user.profile_data(cookies[:respid])
+    end
+
+    def update_payment_data
+      if ConfirmitGateway.update_user_payment_data(cookies[:respid], current_user.spanel, params)
+        flash[:notice] = t('messages.notice.user_updated')
+        redirect_to root_path
+      else
+        flash.now[:error] = t('messages.error.errors')
+        render :edit
+      end
+    end
+
     def refer_colleague
       @user = User.new
     end

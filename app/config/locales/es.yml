@@ -393,6 +393,8 @@ es:
       survey_history:
         origin_disclaimer: 'Como Ud. no respondió a una invitación directa hecha desde Fine Panel, la responsabilidad de pago es del equipo que lo contactó de acuerdo a lo que combinaron con Ud. Por cualquier consulta al respecto o demora en el cobro puede igualmente escribirnos a honorarios@finepanel.net'
 
+  available_projects: Proyectos disponibles
+
   faq:
     page_title: Preguntas Frecuentes
     up: Arriba
