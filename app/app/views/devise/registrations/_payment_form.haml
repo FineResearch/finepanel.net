@@ -5,32 +5,32 @@
     .columns.medium-4.small-12
       = label_tag :bank_name, t('activerecord.attributes.user.bank_name'), class: 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :bank_name, user_data[:B2], required: true
+      = text_field_tag :bank_name, user_data[:B2], { class: 'payment-data-input', required: true }
   .row
     .columns.medium-4.small-12
       = label_tag :bank_branch, t('activerecord.attributes.user.bank_branch'), class: 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :bank_branch, user_data[:B3], required: true
+      = text_field_tag :bank_branch, user_data[:B3], { class: 'payment-data-input', required: true }
   .row
     .columns.medium-4.small-12
       = label_tag :bank_account_type, t('activerecord.attributes.user.bank_account_type'), class: 'inline right required'
     .columns.medium-6.small-12.end
-      = select_tag :bank_account_type, options_for_bank_account_type_select(selected: bank_account_type_key_for_select(user_data[:B1])), { include_blank: t('forms.select'), 'data-other' => t('forms.other'), requiered: true , class: 'customDropdown'}
+      = select_tag :bank_account_type, options_for_bank_account_type_select(selected: bank_account_type_key_for_select(user_data[:B1])), { include_blank: t('forms.select'), 'data-other' => t('forms.other'), requiered: true , class: 'customDropdown payment-data-input'}
   .row
     .columns.medium-4.small-12
       = label_tag :bank_account_owner, t('activerecord.attributes.user.bank_account_owner'), class: 'inline right required'
     .columns.medium-6.small-12.end
-      = select_tag :bank_account_owner, options_for_account_owner(selected: user_data[:B5] ), { include_blank: t('forms.select'), class: 'customDropdown'}
+      = select_tag :bank_account_owner, options_for_account_owner( selected: user_data[:B5] ), { include_blank: t('forms.select'), class: 'customDropdown payment-data-input' }
   .row#account_name
     .columns.medium-4.small-12
       = label_tag :bank_account_name, t('activerecord.attributes.user.bank_account_name'), class: 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :bank_account_name, user_data[:B6]
+      = text_field_tag :bank_account_name, user_data[:B6], { class: 'payment-data-input' }
   .row
     .columns.medium-4.small-12
       = label_tag :bank_account_number, t('activerecord.attributes.user.bank_account_number'), class: 'inline right required'
     .columns.medium-6.small-12.end
-      = text_field_tag :bank_account_number, user_data[:B4], required: true
+      = text_field_tag :bank_account_number, user_data[:B4], { class: 'payment-data-input', required: true }
 
   .row
     .medium-9.small-12.columns.medium-offset-4
@@ -45,8 +45,8 @@
   #edit-mode-buttons
     .row
       .medium-9.columns.medium-offset-4
-        = submit_tag t('forms.submit'), class: 'button'
-        %button#enable-edit-mode.button{ style: 'display:none;' }
+        = submit_tag t('forms.submit'), class: 'button payment-data-input'
+        %button#enable-edit-mode.button.payment-data-input{ style: 'display:none;' }
           = t('forms.edit_data')
-        %button#disable-edit-mode.button.secondary{ href: '#', style: 'display:none;' }
+        %button#disable-edit-mode.button.secondary.payment-data-input{ href: '#', style: 'display:none;' }
           = t('forms.cancel')
