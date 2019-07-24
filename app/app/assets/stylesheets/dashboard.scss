@@ -137,12 +137,12 @@ form#new_post {
 
 .survey-status{
   text-align: right;
-  span{
+  a{
     border: 1px solid;
     padding: 4px 10px;
     border-radius: 15px;
     border-color: $sidebarColor;
-    color: $sidebarColor;;
+    color: $sidebarColor;
   }
 }
 
