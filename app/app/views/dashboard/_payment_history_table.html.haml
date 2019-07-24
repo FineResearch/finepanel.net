@@ -9,14 +9,14 @@
         %th
       - if payment_row
         %tr.payment-item{:class => ("payment-row")}
-          %th= t('dashboard.payment_history.today_credit.project')
-          %th= "#{cookies[:currency]} #{ payments_sum - pending_credit }"
+          %th= t('dashboard.payment_history.today_credit.comment_project')
+          %th= "#{cookies[:currency]} #{ pending_credit - payments_sum }"
           %th= t('dashboard.payment_history.today_credit.comment_pay')
           %th= t('dashboard.payment_history.today_credit.day')
           %th
       - if credit_row
         %tr.payment-item
-          %th= t('dashboard.payment_history.today_credit.project')
+          %th= t('dashboard.payment_history.today_credit.comment_project')
           %th= "#{cookies[:currency]} #{ pending_credit - payments_sum }"
           %th= t('dashboard.payment_history.today_credit.comment_credit')
           %th= t('dashboard.payment_history.today_credit.day')

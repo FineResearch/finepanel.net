@@ -368,6 +368,7 @@ pt:
         panelist_error: Desconto por erro no credito previo
       today_credit:
         project: Detalhes disponível amanhã
+        comment_project: Movimentos do dia (detalhes disponíveis amanhã)
         comment_pay: Pagamento
         comment_credit: Credito
         day: Hoje
