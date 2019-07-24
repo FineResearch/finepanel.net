@@ -12,7 +12,7 @@ class DashboardController < ApplicationController
   def payment_history
     history = Payment.get_payment_history_for_user(cookies[:respid])
     payments_sum = history.map{|payment| payment.credit }.sum()
-    pending_credit = params[:pending_credit].to_f
+    pending_credit = params[:pending_credit].to_i
     if payments_sum.present?
       payment_row = payments_sum > pending_credit
       credit_row = payments_sum < pending_credit
