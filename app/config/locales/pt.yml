@@ -456,15 +456,33 @@ pt:
       paragraph2: Na cidade de México especificamente, a Save the Children coordena uma rede de 140 Centros Comunitários de Desenvolvimento Infantil, nos quais promove a prestação de serviços de educação inicial, pré-escolar e cuidados diários, atingindo mais de 8.000 meninos e meninas
       mexico_letter: Carta de agradecimento de "Save the Children Mexico" à comunidade de Finepanel
       haiti_letter: Campanha de Ajuda a Haiti
-      testimonial1: Se todos os seres humanos contribuíssemos neste tipo de iniciativas o mundo no qual vivemos seria diferente e melhor. Parabéns."
-      testimonial2: Gostaria de parabenizar a decisão do Fine Panel de colaborar com este trabalho."
-      testimonial3: Ajudar a quem precisa é extremamente importante, que bom que vocês o estão fazendo através deste caminho."
-      testimonial4: As crianças do mundo devem ser a nossa preocupação continua e é um prazer saber que colaboramos nem que seja com um grão de areia no seu bem estar."
-      testimonial5: É bom fazer parte de uma iniciativa  que consegue resultados."
-      testimonial6: É uma pequena colaboração para o futuro da humanidade."
-      testimonial7: Acho que é uma ideia muito honesta e  gostaria de continuar colaborando."
-      testimonial8: Excelente proposta de ajuda, embora não conheça a fundação."
-      testimonial9: Proposta excelente de poder ajudar a crianças com necessidades e falta de recursos."
+      testimonial1: 
+        text: Se todos os seres humanos contribuíssemos neste tipo de iniciativas o mundo no qual vivemos seria diferente e melhor. Parabéns."
+        name: Dra. Rosalva Amelia Lopez Gutierrez de Ubiarco.
+      testimonial2: 
+        text: Gostaria de parabenizar a decisão do Fine Panel de colaborar com este trabalho."
+        name: Dr. Sigfrido Miracle Lopez.
+      testimonial3: 
+        text: Ajudar a quem precisa é extremamente importante, que bom que vocês o estão fazendo através deste caminho."
+        name: Dr. Luis Fernando Ceballos Galan.
+      testimonial4: 
+        text: As crianças do mundo devem ser a nossa preocupação continua e é um prazer saber que colaboramos nem que seja com um grão de areia no seu bem estar."
+        name: Dr. Jesus Joaquin Gregorio Montaño Sanchez.
+      testimonial5: 
+        text: É bom fazer parte de uma iniciativa  que consegue resultados."
+        name: Dr. Julio Guadalupe Juarez Mendez.
+      testimonial6: 
+        text: É uma pequena colaboração para o futuro da humanidade."
+        name: Dr. Carlos Shigueyoshi Higashida Hirose.
+      testimonial7: 
+        text: Acho que é uma ideia muito honesta e  gostaria de continuar colaborando."
+        name: Dr. Roberto Mar.
+      testimonial8: 
+        text: Excelente proposta de ajuda, embora não conheça a fundação."
+        name: Dr. Alfonso Rodriguez Jaramillo.
+      testimonial9: 
+        text: Proposta excelente de poder ajudar a crianças com necessidades e falta de recursos."
+        name: Dr. Amando Roberto Piña Loaiza.
       total_amount_html: Queremos compartilhar com nossos panelistas e colaboradores que, segundo nossos registros, o total acumulado por esta campanha da comunidade Fine Panel a começos deste mês foi de <strong>%{mexico_amount}</strong> para a Save The Children México e <strong>%{colombia_amount}</strong> para Save The Children Colômbia
     aacd:
       paragraph1: A comunidade de Fine Panel assinou um acordo com a AACD do Brasil para aqueles médicos que preferem doar seus honorários ao invés de receber os pagamentos na sua conta bancária.

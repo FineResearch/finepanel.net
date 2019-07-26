@@ -46,6 +46,9 @@ Rails.application.routes.draw do
     get 'faq'
     get 'contact'
     get 'commitment'
+    get 'aacd'
+    get 'icw'
+    get 'stc'
   end
 
   get 'countries/cities/:country_id', to: 'countries#cities'
