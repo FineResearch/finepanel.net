@@ -153,9 +153,10 @@ form#new_post {
 #faq-sidebar{
   content: "faq sidebar";
 }
-#faq-questions{
+#faq-questions, #dynamed-access{
   background-color: $lightGrey;
   padding: 15px;
+  margin-bottom: 20px;
   h5{
     color: $black;
   }
@@ -333,4 +334,14 @@ iframe {
   width: fit-content;
   margin-bottom: 40px;
   margin-top: 40px;
+}
+
+.dynamed-logo{
+  img{
+    margin-top: 15px;
+  }
+}
+
+.dynamed-img{
+  margin-top: 15px;
 }

@@ -2,6 +2,8 @@ require_relative 'boot'
 
 require 'rails/all'
 
+require_relative '../lib/dynamed_proxy'
+
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
@@ -22,6 +24,8 @@ module Finepanel
 
     # Send log to STDOUT so docker-compose manages the logs
     config.logger = Logger.new(STDOUT)
+
+    config.middleware.use DynamedProxy, backend: ENV['SERVICE_URL'], streaming: true
 
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration can go into files in config/initializers

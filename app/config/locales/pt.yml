@@ -582,6 +582,21 @@ pt:
     sub7_li3: Fine do Brasil Pesquisas Ltda - Avenida Paulista 2494, 7mo Andar, Sao Paulo Brasil
     sub7_li4: Fine Research SRL - Olazabal 1334, Buenos Aires, Argentina
 
+  dynamed_content:
+    line1: A Fine Panel oferece como beneficio a todos os seus membros a ferramenta Dynamed Plus de aceso a conteúdos medicina baseada em evidencias, sem custos nem assinaturas.
+    line2: Esta disponivel via o aplicativo Fine Panel
+    line3: Para acesar a primeira vez na Fine Panel app preencha o seu email
+    line4: e a sua senha
+    subtitle_1: O que e Dynamed Plus
+    sub1_li1: DynaMed Plus™ é uma fonte de informação baseada em evidências clínicas da próxima geração, projetada para otimizar o tempo de resposta para profissionais da saúde.
+    sub1_li2: O conteúdo DynaMed Plus é criado por uma equipe de classe mundial de médicos que são considerados especialistas em seus campos de atuação. Eles trazem seus conhecimentos à mesa, selecionando a melhor evidência e aderindo a uma rigorosa metodologia baseada em evidências que garante que o conteúdo representa a visão mais precisa da evidência com o menor potencial para conflitos de interesse, influência pessoal, ou a aceitação acrítica de relatórios publicados.
+    sub1_li3: As recomendações são sempre baseadas em evidências e nunca na experiência ou opinião do autor. O conteúdo DynaMed Plus inclui milhares de temas que abrangem a medicina de emergência, cardiologia, oncologia, doenças infecciosas, pediatria, obstetrícia e ginecologia e muito mais.
+    line5: Adicionalmente no aplicativo da Fine Panel pode
+    li5_list1: Participar mais facilmente nas pesquisas disponíveis
+    li5_list2: Revisar a sua conta para ver créditos e pagamentos
+  dynamed_access: Acesso a Dynamed plus
+  dynamed_read_more: Leia mais sobre o beneficio Dynamed Plus
+
   interests:
     created: A área de interesse foi criada com sucesso.
     add: Adicionar a minhas áreas
