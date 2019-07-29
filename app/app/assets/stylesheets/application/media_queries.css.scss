@@ -189,6 +189,16 @@
     }
   }
 
+  .pinned{
+    table{
+      td{
+        height: 70px;
+      }
+      th{
+        font-size: 14px;
+      }
+    }
+  }
 }
 
 @media #{$mediaMedium} {

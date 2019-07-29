@@ -1,13 +1,7 @@
 .row#main-content
   .small-12.medium-12.columns
     .row.main
-      #sidebar.small-12.medium-4.columns.updates.medium-push-8
-        .row
-          .columns.small-12.medium-12
-            = render 'payment_panel'
-            #invite
-              = link_to t('dashboard.invite_collegues'), users_refer_colleague_path, class: 'button invite'
-      #main.small-12.medium-8.columns.medium-pull-4
+      #main.small-12.medium-8.columns
         .medium-12.columns
           #participate_btn_text.hide
             = t('dashboard.participate')
@@ -19,6 +13,12 @@
         #survey-history.columns.medium-12
           .row
             = render 'surveys/last_surveys'
+      #sidebar.small-12.medium-4.columns.updates
+        .row
+          .columns.small-12.medium-12
+            = render 'payment_panel'
+            #invite
+              = link_to t('dashboard.invite_collegues'), users_refer_colleague_path, class: 'button invite'
     .row
       .small-12.medium-8.columns
         = render 'finepanel_wall', posts: @posts, show_pagination: true
