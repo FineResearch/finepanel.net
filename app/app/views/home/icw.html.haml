@@ -1,0 +1,30 @@
+.row.campaigns
+  .twelve.columns
+    %h3
+      = t('campaigns.page_title')
+    %hr
+    .row
+      .twelve.columns
+        %p
+          = t "campaigns.icw.paragraph1"
+        %p
+          = t "campaigns.icw.paragraph2"
+        %p
+          = t "campaigns.icw.paragraph3"
+        %p
+          = t "campaigns.icw.paragraph4"
+        %p
+          %a{:href => "#", "data-open" => "modal-icw-letter"}
+            = t "campaigns.icw.letter"
+
+        .panel
+          %p
+            = t "campaigns.total_amount"
+            %strong
+              = number_to_currency(@data[:total_earned], unit: @data[:currency])
+
+#modal-icw-letter.reveal.medium{'data-reveal' => ""}
+  %p
+    = image_tag("campaigns/icw.png")
+  %button.close-button{"aria-label" => "Close modal", "data-close" => "", :type => "button"}
+    %span{"aria-hidden" => "true"} ×

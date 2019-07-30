@@ -91,6 +91,22 @@ module ConfigurationReader
     load_config('bank_account_types', ENUM_FILE_NAME)
   end
 
+  def self.aacd_profile_path
+    load_config('aacd_profile_path', CONSTANTS_FILE_NAME)
+  end
+
+  def self.icw_profile_path
+    load_config('icw_profile_path', CONSTANTS_FILE_NAME)
+  end
+
+  def self.stc_mx_profile_path
+    load_config('stc_mx_profile_path', CONSTANTS_FILE_NAME)
+  end
+
+  def self.stc_co_profile_path
+    load_config('stc_co_profile_path', CONSTANTS_FILE_NAME)
+  end
+
   def self.load_config(enum, file_name)
     YAML.safe_load(File.open(Rails.root.join('config', file_name)))[enum]
   end

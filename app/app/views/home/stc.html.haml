@@ -1,0 +1,114 @@
+.row.campaigns
+  .twelve.columns
+    %h3
+      = t('campaigns.page_title')
+    %hr
+    .row
+      .twelve.columns
+        %p
+          = t "campaigns.save_the_children.paragraph1"
+        %p
+          = t "campaigns.save_the_children.paragraph2"
+        %p
+          %a{:href => "#", "data-open" => "modal-stc-mx-letter"}
+            = t "campaigns.save_the_children.mexico_letter"
+        %p
+          %a{:href => "#", "data-open" => "modal-stc-campaign"}
+            = t "campaigns.save_the_children.haiti_letter"
+        .panel
+          %p
+            = t "campaigns.save_the_children.total_amount_html",
+              mexico_amount: number_to_currency(@data_mx[:total_earned], unit: @data_mx[:currency]),
+              colombia_amount: number_to_currency(@data_co[:total_earned], unit: @data_co[:currency])
+#slideshow-campaigns
+  .row
+    .twelve.columns
+      %h5
+        = t "campaigns.panelists_comments"
+.row
+  .four.columns
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial1.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial1.name"
+        %br
+        = t "specialty.general_medicine", location: "Ciudad de México, México."
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial2.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial2.name"
+        %br
+        = t "specialty.endocrinology", location: "Ciudad de México, México."
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial3.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial3.name"
+        %br
+        = t "specialty.general_medicine", location: "Xalapa, Veracruz, México."
+  .four.columns
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial4.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial4.name"
+        %br
+        = t "specialty.urology", location: "Durango, México."
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial5.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial5.name"
+        %br
+        = t "specialty.general_medicine", location: "México."
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial6.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial6.name"
+        %br
+        = t "specialty.general_medicine", location: "Ciudad de México, México."
+  .four.columns
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial7.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial7.name"
+        %br
+        Ciudad de México, México.
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial8.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial8.name"
+        %br
+        = t "specialty.pulmonary", location: "Guadalajara, Jalisco, México."
+    %blockquote.testimonial
+      %span.glyph n
+      = t "campaigns.save_the_children.testimonial9.text"
+      %cite
+        = t "campaigns.save_the_children.testimonial9.name"
+        %br
+        = t "specialty.general_medicine", location: "Ciudad de México, México."
+        
+.row
+  .four.columns
+    = image_tag('campaigns/stc_images/children1.jpg')
+  .four.columns
+    = image_tag('campaigns/stc_images/children2.jpg')
+  .four.columns
+    = image_tag('campaigns/stc_images/children3.jpg')
+
+#modal-stc-mx-letter.reveal.medium{'data-reveal' => ""}
+  %p
+    = image_tag("campaigns/save_the_children_2014.png")
+  %button.close-button{"aria-label" => "Close modal", "data-close" => "", :type => "button"}
+    %span{"aria-hidden" => "true"} ×
+
+#modal-stc-campaign.reveal.medium{'data-reveal' => ""}
+  %p
+    = image_tag("campaigns/stc_images/stc_letter.#{I18n.locale}.jpg")
+  %button.close-button{"aria-label" => "Close modal", "data-close" => "", :type => "button"}
+    %span{"aria-hidden" => "true"} ×
