@@ -199,6 +199,10 @@
       }
     }
   }
+
+  textarea{
+    font-size: 14px;
+  }
 }
 
 @media #{$mediaMedium} {
@@ -219,6 +223,13 @@
         &.reciba .doctor { background-position: 0 -205px; }
       }
     }
+  }
+  textarea{
+    font-size: 14px;
+  }
+
+  cite{
+    font-size: 13px;
   }
 }
 
@@ -272,6 +283,48 @@
     }
     a.flag.port.flag-port-mobile{
       display: flex;
+    }
+  }
+}
+
+@media #{$mediaXlarge} {
+  .payment-info-li{
+    span{
+      font-size: 20px;
+    }
+  }
+
+  #main-content{
+    max-width: 90%;
+    .button{
+      font-size: 20px;
+    }
+  }
+
+  textarea, blockquote, p, h5, .comments_count, .comment-input, #survey-history, #available-surveys{
+    font-size: 20px;
+  }
+
+  cite{
+    font-size: 18px;
+  }
+
+  .link-list{
+    font-size: 22px;
+  }
+
+  .ong-icons{
+    img{
+      height: 65px;
+    }
+  }
+
+  a.flag{
+    display: inline-flex;
+  }
+  .dropdown-menu{
+    ul{
+      text-align: left;
     }
   }
 }
