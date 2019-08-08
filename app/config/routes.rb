@@ -46,6 +46,7 @@ Rails.application.routes.draw do
     get 'faq'
     get 'contact'
     get 'commitment'
+    get 'privacy_policy'
     get 'aacd'
     get 'icw'
     get 'stc'
