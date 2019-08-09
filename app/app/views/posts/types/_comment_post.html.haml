@@ -9,10 +9,10 @@
   %p
     = post.user_info['complete_name']
     = t('posts.shared_a_comment')
-    %small.small
+    %small
       %em
         = t "posts.news.published_at", date: l(post.created_at)
-  %blockquote.small
+  %blockquote
     = post.text
     %cite
       = post.user_info['complete_name']

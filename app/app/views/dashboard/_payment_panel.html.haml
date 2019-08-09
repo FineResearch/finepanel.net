@@ -11,12 +11,12 @@
   .row
     .small-12.medium-12.columns
       %ul
-        %li
+        %li.payment-info-li
           %span
             = t('dashboard.balance.paid')
           %span.right
             = "#{cookies[:currency]}#{@payment_info[:total_payments]}"
-        %li
+        %li.payment-info-li
           %span
             = t('dashboard.balance.total_fees')
           %span.right

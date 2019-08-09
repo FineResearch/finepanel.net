@@ -1,6 +1,6 @@
 %p.posts_comment
   = support_image('support-icon-wall-comment') if support_comment?(comment.user_info)
-  %blockquote.small
+  %blockquote
     = comment.text
     %cite
       = comment.user_info['complete_name']

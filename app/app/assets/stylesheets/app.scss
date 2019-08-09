@@ -136,7 +136,6 @@ div.panel.callout{
   &.payment-info{
     background: darken($sidebarColor, 8%);
     span{
-      font-size: 14px;
       margin: 0 5px 0 15px;
       font-weight: 800;
     }
@@ -1013,6 +1012,9 @@ nav{
 /* -----------------------------------------
    Support & FAQ
 ----------------------------------------- */
+#contact{
+  max-width: 90%;
+}
 
 .support{
   h5{
@@ -1043,6 +1045,9 @@ nav{
   p {
     margin-left:35px;
   }
+  hr{
+    max-width: none;
+  }
 }
 
 h3, h4, h5{ font-weight: bold; }
@@ -1062,12 +1067,12 @@ h4{ font-size: 23px; }
 #faq{
   display: block;
   padding: 0px 20px;
+  max-width: 90%;
   #side-nav{
-    width:270px;
     margin: 14px 0;
     a{
-      font-size:12px;
-      line-height:16px;
+      font-size: 14px;
+      line-height: 16px;
     }
   }
   ul{ list-style-type: none; }
@@ -1080,6 +1085,9 @@ h4{ font-size: 23px; }
     }
   }
   dd{ font-size: 14px; }
+  hr{
+    max-width: none;
+  }
 }
 
 #back-top {
