@@ -257,6 +257,7 @@ pt:
     campaigns: Campanhas
     support: Suporte
     contact: Contato
+    privacy: Privacidade
 
   breadcrumbs:
     home: Início
@@ -532,6 +533,54 @@ pt:
     responsibility_p: As opiniões médicas ou de outro tipo expressadas durante o preenchimento das pesquisas ou dentro da rede social da Fine Panel, seja no mural ou compartilhando documento ou arquivos, é de autoria e responsabilidade exclusiva dos panelistas participantes.
     autonomy: AUTONOMIA.
     autonomy_p: A Fine Panel não realiza atividades de promoção, publicidade nem estudos clínicos  limitando sua atividade à realização de pesquisa de mercado e opinião, apresentação de novos conceitos com fins de pesquisa e/ou divulgação de informação de artigos publicados em revistas de sociedades médicas credenciadas.
+
+  privacy:
+    page_title: Aviso de Privacidade
+    date: Este Aviso de Privacidade entrou em vigor em 8 de agosto de 2019.
+    line1: Na Fine Panel, reconhecemos a importância de proteger suas informações pessoais e estamos comprometidos em processá-las com responsabilidade e em conformidade com as leis de proteção de dados aplicáveis em todos os países em que operamos.
+    line2: No curso normal de suas atividades comerciais, a Fine Panel coleta, usa e, as vezes, compartilha informações para executar suas operações cotidianas. Este Aviso de Privacidade descreve as práticas gerais de privacidade da Fine Panel que se aplicam à coleta e uso de tais informações pessoais.
+    subtitle_1: TIPOS DE INFORMAÇÕES PESSOAIS QUE COLETAMOS
+    sub1_li1: Ao descrever nossa coleta, uso e compartilhamento de informações neste Aviso, nos referimos à nossa coleta e uso de “Informações Pessoais”.
+    sub1_li2: “Informações Pessoais”, conforme usado neste Aviso, é qualquer informação relacionada a uma pessoa física identificada ou identificável. Exemplos de informações pessoais incluem nome e sobrenome, endereço para correspondência, endereço de e-mail, informações de pagamento, endereço IP, outras informações de contato on-line ou número de telefone.
+    sub1_li3: Coletamos as informações voluntariamente fornecidas nos formulários de inscrição no nosso site, como respostas a pesquisas e/ou podemos obter informações, incluindo informações pessoais, de fontes de terceiros que cumpram com este aviso de privacidade e/ou de sites públicos.
+    sub1_li4: Os dados pessoais dos panelistas participantes não serão em caso algum compartilhados com terceiros, nem vinculados de forma alguma com suas respostas em qualquer uma das pesquisas realizadas. A única exceção a esta regra é em casos de saúde pública ou no caso de apresentação de Eventos Adversos (AE) de algum tratamento, e apenas em casos em que os entrevistados tenham aceitado, previamente, compartilhar seus dados.
+    sub1_li5: O seus dados podem ser transferidos internacionalmente para os diferentes escritórios que fazem parte da rede Fine Panel, incluindo as filiais Fine do Brasil Pesquisas Ltda, Fine Research SRL (Argentina), FR Research SA de CV (Mexico), Fine Research Latinoamerica SA sucursal Colombia y Fine Research Latin America SA (Uruguay)
+    sub1_li6: "Nós só usamos seus dados para:"
+    sub1_list1: poder convidar lhe a acessar as nossas pesquisas disponíveis
+    sub1_list2: dar aceso a ferramentas de conteudo medico baseado em evidencias
+    sub1_list3: checar a validade das identidades dos profissionais de saúde e evitar fraudes
+    sub1_list4: processar os pagamentos de honorários pelas pesquisas
+    sub1_list5: ou fornecer avisos aos pesquisadores envolvidos de Eventos Adversos (AE) e expressamente estabelecido neste Aviso
+    sub1_list6: para manter operações comerciais, como com fornecedores trabalhando em nosso nome e garantindo que respeitem as mesmas praticas deste aviso de privacidade
+    sub1_list7: conforme exigido por lei ou para responder ao processo legal
+    sub1_list8: em outros casos com o seu consentimento expresso
+    sub1_li7: Se surgir uma necessidade de usar seus dados para um propósito secundário, forneceremos a você um Aviso prévio de tal uso.
+    sub1_li8: "Se você tiver dúvidas ou precisar de mais informações sobre a base legal sobre a qual coletamos e usamos suas informações pessoais, entre em contato conosco no e-mail: suporte@finepanel.net."
+    sub1_li9: Nós não compartilhamos suas informações pessoais com terceiros, exceto conforme indicado neste documento. 
+
+    subtitle_2: ONDE ARMAZENAMOS E PROCESSAMOS SUAS INFORMAÇÕES PESSOAIS
+    sub2_li1: Os dados pessoais coletados pela Fine Panel podem ser armazenados e processados em sua região, no Brasil e em qualquer outro país. Os locais de armazenamento são escolhidos para operar eficientemente, melhorar o desempenho e criar redundâncias para proteger os dados no caso de uma falha ou outro problema. Tomamos medidas para garantir que os dados que coletamos sob este Aviso sejam processados de acordo com as disposições deste Aviso e com os requisitos da lei aplicável, onde quer que os dados estejam localizados.
+    sub2_li2: A Fine Panel está em conformidade com a Lei Geral de Proteção de Dados, LGPD bem como da GDPR com relação à coleta, uso e retenção de informações pessoais transferidas do Brasil, resto da América latina, da União Europeia e Estados Unidos.
+
+    subtitle_3: COMO GARANTIMOS SUAS INFORMAÇÕES PESSOAIS
+    sub3_li1: A Fine Panel usa uma variedade de tecnologias para proteger eficientemente seus dados pessoais de acesso, uso ou divulgação não autorizados. Enquanto implementamos salvaguardas projetadas para proteger suas informações, sabemos que nenhum sistema de segurança é impenetrável e devido à natureza inerente da Internet, mas utilizaremos sempre procedimentos de segurança razoável e adequada.
+
+    subtitle_4: QUANTO TEMPO RETER SUA INFORMAÇÃO PESSOAL
+    sub4_li1: Nós manteremos as informações pessoais que coletamos de você, onde houver necessidade comercial legítima em andamento (por exemplo, para fornecer um serviço que você solicitou ou para cumprir os requisitos legais, fiscais ou contábeis aplicáveis).
+    sub4_li2: Quando não tivermos uma necessidade comercial legítima em andamento para processar suas informações pessoais, excluiremos ou anonimizaremos seus dados ou, se isso não for possível (por exemplo, porque suas informações pessoais foram armazenadas em arquivos de backup), então armazenaremos com segurança informações pessoais e isolá-lo de qualquer processamento adicional até que a exclusão seja possível.
+
+    subtitle_5: COMO ACESSAR E CONTROLAR SUAS INFORMAÇÕES PESSOAIS
+    sub5_li1: Você pode exercer seus direitos entrando em contato conosco em suporte@finepanel.net
+    sub5_li2: Respondemos a todas as solicitações que recebemos de pessoas que desejam exercer seus direitos de proteção de dados de acordo com as leis de proteção de dados aplicáveis.
+
+    subtitle_6: AVISO RELATIVO À DESCADASTRAR-SE
+    sub6_li1: Você pode optar por não receber contatos, clicando em “Descadastrar-se” na parte inferior do e-mail de convites recebidos.
+
+    subtitle_7: COMO ENTRAR EM CONTATO CONOSCO
+    sub7_li1: Para exercer os direitos dos seus titulares de dados, entre em contato com suporte@finepanel.net
+    sub7_li2: "Ou você pode entrar em contato conosco usando as seguintes informações:"
+    sub7_li3: Fine do Brasil Pesquisas Ltda - Avenida Paulista 2494, 7mo Andar, Sao Paulo Brasil
+    sub7_li4: Fine Research SRL - Olazabal 1334, Buenos Aires, Argentina
 
   interests:
     created: A área de interesse foi criada com sucesso.
