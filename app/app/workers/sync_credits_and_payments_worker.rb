@@ -8,7 +8,9 @@ class SyncCreditsAndPaymentsWorker
   def perform(feed_file_path, file_path)
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
     
-      next unless row[0].present?
+      next unless row[0].present? && row[4].present?
+      next unless row[4].to_i != 0
+      
       section = row[2].split('.')[1] if row[2].present?
       project_name = section[1..-2] if section.present?
       date = row[6].split(' ') if row[6].present?
