@@ -129,12 +129,14 @@ class ConfirmitGateway
     end
 
     def get_active_surveys_for_user(surveys, language_param)
-      survey_links = SurveyLink.none
+      or_conditions = []
       surveys.each do |survey|
-        survey_links = survey_links.or(SurveyLink.where(project_id: survey[:project_id], resp_id: survey[:resp_id]))
+        next unless survey[:project_id].starts_with?('p') && survey[:resp_id].present?
+        or_conditions << "(survey_links.project_id = '#{survey[:project_id]}' AND survey_links.resp_id = '#{survey[:resp_id]}')"
       end
-      survey_links = survey_links.group_by(&:project_id)
 
+      survey_links = SurveyLink.where(or_conditions.join(' OR '))
+      survey_links = survey_links.group_by(&:project_id)
       valid_surveys(surveys, survey_links, language_param)
     end
 
