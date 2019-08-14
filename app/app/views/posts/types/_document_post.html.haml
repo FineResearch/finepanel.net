@@ -10,10 +10,10 @@
     = post.user_info['complete_name']
     = " - #{t('specialties.s' + post.user_info['specialty'].to_s)}" if post.user_info['specialty'].present?
     = t('posts.shared_a_document')
-    %small.small
+    %small
       %em
         = t "posts.news.published_at", date: l(post.created_at)
-  %p.small
+  %p
     = post.text
   %p
     = link_to download_post_path(post) do

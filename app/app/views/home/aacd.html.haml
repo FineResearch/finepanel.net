@@ -12,17 +12,8 @@
       = t "campaigns.aacd.paragraph3"
     %p
       = t "campaigns.aacd.paragraph4"
-    %p
-      %a{:href => "#", "data-open" => "modal-aacd-letter"}
-        = t "campaigns.aacd.letter"
     .panel
       %p
         = t "campaigns.total_amount"
         %strong
           = number_to_currency(@data[:total_earned], unit: @data[:currency])
-
-#modal-aacd-letter.reveal.medium{'data-reveal' => ""}
-  %p
-    = image_tag("campaigns/aacd.png")
-  %button.close-button{"aria-label" => "Close modal", "data-close" => "", :type => "button"}
-    %span{"aria-hidden" => "true"} ×

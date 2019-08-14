@@ -123,6 +123,24 @@
         }
       }
     }
+
+    #login{
+      form{
+        .btn-login{
+          width: -webkit-fill-available;
+        }
+      }
+
+      .registration-btn{
+        width: -webkit-fill-available;
+      }
+
+      .links{
+        #new-account{
+          padding-left: 0px;
+        }
+      }
+    }
   }
 
   #main-content{
@@ -156,6 +174,7 @@
     }
 
     .columns{
+      padding: 0px;
       ul.link-list{
         line-height: 20px;
         margin: 0 0 15px;
@@ -168,6 +187,7 @@
           border-top: 1px solid #fff;
           a{
             text-align: center;
+            padding-left: 10px;
           }
         }
       }
@@ -203,6 +223,12 @@
   textarea{
     font-size: 14px;
   }
+
+  .margin-home{
+    width: 100%;
+  }
+
+
 }
 
 @media #{$mediaMedium} {

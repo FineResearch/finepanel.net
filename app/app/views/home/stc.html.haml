@@ -9,12 +9,6 @@
           = t "campaigns.save_the_children.paragraph1"
         %p
           = t "campaigns.save_the_children.paragraph2"
-        %p
-          %a{:href => "#", "data-open" => "modal-stc-mx-letter"}
-            = t "campaigns.save_the_children.mexico_letter"
-        %p
-          %a{:href => "#", "data-open" => "modal-stc-campaign"}
-            = t "campaigns.save_the_children.haiti_letter"
         .panel
           %p
             = t "campaigns.save_the_children.total_amount_html",
@@ -100,15 +94,3 @@
     = image_tag('campaigns/stc_images/children2.jpg')
   .four.columns
     = image_tag('campaigns/stc_images/children3.jpg')
-
-#modal-stc-mx-letter.reveal.medium{'data-reveal' => ""}
-  %p
-    = image_tag("campaigns/save_the_children_2014.png")
-  %button.close-button{"aria-label" => "Close modal", "data-close" => "", :type => "button"}
-    %span{"aria-hidden" => "true"} ×
-
-#modal-stc-campaign.reveal.medium{'data-reveal' => ""}
-  %p
-    = image_tag("campaigns/stc_images/stc_letter.#{I18n.locale}.jpg")
-  %button.close-button{"aria-label" => "Close modal", "data-close" => "", :type => "button"}
-    %span{"aria-hidden" => "true"} ×
