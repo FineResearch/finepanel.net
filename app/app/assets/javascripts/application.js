@@ -22,6 +22,7 @@
 //= require posts
 //= require dashboard
 //= require payment
+//= require google_analytics
 //= require jquery.remotipart
 //= require_self
 
