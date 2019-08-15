@@ -38,7 +38,7 @@ module Users
       if params[exit_param].present?
         # redirect to user's portal with surveys info
         surveys_params = ConfirmitGateway.get_surveys_for_redirect_to_portal(resource, params[:r])
-        redirect_to resource.user_profile_url(params[:r]) + "&#{exit_param}=#{params[exit_param]}" + surveys_params
+        redirect_to resource.user_profile_url(params[:r]) + "&return=#{params[exit_param]}" + surveys_params
       else
         sign_in(resource_name, resource)
         set_cookies_for_redirect_user_login(resource)  
