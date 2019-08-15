@@ -50,7 +50,9 @@ Rails.application.routes.draw do
     get 'aacd'
     get 'icw'
     get 'stc'
+    get 'dynamed_disabled'
   end
 
   get 'countries/cities/:country_id', to: 'countries#cities'
+
 end

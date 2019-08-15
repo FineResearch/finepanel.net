@@ -19,6 +19,8 @@
             = render 'payment_panel'
             #invite
               = link_to t('dashboard.invite_collegues'), users_refer_colleague_path, class: 'button invite'
-    .row
+    .row.comments-sidebar-row
       .small-12.medium-8.columns
         = render 'finepanel_wall', posts: @posts, show_pagination: true
+      .small-12.medium-4.columns
+        = render 'dynamed_content_sidebar', user_data: @user_data

@@ -228,7 +228,16 @@
     width: 100%;
   }
 
+  .comments-sidebar-small{
+    display: block;
+  }
 
+  .comments-sidebar-medium{
+    display: none;
+  }
+  .comments-sidebar-row{
+    flex-flow: column-reverse;
+  }
 }
 
 @media #{$mediaMedium} {
@@ -256,6 +265,14 @@
 
   cite{
     font-size: 13px;
+  }
+
+  .comments-sidebar-small{
+    display: none;
+  }
+
+  .comments-sidebar-medium{
+    display: block;
   }
 }
 
@@ -336,7 +353,7 @@
   }
 
   .link-list{
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .ong-icons{
@@ -352,5 +369,13 @@
     ul{
       text-align: left;
     }
+  }
+
+  .comments-sidebar-small{
+    display: none;
+  }
+
+  .comments-sidebar-medium{
+    display: block;
   }
 }

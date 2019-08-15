@@ -13,4 +13,8 @@ $(document).ready(function() {
       }
     });
   });
+
+  if ($("#dynamed-download-icons").length > 0){
+    $("#footer-download-icons").hide();
+  }
 });

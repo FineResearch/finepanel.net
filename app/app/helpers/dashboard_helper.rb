@@ -27,4 +27,13 @@ module DashboardHelper
   def history_payment_concept(concept)
     concept.downcase == 'filtro' ? t('dashboard.payment_history.history_comment.filter') : concept
   end
+
+  def user_password(email)
+    User.automated_password(email)
+  end
+
+  def dynamed_enable?(user_data)
+    return false unless user_data.present?
+    user_data[:dynamed] == ConfigurationReader.status_dynamed_enabled
+  end
 end
