@@ -6,16 +6,16 @@
   -else
     .glyph.big ,
 
-.medium-11.small-12.columns
+.medium-11.small-12.columns.post-wrap-text
   %p
     = post.user_info['complete_name']
     = " - #{t('specialties.s' + post.user_info['specialty'].to_s)}" if post.user_info['specialty'].present?
     = t("posts.shared_a_video")
-    %small.small
+    %small
       %em
         = t "posts.news.published_at", date: l(post.created_at)
   
   = link_to post.external_media_url, post.external_media_url
   .medium-4.small-12.columns
-  %p.small
+  %p
     = post.text
