@@ -111,6 +111,14 @@ module ConfigurationReader
     load_config('stc_co_profile_path', CONSTANTS_FILE_NAME)
   end
 
+  def self.privacy_policy_url_es
+    load_config('privacy_policy_url_es', CONSTANTS_FILE_NAME)
+  end
+
+  def self.privacy_policy_url_pt
+    load_config('privacy_policy_url_pt', CONSTANTS_FILE_NAME)
+  end
+
   def self.dynamed_subdomain
     load_config('dynamed_subdomain', CONSTANTS_FILE_NAME)
   end
