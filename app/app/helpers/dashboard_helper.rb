@@ -36,4 +36,8 @@ module DashboardHelper
     return false unless user_data.present?
     user_data[:dynamed] == ConfigurationReader.status_dynamed_enabled
   end
+
+  def privacy_policy_page_lang
+    cookies[:locale] == 'es' ? ConfigurationReader.privacy_policy_url_es : ConfigurationReader.privacy_policy_url_pt
+  end
 end
