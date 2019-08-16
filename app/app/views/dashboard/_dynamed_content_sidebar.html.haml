@@ -1,12 +1,16 @@
-#dynamed-access
-  %div.text-center
-    - if dynamed_enable?(user_data)
-      %strong
-        = t('dynamed_access')
-      = image_tag('doctors_dynamed.jpg', class: "dynamed-img") 
-      = link_to image_tag('logos/dynamed-button.png'), ConfigurationReader.dynamed_subdomain, class: "dynamed-logo"
-    - else
-      %strong
-        = t('dynamed_read_more')
-      = image_tag('doctors_dynamed.jpg', class: "dynamed-img") 
-      = link_to image_tag('logos/dynamed-button.png'), dynamed_disabled_path, class: "dynamed-logo"
+- if dynamed_enable?(user_data)
+  = link_to ConfigurationReader.dynamed_subdomain, class: "dynamed-logo" do
+    #dynamed-access
+      %div.text-center
+        %strong
+          = t('dynamed_access')
+        = image_tag('doctors_dynamed.jpg', class: "dynamed-img") 
+        = image_tag('logos/dynamed-button.png')
+- else
+  = link_to dynamed_disabled_path, class: "dynamed-logo" do
+    #dynamed-access
+      %div.text-center
+        %strong
+          = t('dynamed_read_more')
+        = image_tag('doctors_dynamed.jpg', class: "dynamed-img")
+        = image_tag('logos/dynamed-button.png')
