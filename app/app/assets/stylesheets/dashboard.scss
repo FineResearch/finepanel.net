@@ -218,7 +218,6 @@ form#new_post {
 }
 
 #campaigns-sidebar{
-  border: 1px solid #d3d3d3;
   margin-top: 20px;
   h5{
     color: black;
@@ -344,4 +343,10 @@ iframe {
 
 .dynamed-img{
   margin-top: 15px;
+}
+
+#dynamed-access{
+  p{
+    margin-bottom: 0px;
+  }
 }

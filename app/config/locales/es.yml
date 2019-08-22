@@ -588,19 +588,21 @@ es:
     sub7_li4: Fine Research SRL - Olazabal 1334, Ciudad Autonoma de Buenos Aires, Argentina
 
   dynamed_content:
-    line1: Fine Panel ofrece a todos sus miembros la herramienta Dynamed Plus para acceder a contenido médico basado en evidencia sin costos ni suscripciones.
+    line1: Fine Panel ofrece a todos sus miembros la herramienta DynaMed para acceder a contenido médico basado en evidencia sin costos ni suscripciones.
     line2: Está disponible a través de la aplicación Fine Panel.
-    line3: Para acceder por primera vez en la aplicación Fine Panel, complete su correo electrónico
+    line3: Para acceder por primera vez en la aplicación Fine Panel, ingrese con su correo electrónico
     line4: y su contraseña
-    subtitle_1: ¿Qué es Dynamed Plus?
-    sub1_li1: DynaMed Plus ™ es una fuente de información basada en evidencia clínica de próxima generación diseñada para optimizar el tiempo de respuesta para los profesionales de la salud.
-    sub1_li2: El contenido de DynaMed Plus es creado por un equipo de médicos de clase mundial que se consideran expertos en sus campos. Traen su conocimiento a la mesa seleccionando la mejor evidencia y adhiriéndose a una metodología rigurosa basada en evidencia que asegura que el contenido representa la visión más precisa de la evidencia con el menor potencial de conflicto de intereses, influencia personal o aceptación acrítica.
-    sub1_li3: Las recomendaciones siempre se basan en evidencia y nunca en la experiencia u opinión del autor. El contenido de DynaMed Plus incluye miles de temas que cubren medicina de emergencia, cardiología, oncología, enfermedades infecciosas, pediatría, obstetricia y ginecología y más.
-    line5: Además, en la aplicación Fine Panel puede
+    subtitle_1: ¿Qué es DynaMed?
+    sub1_li1: DynaMed™ es una fuente de información basada en evidencia clínica de próxima generación diseñada para optimizar el tiempo de respuesta para los profesionales de la salud.
+    sub1_li2: El contenido de DynaMed es actualizado permanentemente por un equipo de médicos de clase mundial que se consideran expertos en sus campos. Traen su conocimiento a la mesa seleccionando la mejor evidencia y adhiriéndose a una metodología rigurosa basada en evidencia que asegura que el contenido representa la visión más precisa de la evidencia con el menor potencial de conflicto de intereses, influencia personal o aceptación acrítica.
+    sub1_li3: Las recomendaciones siempre se basan en evidencia y nunca en la experiencia u opinión del autor. El contenido de DynaMed incluye miles de temas que cubren medicina de emergencia, cardiología, oncología, enfermedades infecciosas, pediatría, obstetricia y ginecología y más.
+    line5: Tome en cuenta que el contenido de DynaMed esta disponible por el momento solo en inglés.
+    line6: Además, en la aplicación Fine Panel puede
     li5_list1: Participar más fácilmente en las encuestas disponibles.
     li5_list2: Revisar su cuenta para créditos y pagos.
-  dynamed_access: Acceso a Dynamed plus
-  dynamed_read_more: Lea mas sobre el beneficio de Dynamed Plus
+  dynamed_access: Acceso a DynaMed
+  dynamed_access_subtitle: Medicina Basada en Evidencias
+  dynamed_read_more: Lea mas sobre el beneficio de DynaMed
 
   interests:
     created: El área de interes se creo con éxito.
