@@ -59,27 +59,22 @@
               = t "home.fees.line3"
 
 .row
-  .columns.small-3.small-offset-1
+  .columns.small-12.medium-3.medium-offset-1
     %p
       = t "home.column1"
-  .columns.small-3.small-offset-1
+  .columns.small-12.medium-3.medium-offset-1
     %p
       = t "home.column2"
-  .columns.small-3.small-offset-1
+  .columns.small-12.medium-3.medium-offset-1
     %p
       = t "home.column3"
 
 #features
   .row
-    .columns.small-12.medium-3.small-offset-1
+    .columns.small-12.medium-3.medium-offset-1
       %p
-      /  = t "home.column3"
-      / - if @testimonials.present?
-      /   = render "testimonials", locale: params[:locale], testimonials: @testimonials
-      / - else
-      /   = render "testimonials_#{params[:locale]}"
 
-    .columns.small-12.medium-3.small-offset-1
+    .columns.small-12.medium-3.medium-offset-1
       %p
         %span.glyph 5
         %strong 60
@@ -96,7 +91,7 @@
         %span.glyph l
         %strong 16
         = t "home.la_countries"
-    .columns.small-12.medium-3.small-offset-1
+    .columns.small-12.medium-3.medium-offset-1
       %h5
         = t "home.ethical_commitment"
       %p

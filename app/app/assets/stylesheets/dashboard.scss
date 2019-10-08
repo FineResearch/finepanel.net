@@ -27,16 +27,12 @@ form#new_post {
 }
 #survey-history{
   background-color: $white;
+  font-size: 14px;
   table.responsive {
-    margin-top: 0px;
     border: none;
     border-radius: 0;
     td{
-      font-size: 13px;
       height: 70px;
-    }
-    th{
-      font-size: 14px;
     }
   }
   h4 {
@@ -137,12 +133,12 @@ form#new_post {
 
 .survey-status{
   text-align: right;
-  span{
+  a{
     border: 1px solid;
     padding: 4px 10px;
     border-radius: 15px;
     border-color: $sidebarColor;
-    color: $sidebarColor;;
+    color: $sidebarColor;
   }
 }
 
@@ -157,9 +153,10 @@ form#new_post {
 #faq-sidebar{
   content: "faq sidebar";
 }
-#faq-questions{
+#faq-questions, #dynamed-access{
   background-color: $lightGrey;
   padding: 15px;
+  margin-bottom: 20px;
   h5{
     color: $black;
   }
@@ -221,7 +218,6 @@ form#new_post {
 }
 
 #campaigns-sidebar{
-  border: 1px solid #d3d3d3;
   margin-top: 20px;
   h5{
     color: black;
@@ -309,15 +305,48 @@ form#new_post {
   top: 0px;
 }
 
+.iframe-container{
+  overflow: hidden;
+  margin: 15px auto;
+  height: 363px;
+  width: 100%;
+  text-align: center;
+}
+
 iframe {
   border: 0px none;
-  margin-left: -176px;
-  height: 1101px;
-  margin-top: -485px;
-  width: 926px;
-  -ms-transform: scale(0.25);
-  -moz-transform: scale(0.25);
-  -o-transform: scale(0.25);
-  -webkit-transform: scale(0.25);
-  transform: scale(0.67);
+  height: 363px;
+  width: 271px;
+  margin-left: auto;
+  margin-right: auto;
+  transform: scale(1);
+}
+
+.download-icon{
+  height: 50px;
+  width: 168px;
+  margin: 8px 16px;
+  cursor: pointer;
+}
+
+.download-row{
+  width: fit-content;
+  margin-bottom: 40px;
+  margin-top: 40px;
+}
+
+.dynamed-logo{
+  img{
+    margin-top: 15px;
+  }
+}
+
+.dynamed-img{
+  margin-top: 15px;
+}
+
+#dynamed-access{
+  p{
+    margin-bottom: 0px;
+  }
 }

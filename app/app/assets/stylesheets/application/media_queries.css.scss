@@ -123,6 +123,24 @@
         }
       }
     }
+
+    #login{
+      form{
+        .btn-login{
+          width: -webkit-fill-available;
+        }
+      }
+
+      .registration-btn{
+        width: -webkit-fill-available;
+      }
+
+      .links{
+        #new-account{
+          padding-left: 0px;
+        }
+      }
+    }
   }
 
   #main-content{
@@ -156,6 +174,7 @@
     }
 
     .columns{
+      padding: 0px;
       ul.link-list{
         line-height: 20px;
         margin: 0 0 15px;
@@ -168,6 +187,7 @@
           border-top: 1px solid #fff;
           a{
             text-align: center;
+            padding-left: 10px;
           }
         }
       }
@@ -189,6 +209,35 @@
     }
   }
 
+  .pinned{
+    table{
+      td{
+        height: 70px;
+      }
+      th{
+        font-size: 14px;
+      }
+    }
+  }
+
+  textarea{
+    font-size: 14px;
+  }
+
+  .margin-home{
+    width: 100%;
+  }
+
+  .comments-sidebar-small{
+    display: block;
+  }
+
+  .comments-sidebar-medium{
+    display: none;
+  }
+  .comments-sidebar-row{
+    flex-flow: column-reverse;
+  }
 }
 
 @media #{$mediaMedium} {
@@ -209,6 +258,21 @@
         &.reciba .doctor { background-position: 0 -205px; }
       }
     }
+  }
+  textarea{
+    font-size: 14px;
+  }
+
+  cite{
+    font-size: 13px;
+  }
+
+  .comments-sidebar-small{
+    display: none;
+  }
+
+  .comments-sidebar-medium{
+    display: block;
   }
 }
 
@@ -262,6 +326,62 @@
     }
     a.flag.port.flag-port-mobile{
       display: flex;
+    }
+  }
+}
+
+@media #{$mediaXlarge} {
+  .payment-info-li{
+    span{
+      font-size: 20px;
+    }
+  }
+
+  #main-content{
+    max-width: 90%;
+    .button{
+      font-size: 20px;
+    }
+  }
+
+  textarea, blockquote, p, h5, .comments_count, .comment-input, #survey-history, #available-surveys{
+    font-size: 20px;
+  }
+
+  cite{
+    font-size: 18px;
+  }
+
+  .link-list{
+    font-size: 20px;
+  }
+
+  .ong-icons{
+    img{
+      height: 65px;
+    }
+  }
+
+  a.flag{
+    display: inline-flex;
+  }
+  .dropdown-menu{
+    ul{
+      text-align: left;
+    }
+  }
+
+  .comments-sidebar-small{
+    display: none;
+  }
+
+  .comments-sidebar-medium{
+    display: block;
+  }
+
+  #dynamed-access{
+    p{
+      font-size: 16px;
     }
   }
 }

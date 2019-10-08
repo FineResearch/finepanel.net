@@ -14,7 +14,6 @@
 //= require jquery_ujs
 //= require slick
 //= require jquery.scrollTo
-//= require addtohomescreen.min
 //= require foundation
 //= require responsive-tables
 //= require home
@@ -22,13 +21,13 @@
 //= require posts
 //= require dashboard
 //= require payment
+//= require google_analytics
 //= require jquery.remotipart
 //= require_self
 
 
 
 $(document).on('ready turbolinks:load', function() {
-  addToHomescreen();
   /* Use this js doc for all application specific JS */
 
   /* TABS --------------------------------- */
@@ -65,7 +64,7 @@ $(document).on('ready turbolinks:load', function() {
     $(this).closest(".alert-box").fadeOut(function(event){
       $(this).remove();
     });
-  });   
+  });
 
   /* DROPDOWN NAV ------------- */
   var lockNavBar = false;

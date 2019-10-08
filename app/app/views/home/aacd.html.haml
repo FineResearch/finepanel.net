@@ -1,0 +1,19 @@
+.row.campaigns
+  .twelve.columns
+    %h3
+      = t('campaigns.page_title')
+    %hr
+    .row
+    %p
+      = t "campaigns.aacd.paragraph1"
+    %p
+      = t "campaigns.aacd.paragraph2"
+    %p
+      = t "campaigns.aacd.paragraph3"
+    %p
+      = t "campaigns.aacd.paragraph4"
+    .panel
+      %p
+        = t "campaigns.total_amount"
+        %strong
+          = number_to_currency(@data[:total_earned], unit: @data[:currency])

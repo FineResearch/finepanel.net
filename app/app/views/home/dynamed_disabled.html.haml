@@ -1,0 +1,37 @@
+.row.footer-page
+  #dynamed_disabled.medium-12.small-12.columns
+    %dd
+      = t('dynamed_content.line1') 
+    %dd
+      = t('dynamed_content.line2')
+    .row.download-row#dynamed-download-icons
+      %a{:href => "https://play.google.com/store/apps/details?id=com.lumi.fineresearch"}
+        = image_tag('download/android-download.png', class: "download-icon")
+      %a{:href => "https://apps.apple.com/us/app/fine-panel/id1049244979"}
+        = image_tag('download/ios-download.png', class: "download-icon")
+    %dd
+      = t('dynamed_content.line3')
+      %strong
+        = current_user.email
+      = t('dynamed_content.line4')
+      %strong
+        = user_password(current_user.email)
+    %dt
+      %h5
+        = t('dynamed_content.subtitle_1')
+    %dd
+      = t('dynamed_content.sub1_li1')
+    %dd
+      = t('dynamed_content.sub1_li2')
+    %dd
+      = t('dynamed_content.sub1_li3')
+    %dd
+      = t('dynamed_content.line5')
+    %dd
+      = t('dynamed_content.line6')
+      
+    %ol.medium-12.columns
+      %li
+        = t('dynamed_content.li5_list1')
+      %li
+        = t('dynamed_content.li5_list2')

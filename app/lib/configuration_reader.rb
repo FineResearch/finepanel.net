@@ -83,12 +83,44 @@ module ConfigurationReader
     load_config('status_initiated_survey', CONSTANTS_FILE_NAME)
   end
 
+  def self.status_dynamed_enabled
+    load_config('status_dynamed_enabled', CONSTANTS_FILE_NAME)
+  end
+
   def self.admin_users
     load_config('admin_user_emails', CONSTANTS_FILE_NAME)
   end
 
   def self.bank_account_types
     load_config('bank_account_types', ENUM_FILE_NAME)
+  end
+
+  def self.aacd_profile_path
+    load_config('aacd_profile_path', CONSTANTS_FILE_NAME)
+  end
+
+  def self.icw_profile_path
+    load_config('icw_profile_path', CONSTANTS_FILE_NAME)
+  end
+
+  def self.stc_mx_profile_path
+    load_config('stc_mx_profile_path', CONSTANTS_FILE_NAME)
+  end
+
+  def self.stc_co_profile_path
+    load_config('stc_co_profile_path', CONSTANTS_FILE_NAME)
+  end
+
+  def self.privacy_policy_url_es
+    load_config('privacy_policy_url_es', CONSTANTS_FILE_NAME)
+  end
+
+  def self.privacy_policy_url_pt
+    load_config('privacy_policy_url_pt', CONSTANTS_FILE_NAME)
+  end
+
+  def self.dynamed_subdomain
+    load_config('dynamed_subdomain', CONSTANTS_FILE_NAME)
   end
 
   def self.load_config(enum, file_name)

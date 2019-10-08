@@ -257,6 +257,7 @@ es:
     campaigns: Campañas
     support: Soporte
     contact: Contacto
+    privacy: Privacidad
 
   breadcrumbs:
     home: Inicio
@@ -373,6 +374,7 @@ es:
       panelist_error: Descuento por error en credito previo
      today_credit:
       project: Detalles disponibles mañana
+      comment_project: Movimientos del día (detalles disponibles mañana)
       comment_pay: Pago
       comment_credit: Credito
       day: Hoy
@@ -461,15 +463,33 @@ es:
       paragraph2: En la Ciudad de México en particular, Save the Children coordina una red de 140 Centros Comunitarios de Desarrollo Infantil, en los que promueve la prestación de servicios de educación inicial, preescolar y de cuidado diario, llegando a más de 8,000 niños y niñas.
       mexico_letter: Carta de agradecimiento de "Save the Children Mexico" a la comunidad de Fine Panel
       haiti_letter: Campaña de Ayuda a Haiti
-      testimonial1: Que si todos los seres humanos contribuyeramos en este tipo de iniciativas el mundo en el que vivimos sería diferente y mejor. Felicidades."
-      testimonial2: Aplaudo la decisión de Fine Panel de colaborar con esta obra."
-      testimonial3: El ayudar al que necesita es de suma importancia que bueno que lo estan haciendo ustedes por este conducto."
-      testimonial4: La infancia del mundo debe de ser nuestra preocupación continua y es un gusto saber que cooperamos aun que sea con un granito de arena en su bienestar."
-      testimonial5: Es bueno ser parte de una iniciativa que logra resultados."
-      testimonial6: Es una pequeña colaboración para el futuro de la humanidad."
-      testimonial7: Me parece una idea muy honesta y nos gustaria continuar colaborando."
-      testimonial8: Excelente propuesta de ayuda, aunque no connozco la fundación."
-      testimonial9: Propuesta excelente y poder ayudar a niños necesitados y faltos de recursos."
+      testimonial1: 
+        text: Que si todos los seres humanos contribuyeramos en este tipo de iniciativas el mundo en el que vivimos sería diferente y mejor. Felicidades."
+        name: Dra. Rosalva Amelia Lopez Gutierrez de Ubiarco.
+      testimonial2: 
+        text: Aplaudo la decisión de Fine Panel de colaborar con esta obra."
+        name: Dr. Sigfrido Miracle Lopez.
+      testimonial3: 
+        text: El ayudar al que necesita es de suma importancia que bueno que lo estan haciendo ustedes por este conducto."
+        name: Dr. Luis Fernando Ceballos Galan.
+      testimonial4: 
+        text: La infancia del mundo debe de ser nuestra preocupación continua y es un gusto saber que cooperamos aunque sea con un granito de arena en su bienestar."
+        name: Dr. Jesus Joaquin Gregorio Montaño Sanchez.
+      testimonial5: 
+        text: Es bueno ser parte de una iniciativa que logra resultados."
+        name: Dr. Julio Guadalupe Juarez Mendez.
+      testimonial6: 
+        text: Es una pequeña colaboración para el futuro de la humanidad."
+        name: Dr. Carlos Shigueyoshi Higashida Hirose.
+      testimonial7: 
+        text: Me parece una idea muy honesta y nos gustaria continuar colaborando."
+        name: Dr. Roberto Mar.
+      testimonial8: 
+        text: Excelente propuesta de ayuda, aunque no connozco la fundación."
+        name: Dr. Alfonso Rodriguez Jaramillo.
+      testimonial9: 
+        text: Propuesta excelente y poder ayudar a niños necesitados y faltos de recursos."
+        name: Dr. Amando Roberto Piña Loaiza.
       total_amount_html: Queremos compartir con nuestros panelistas y colaboradores que segun nuestros registros el total acumulado por esta campaña de la comunidad Fine Panel a comienzos de este mes fue de <strong>%{mexico_amount}</strong> para Save The Children Mexico y <strong>%{colombia_amount}</strong> para Save The Children Colombia
     aacd:
       paragraph1: La comunidad Fine Panel ha firmado un acuerdo con AACD de Brasil para los médicos que prefieren donar en lugar de recibir pagos en su cuenta bancaria.
@@ -518,6 +538,71 @@ es:
     responsibility_p: Las opiniones médicas o de otro tipo vertidas durante el llenado de encuestas o dentro de la red social de Fine Panel, ya sea en el muro o compartiendo documento o archivos es de exclusiva autoría y responsabilidad de los panelistas participantes.
     autonomy: AUTONOMIA.
     autonomy_p: Fine Panel no realiza actividades de promoción, publicidad ni estudios clínicos limitando su actividad a la realización de estudios médicos de opinión, presentación de nuevos conceptos con fines de investigación de mercado y/o difusión de información de artículos publicados en revistas de sociedades medicas acreditadas.
+
+  privacy:
+    page_title: Aviso de Privacidad
+    date: Este Aviso de privacidad entró en vigencia el 8 de agosto de 2019.
+    line1: En Fine Panel, reconocemos la importancia de proteger su información personal y nos comprometemos a procesarla de manera responsable y de acuerdo con las leyes de protección de datos aplicables en todos los países en los que operamos.
+    line2: En el curso normal de sus actividades comerciales, Fine Panel recopila, utiliza y, a veces, comparte información para realizar sus operaciones diarias. Este Aviso de privacidad describe las prácticas generales de privacidad de Fine Panel que se aplican a la recopilación y el uso de dicha información personal.
+    subtitle_1: TIPOS DE INFORMACIÓN PERSONAL QUE RECOPILAMOS
+    sub1_li1: Al describir nuestra recopilación, uso e intercambio de información en este Aviso, nos referimos a nuestra recopilación y uso de "Información personal".
+    sub1_li2: La "información personal" tal como se utiliza en este aviso es cualquier información relacionada con un individuo identificado o identificable. Ejemplos de información personal incluyen nombre y apellido, dirección postal, dirección de correo electrónico, información de pago, dirección IP, otra información de contacto en línea o número de teléfono.
+    sub1_li3: Recopilamos la información que usted proporciona voluntariamente en los formularios de solicitud en nuestro sitio como respuestas a la encuesta y / o podemos obtener información, incluida información personal, de fuentes de terceros que cumplan con este aviso de privacidad y / o de sitios web públicos.
+    sub1_li4: Los datos personales de los panelistas participantes no se compartirán de ninguna manera con terceros, ni se vincularán a sus respuestas en ninguna de las encuestas realizadas. La única excepción a esta regla es en casos de salud pública o en caso de presentación de algún evento adverso (EA) de algún tratamiento, y solo en casos en que los encuestados hayan acordado previamente compartir sus datos.
+    sub1_li5: Sus datos pueden transferirse internacionalmente a las diferentes oficinas que forman parte de la red de Fine Panel, incluidas las filiales de Fine Brazil Researches Ltda, Fine Research SRL (Argentina), FR Research SA de CV (México), sucursal de Fine Research Latinoamerica SA Colombia y Fine Research Latin America SA (Uruguay)
+    sub1_li6: "Solo usamos sus datos para:"
+    sub1_list1: invitarlo a acceder a nuestras encuestas disponibles
+    sub1_list2: acceder a herramientas de contenido médico basadas en evidencia
+    sub1_list3: verificar la validez de las identidades de los profesionales de la salud y prevenir el fraude
+    sub1_list4: procesar pagos tarifa por investigación
+    sub1_list5: proporcionar advertencias a los investigadores involucrados en Eventos Adversos (AE) y expresamente establecidos en este Aviso
+    sub1_list6: para mantener las operaciones comerciales, como con los proveedores que trabajan en nuestro nombre y garantizar que se adhieran a las mismas prácticas que este aviso de privacidad.
+    sub1_list7: según lo requiera la ley o para responder al proceso legal
+    sub1_list8: en otros casos con su consentimiento expreso
+    sub1_li7: Si surge la necesidad de usar sus datos para un propósito secundario, le proporcionaremos un Aviso de dicho uso.
+    sub1_li8: Si tiene preguntas o necesita más información sobre la base legal sobre la que recopilamos y usamos su información personal, contáctenos a support@finepanel.net.
+    sub1_li9: No compartimos su información personal con terceros, excepto lo indicado en este documento.
+
+    subtitle_2: DÓNDE ALMACENAMOS Y PROCESAMOS SU INFORMACIÓN PERSONAL
+    sub2_li1: Los datos personales recopilados por Fine Panel pueden almacenarse y procesarse en su región, Brasil y cualquier otro país. Las ubicaciones de almacenamiento se eligen para operar de manera eficiente, mejorar el rendimiento y crear redundancias para proteger los datos en caso de falla u otro problema. Tomamos medidas para garantizar que los datos que recopilamos bajo este Aviso se procesen de acuerdo con las disposiciones de este Aviso y los requisitos de la ley aplicable, donde sea que se encuentren los datos
+    sub2_li2: Fine Panel cumple con la Ley General de Protección de Datos, LGPD y GDPR con respecto a la recopilación, uso y retención de información personal transferida desde Brasil, el resto de América Latina, la Unión Europea y los Estados Unidos.
+
+    subtitle_3: CÓMO GARANTIZAMOS SU INFORMACIÓN PERSONAL
+    sub3_li1: Fine Panel utiliza una variedad de tecnologías para proteger eficazmente sus datos personales del acceso, uso o divulgación no autorizados. Si bien implementamos salvaguardas diseñadas para proteger su información, sabemos que ningún sistema de seguridad es impenetrable y debido a la naturaleza inherente de Internet, pero siempre utilizaremos procedimientos de seguridad razonables y adecuados.
+
+    subtitle_4: CUÁNTO TIEMPO RETENDRÁ SU INFORMACIÓN PERSONAL
+    sub4_li1: Conservaremos la información personal que recopilamos de usted cuando exista una necesidad comercial legítima en curso (por ejemplo, para proporcionar un servicio que haya solicitado o para cumplir con los requisitos legales, fiscales o contables aplicables).
+    sub4_li2: Cuando no tengamos una necesidad comercial legítima en curso para procesar su información personal, eliminaremos o anonimizaremos sus datos o, si eso no es posible (por ejemplo, porque su información personal se ha almacenado en archivos de respaldo), entonces almacenaremos de forma segura la información personal y aislarlo de cualquier procesamiento posterior hasta que sea posible eliminarlo.
+
+    subtitle_5: CÓMO ACCEDER Y CONTROLAR SU INFORMACIÓN PERSONAL
+    sub5_li1: Puede ejercer sus derechos poniéndose en contacto con nosotros en support@finepanel.net
+    sub5_li2: Respondemos a todas las solicitudes que recibimos de personas que desean ejercer sus derechos de protección de datos de acuerdo con las leyes de protección de datos aplicables.
+
+    subtitle_6: AVISO DE BAJA
+    sub6_li1: Puede optar por no recibir contactos haciendo clic en "Cancelar suscripción" en la parte inferior del correo electrónico que recibió las invitaciones.
+
+    subtitle_7: COMO CONTACTARNOS
+    sub7_li1: Para ejercer los derechos de sus interesados, comuníquese con support@finepanel.net
+    sub7_li2: "O puede contactarnos utilizando la siguiente información:"
+    sub7_li3: Fine do Brasil Research Ltda - Avenidaq Paulista 2494, 7th piso, Sao Paulo Brasil
+    sub7_li4: Fine Research SRL - Olazabal 1334, Ciudad Autonoma de Buenos Aires, Argentina
+
+  dynamed_content:
+    line1: Fine Panel ofrece a todos sus miembros la herramienta DynaMed para acceder a contenido médico basado en evidencia sin costos ni suscripciones.
+    line2: Está disponible a través de la aplicación Fine Panel.
+    line3: Para acceder por primera vez en la aplicación Fine Panel, ingrese con su correo electrónico
+    line4: y su contraseña
+    subtitle_1: ¿Qué es DynaMed?
+    sub1_li1: DynaMed™ es una fuente de información basada en evidencia clínica de próxima generación diseñada para optimizar el tiempo de respuesta para los profesionales de la salud.
+    sub1_li2: El contenido de DynaMed es actualizado permanentemente por un equipo de médicos de clase mundial que se consideran expertos en sus campos. Traen su conocimiento a la mesa seleccionando la mejor evidencia y adhiriéndose a una metodología rigurosa basada en evidencia que asegura que el contenido representa la visión más precisa de la evidencia con el menor potencial de conflicto de intereses, influencia personal o aceptación acrítica.
+    sub1_li3: Las recomendaciones siempre se basan en evidencia y nunca en la experiencia u opinión del autor. El contenido de DynaMed incluye miles de temas que cubren medicina de emergencia, cardiología, oncología, enfermedades infecciosas, pediatría, obstetricia y ginecología y más.
+    line5: Tome en cuenta que el contenido de DynaMed esta disponible por el momento solo en inglés.
+    line6: Además, en la aplicación Fine Panel puede
+    li5_list1: Participar más fácilmente en las encuestas disponibles.
+    li5_list2: Revisar su cuenta para créditos y pagos.
+  dynamed_access: Acceso a DynaMed
+  dynamed_access_subtitle: Medicina Basada en Evidencias
+  dynamed_read_more: Lea mas sobre el beneficio de DynaMed
 
   interests:
     created: El área de interes se creo con éxito.

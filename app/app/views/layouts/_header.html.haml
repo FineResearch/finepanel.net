@@ -8,7 +8,7 @@
         - unless user_signed_in?
           .columns.small-12.medium-9.header-nav-menu
             .row#login
-              = form_for(User.new, as: :user, url: session_path(:user), html: { class: 'columns small-7' } ) do |f|
+              = form_for(User.new, as: :user, url: session_path(:user), html: { class: 'columns small-12 medium-7' } ) do |f|
                 .row
                   .columns.small-12.medium-5.mobile-four
                     = f.email_field :email, autocomplete: "email", placeholder: t('forms.email'), id: 'email'
@@ -31,7 +31,7 @@
                     .home-language
                       = render "language"
                   .columns.small-12.medium-7.mobile-two#new-account
-                    = link_to t('header.get_an_account'), new_user_registration_path, class: "button secondary round small"
+                    = link_to t('header.get_an_account'), new_user_registration_path, class: "button secondary round small registration-btn"
         - else
           .header-nav-menu
             %nav

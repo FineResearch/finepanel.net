@@ -18,6 +18,12 @@ services:
     command: bash -c "bundle exec puma"
     ports:
       - 80:3000
+    volumes:
+      - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   sidekiq:
     build:
@@ -25,3 +31,9 @@ services:
     command: bundle exec sidekiq -C config/sidekiq.yml
     environment:
       - SIDEKIQ_CONCURRENCY=5
+    volumes:
+      - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"

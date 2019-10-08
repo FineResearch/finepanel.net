@@ -19,7 +19,7 @@ module RegistrationsHelper
 
   def options_for_suffix_select(_resource = nil, suffix = nil)
     suffixes = ConfigurationReader.suffixes
-    suffix[:selected] = suffix[:selected].split('.')[0] if suffix[:selected].present?
+    suffix[:selected] = suffix[:selected].split('.')[0] if suffix.present? && suffix[:selected].present?
     options_for_select(create_array_for_select(suffixes, 'suffixes.'), suffix)
   end
 
@@ -39,7 +39,8 @@ module RegistrationsHelper
   end
 
   def options_for_account_owner(bank_account_owner = nil)
-    options_for_select({t('common.yes') => 'true',t('common.no') => 'false'}, bank_account_owner)
+    owner = bank_account_owner.present? && bank_account_owner[:selected] == '1'
+    options_for_select({t('common.yes') => 'true',t('common.no') => 'false'}, owner)
   end
 
   def bank_account_type_key_for_select(type)
@@ -61,5 +62,5 @@ module RegistrationsHelper
     array.map { |option| [t(translate_key + option.to_s), option] }.sort_by { |text, _val| text }
   end
 
-  
+
 end

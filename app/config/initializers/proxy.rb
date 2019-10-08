@@ -1,0 +1,1 @@
+require 'dynamed_proxy'
