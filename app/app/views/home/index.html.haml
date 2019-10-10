@@ -73,6 +73,8 @@
   .row
     .columns.small-12.medium-3.medium-offset-1
       %p
+        .iframe-container
+          %iframe{:scrolling => "no", :src => "https://www.fine-research.com/#{cookies[:locale]}/iframe/"}
 
     .columns.small-12.medium-3.medium-offset-1
       %p
