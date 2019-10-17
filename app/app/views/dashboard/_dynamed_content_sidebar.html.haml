@@ -1,3 +1,4 @@
+%a{ id: 'dynamed' }
 - if dynamed_enable?(user_data)
   = link_to ConfigurationReader.dynamed_subdomain, target: "_blank", class: "dynamed-logo" do
     #dynamed-access
@@ -6,7 +7,7 @@
           = t('dynamed_access')
         %p
           = t('dynamed_access_subtitle')
-        = image_tag('doctors_dynamed.jpg', class: "dynamed-img") 
+        = image_tag('doctors_dynamed.jpg', class: "dynamed-img")
         = image_tag('logos/dynamed-button.png')
 - else
   = link_to dynamed_disabled_path, class: "dynamed-logo" do
