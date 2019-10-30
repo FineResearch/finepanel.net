@@ -34,17 +34,21 @@ module ConfigurationReader
 
   def self.currency(country_id)
     countries = load_config('countries', COUNTRY_FILE_NAME)
-    countries["co#{country_id}"]['currency']
+    countries.dig("co#{country_id}", 'currency')
   end
 
   def self.language(country_id)
     countries = load_config('countries', COUNTRY_FILE_NAME)
-    countries["co#{country_id}"]['language_iso']
+    country = countries.dig("co#{country_id}", 'language_iso')
+
+    country || countries['default_language_iso']
   end
 
   def self.language_code(country_id)
     countries = load_config('countries', COUNTRY_FILE_NAME)
-    countries["co#{country_id}"]['language_code']
+    country = countries.dig("co#{country_id}", 'language_code')
+
+    country || countries['default_language_code']
   end
 
   def self.user_profile_path
@@ -65,14 +69,12 @@ module ConfigurationReader
 
   def self.country_name(country_id)
     countries = load_config('countries', COUNTRY_FILE_NAME)
-    countries["co#{country_id}"]['name']
+    countries.dig("co#{country_id}", 'name')
   end
 
   def self.city_name(country_id, city_id)
     countries = load_config('countries', COUNTRY_FILE_NAME)
-    return nil unless countries["co#{country_id}"]['cities']["ci#{city_id}"].present?
-
-    countries["co#{country_id}"]['cities']["ci#{city_id}"]['name']
+    countries.dig("co#{country_id}", 'cities', "ci#{city_id}", 'name')
   end
 
   def self.status_new_survey
