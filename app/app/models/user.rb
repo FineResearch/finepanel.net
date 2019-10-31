@@ -12,6 +12,8 @@ class User < ApplicationRecord
 
   attr_accessor :email, :encrypted_password
 
+  enum language: [:es, :por]
+
   def self.find_from_email_and_password(email, password)
     return nil unless email.present?
 
