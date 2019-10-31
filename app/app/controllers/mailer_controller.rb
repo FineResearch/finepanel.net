@@ -24,19 +24,20 @@ class MailerController < ApplicationController
         File.join(file_root_path, entry.name)
       end
 
-      match_users_language_file = text.match(/Expression Filter: IN\(dynamed, \"1\"\)/)
+      text_parser = TextParser.new(text)
+      texts_per_lang = text_parser.get_language_texts
 
       if feed_file_path.include?('PanelistCredits')
         SyncCreditsAndPaymentsWorker.perform_async(feed_file_path, file_path)
       else
         if feed_file_path.include?(ConfigurationReader.project_id)
-          if match_users_language_file
+          if text_parser.match_users_language_file
             SyncActiveUsersLanguageWorker.perform_async(feed_file_path, file_path)
           else
             SyncUsersWorker.perform_async(feed_file_path, file_path)
           end
         else
-          SyncSurveyLinksWorker.perform_async(feed_file_path, file_path)
+          SyncSurveyLinksWorker.perform_async(feed_file_path, file_path, texts_per_lang)
         end
       end
     end
