@@ -32,9 +32,17 @@ class PushNotifier
 
   def format_query_params(respondents_json)
     {
-      user_name: ENV['API_USERNAME'],
-      password: ENV['API_PASSWORD'],
+      user_name: api_username,
+      password: api_password,
       respondents_json: respondents_json.to_json,
     }
+  end
+
+  def api_username
+    ENV['NOTIFICATIONS_API_USERNAME']
+  end
+
+  def api_password
+    ENV['NOTIFICATIONS_API_PASSWORD']
   end
 end
