@@ -15,3 +15,5 @@ privacy_policy_url_es: 'https://www.fine-research.com/es/blog/news/fine-actualiz
 privacy_policy_url_pt: 'https://www.fine-research.com/pt/blog/news/fine-atualiza-o-seu-aviso-de-privacidade-conforme-nova-lei-de-lgpd/'
 
 dynamed_subdomain: 'https://dynamed.finepanel.net'
+
+notifications_endpoint: 'https://fineresearch.myqmob.com/reactor-webapp/pt/lumi_say/pn/lumicompass/api/send_notifications'

@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 require 'net/http'
+require 'configuration_reader'
 
 class PushNotifier
-  SERVICE_ENDPOINT = 'https://fineresearch.myqmob.com/reactor-webapp/pt/'
-  PROJECT_NOTIFICATIONS = 'lumi_say/pn/lumicompass/api/send_notifications'
-
   def initialize(users, message)
     @users = users
     @message = message
@@ -27,7 +25,7 @@ class PushNotifier
   private
 
   def notifications_url
-    "#{SERVICE_ENDPOINT}#{PROJECT_NOTIFICATIONS}"
+    ConfigurationReader.notifications_endpoint
   end
 
   def format_query_params(respondents_json)
