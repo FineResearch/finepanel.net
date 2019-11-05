@@ -457,31 +457,31 @@ pt:
       paragraph2: Na cidade de México especificamente, a Save the Children coordena uma rede de 140 Centros Comunitários de Desenvolvimento Infantil, nos quais promove a prestação de serviços de educação inicial, pré-escolar e cuidados diários, atingindo mais de 8.000 meninos e meninas
       mexico_letter: Carta de agradecimento de "Save the Children Mexico" à comunidade de Finepanel
       haiti_letter: Campanha de Ajuda a Haiti
-      testimonial1: 
+      testimonial1:
         text: Se todos os seres humanos contribuíssemos neste tipo de iniciativas o mundo no qual vivemos seria diferente e melhor. Parabéns."
         name: Dra. Rosalva Amelia Lopez Gutierrez de Ubiarco.
-      testimonial2: 
+      testimonial2:
         text: Gostaria de parabenizar a decisão do Fine Panel de colaborar com este trabalho."
         name: Dr. Sigfrido Miracle Lopez.
-      testimonial3: 
+      testimonial3:
         text: Ajudar a quem precisa é extremamente importante, que bom que vocês o estão fazendo através deste caminho."
         name: Dr. Luis Fernando Ceballos Galan.
-      testimonial4: 
+      testimonial4:
         text: As crianças do mundo devem ser a nossa preocupação continua e é um prazer saber que colaboramos nem que seja com um grão de areia no seu bem estar."
         name: Dr. Jesus Joaquin Gregorio Montaño Sanchez.
-      testimonial5: 
+      testimonial5:
         text: É bom fazer parte de uma iniciativa  que consegue resultados."
         name: Dr. Julio Guadalupe Juarez Mendez.
-      testimonial6: 
+      testimonial6:
         text: É uma pequena colaboração para o futuro da humanidade."
         name: Dr. Carlos Shigueyoshi Higashida Hirose.
-      testimonial7: 
+      testimonial7:
         text: Acho que é uma ideia muito honesta e  gostaria de continuar colaborando."
         name: Dr. Roberto Mar.
-      testimonial8: 
+      testimonial8:
         text: Excelente proposta de ajuda, embora não conheça a fundação."
         name: Dr. Alfonso Rodriguez Jaramillo.
-      testimonial9: 
+      testimonial9:
         text: Proposta excelente de poder ajudar a crianças com necessidades e falta de recursos."
         name: Dr. Amando Roberto Piña Loaiza.
       total_amount_html: Queremos compartilhar com nossos panelistas e colaboradores que, segundo nossos registros, o total acumulado por esta campanha da comunidade Fine Panel a começos deste mês foi de <strong>%{mexico_amount}</strong> para a Save The Children México e <strong>%{colombia_amount}</strong> para Save The Children Colômbia
@@ -556,7 +556,7 @@ pt:
     sub1_list8: em outros casos com o seu consentimento expresso
     sub1_li7: Se surgir uma necessidade de usar seus dados para um propósito secundário, forneceremos a você um Aviso prévio de tal uso.
     sub1_li8: "Se você tiver dúvidas ou precisar de mais informações sobre a base legal sobre a qual coletamos e usamos suas informações pessoais, entre em contato conosco no e-mail: suporte@finepanel.net."
-    sub1_li9: Nós não compartilhamos suas informações pessoais com terceiros, exceto conforme indicado neste documento. 
+    sub1_li9: Nós não compartilhamos suas informações pessoais com terceiros, exceto conforme indicado neste documento.
 
     subtitle_2: ONDE ARMAZENAMOS E PROCESSAMOS SUAS INFORMAÇÕES PESSOAIS
     sub2_li1: Os dados pessoais coletados pela Fine Panel podem ser armazenados e processados em sua região, no Brasil e em qualquer outro país. Os locais de armazenamento são escolhidos para operar eficientemente, melhorar o desempenho e criar redundâncias para proteger os dados no caso de uma falha ou outro problema. Tomamos medidas para garantir que os dados que coletamos sob este Aviso sejam processados de acordo com as disposições deste Aviso e com os requisitos da lei aplicável, onde quer que os dados estejam localizados.
@@ -639,6 +639,7 @@ pt:
     in_the_group: no grupo
     shared_male: compartilhou uma %{link}
     shared_female: compartilhou uma %{link}
+    available_survey: Vc tem uma nova pesquisa disponivel
 
   posts:
     share_a_comment: Compartilhar um comentário

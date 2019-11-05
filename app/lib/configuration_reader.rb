@@ -125,6 +125,10 @@ module ConfigurationReader
     load_config('dynamed_subdomain', CONSTANTS_FILE_NAME)
   end
 
+  def self.notifications_endpoint
+    load_config('notifications_endpoint', CONSTANTS_FILE_NAME)
+  end
+
   def self.load_config(enum, file_name)
     YAML.safe_load(File.open(Rails.root.join('config', file_name)))[enum]
   end

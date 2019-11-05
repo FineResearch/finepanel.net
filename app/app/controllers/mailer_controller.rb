@@ -8,6 +8,7 @@ class MailerController < ApplicationController
   def sync
     file = params[:attachment1]
     sender = params[:from].scan(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)[0].strip
+    text = params[:text]
 
     if sender == ConfigurationReader.sender_email.strip || sender == ConfigurationReader.sender_email_alternative.strip
       file_root_path = Rails.root.join('tmp', 'feed_files')
@@ -23,13 +24,20 @@ class MailerController < ApplicationController
         File.join(file_root_path, entry.name)
       end
 
+      text_parser = TextParser.new(text)
+      texts_per_lang = text_parser.get_language_texts
+
       if feed_file_path.include?('PanelistCredits')
         SyncCreditsAndPaymentsWorker.perform_async(feed_file_path, file_path)
       else
         if feed_file_path.include?(ConfigurationReader.project_id)
-          SyncUsersWorker.perform_async(feed_file_path, file_path)
+          if text_parser.match_users_language_file
+            SyncActiveUsersLanguageWorker.perform_async(feed_file_path, file_path)
+          else
+            SyncUsersWorker.perform_async(feed_file_path, file_path)
+          end
         else
-          SyncSurveyLinksWorker.perform_async(feed_file_path, file_path)
+          SyncSurveyLinksWorker.perform_async(feed_file_path, file_path, texts_per_lang)
         end
       end
     end
