@@ -8,6 +8,8 @@ class User < ApplicationRecord
   has_many :posts
   has_many :comments
 
+  scope :with_active_app, -> { where(active_app: true) }
+
   validates :encrypted_email, presence: true, uniqueness: true
 
   attr_accessor :email, :encrypted_password

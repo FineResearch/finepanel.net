@@ -8,7 +8,7 @@ class SyncSurveyLinksWorker
   def perform(feed_file_path, file_path, texts)
     project_id = feed_file_path.match(/p\d+/).to_s
 
-    active_users = User.where(active_app: true)
+    active_users = User.with_active_app
 
     es_users = []
     por_users = []

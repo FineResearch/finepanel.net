@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 class TextParser
-  DEFAULT_POR_MESSAGE = 'Vc tem uma nova pesquisa dsiponivel'
-  DEFAULT_ESP_MESSAGE = 'Tiene una nueva encuesta disponible'
+  DEFAULT_POR_MESSAGE = I18n.t('notifications.available_survey', locale: :pt)
+  DEFAULT_ESP_MESSAGE = I18n.t('notifications.available_survey', locale: :es)
 
   def initialize(text)
     @text = text
