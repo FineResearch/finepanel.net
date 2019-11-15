@@ -18,8 +18,8 @@ $(document).ready(function() {
   }
 
   function loadPaymentInfo() {
-    const url = "/payment_info";
-    const loadingMessage = $("#payment-panel-container").data("loading-message");
+    var url = "/payment_info";
+    var loadingMessage = $("#payment-panel-container").data("loading-message");
 
     $("#pending_credit").html(loadingMessage);
 
@@ -27,8 +27,8 @@ $(document).ready(function() {
   }
 
   function loadParticipations() {
-    const url = "/participations";
-    const loadingMessage = $("#survey-history-container").data("loading-message");
+    var url = "/participations";
+    var loadingMessage = $("#survey-history-container").data("loading-message");
 
     $("#survey-history-status td:first-child").html(loadingMessage);
 
@@ -36,8 +36,8 @@ $(document).ready(function() {
   }
 
   function loadSurveys() {
-    const url = "/survey_list";
-    const loadingMessage = $("#available-surveys-container").data("loading-message");
+    var url = "/survey_list";
+    var loadingMessage = $("#available-surveys-container").data("loading-message");
 
     $("#survey-info-status td:first-child").html(loadingMessage);
 
