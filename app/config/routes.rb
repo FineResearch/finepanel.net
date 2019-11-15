@@ -16,6 +16,9 @@ Rails.application.routes.draw do
     end
     get 'list_all_projects', to: 'surveys#list_all_projects'
     get 'payment_history', to: 'dashboard#payment_history'
+    get 'survey_list', to: 'dashboard#survey_list'
+    get 'payment_info', to: 'dashboard#payment_info'
+    get 'participations', to: 'dashboard#participations'
   end
 
   root to: 'home#index'

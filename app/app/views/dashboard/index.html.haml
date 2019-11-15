@@ -9,14 +9,16 @@
             = t('dashboard.project')
         #available-surveys.medium-12.columns
           %h4= t('dashboard.survey_list.available_surveys')
-          = render 'surveys/available_surveys'
+          #available-surveys-container{ data: { 'loading-message': t('dashboard.loading')} }
+            = render 'surveys/available_surveys', survey_list: @survey_list
         #survey-history.columns.medium-12
-          .row
-            = render 'surveys/last_surveys'
+          .row#survey-history-container{ data: { 'loading-message': t('dashboard.loading')} }
+            = render 'surveys/last_surveys', participations: @participations
       #sidebar.small-12.medium-4.columns.updates
         .row
-          .columns.small-12.medium-12
-            = render 'payment_panel'
+          #payment-panel.columns.small-12.medium-12
+            #payment-panel-container{ data: { 'loading-message': t('dashboard.loading')} }
+              = render 'payment_panel', payment_info: @payment_info
             #invite
               = link_to t('dashboard.invite_collegues'), users_refer_colleague_path, class: 'button invite'
     .row.comments-sidebar-row
