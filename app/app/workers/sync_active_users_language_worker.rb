@@ -18,6 +18,8 @@ class SyncActiveUsersLanguageWorker
 
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
       email = row[0]
+      next unless email.present?
+
       encrypted_email = Digest::MD5.hexdigest(email)
 
       language_code = row[1].to_s
