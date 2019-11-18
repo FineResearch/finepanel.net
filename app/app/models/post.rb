@@ -11,7 +11,9 @@ class Post < ApplicationRecord
 
   after_destroy :delete_media_folder
   after_create :deliver_notification_mails
-  
+
+  scope :by_created_at, -> { order(created_at: :desc) }
+
   # will paginate per page default value for posts
   self.per_page = 5
   ENTRIES_LIMIT = 4 * self.per_page

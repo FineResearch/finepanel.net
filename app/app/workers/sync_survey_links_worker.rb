@@ -19,6 +19,8 @@ class SyncSurveyLinksWorker
       Rails.logger.info(survey.errors.first[1]) unless survey.valid?
 
       email = row[2]
+      next unless email.present?
+
       encrypted_email = Digest::MD5.hexdigest(email)
 
       user = active_users.find_by(encrypted_email: encrypted_email)

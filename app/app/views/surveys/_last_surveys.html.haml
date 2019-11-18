@@ -8,8 +8,8 @@
       %th= t('dashboard.survey_history.status')
       %th= t('dashboard.survey_history.participation_date')
       %th= t('dashboard.survey_history.date')
-    - if @participations.any?
-      - @participations.each do |survey|
+    - if participations.any?
+      - participations.each do |survey|
         %tr
           %td= survey[:project]
           %td= "#{@currency}#{survey[:fee]}"
@@ -17,5 +17,6 @@
           %td= survey[:date]
           %td= survey[:payment_date]
     - else
-      %tr
-        %td{colspan: 5}= t('dashboard.survey_history.there_is_no_information_in_your_history_to_show')
+      %tr#survey-history-status
+        %td{colspan: 5}
+          = t('dashboard.survey_history.there_is_no_information_in_your_history_to_show')
