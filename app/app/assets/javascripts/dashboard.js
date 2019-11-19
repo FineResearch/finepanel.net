@@ -1,5 +1,5 @@
 $(document).ready(function() {
-  $('#payment-history').click(function(e) {
+  $(document).on('click', '#payment-history', function(e) {
     e.preventDefault();
     $('.modal_table_container .loading').show();
     var pending_credit = $('#pending_credit').text().match(/(.*?)([0-9]*\.[0-9]+|[0-9]+)/)[2];
