@@ -19,6 +19,7 @@
           #payment-panel.columns.small-12.medium-12
             #payment-panel-container{ data: { 'loading-message': t('dashboard.loading')} }
               = render 'payment_panel', payment_info: @payment_info
+            = render 'dashboard/payment_history'
             #invite
               = link_to t('dashboard.invite_collegues'), users_refer_colleague_path, class: 'button invite'
     .row.comments-sidebar-row
