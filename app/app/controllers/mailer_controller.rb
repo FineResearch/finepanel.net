@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'zip'
-
 class MailerController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:sync]
 
