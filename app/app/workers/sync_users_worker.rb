@@ -6,6 +6,10 @@ class SyncUsersWorker
   include Sidekiq::Worker
 
   def perform(feed_file_path, file_path)
+    logger.info(
+      "Starting SyncUsersWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
+    )
+
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
       next unless row[1].present?
 
@@ -22,5 +26,13 @@ class SyncUsersWorker
 
     File.delete(feed_file_path)
     File.delete(file_path)
+
+    logger.info("Finished SyncUsersWorker")
+  end
+
+  def logger
+    environment = Rails.env
+
+    @logger ||= Logger.new("log/sync_users_worker_#{environment}.log", 'monthly')
   end
 end

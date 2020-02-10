@@ -16,24 +16,30 @@ services:
         - "com.mooveit.environment=prod"
     restart: always
     command: bash -c "bundle exec puma"
-    ports:
-      - 80:3000
+    expose:
+      - 80
     volumes:
-      - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "5"
+      - $PWD/app/tmp:/usr/src/app/tmp
+      - $PWD/log/app:/usr/src/app/log
 
   sidekiq:
     build:
       dockerfile: Dockerfile.prod
-    command: bundle exec sidekiq -C config/sidekiq.yml
+    command: bundle exec sidekiq -C config/sidekiq.yml | tee ./log/sidekiq.log
     environment:
       - SIDEKIQ_CONCURRENCY=5
     volumes:
-      - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "5"
+      # - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
+      - $PWD/log/app:/usr/src/app/log
+      - $PWD/app/tmp:/usr/src/app/tmp
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - $PWD/conf/nginx_default.conf:/etc/nginx/conf.d/default.conf
+      - $PWD/log/nginx:/var/log/nginx
+    restart: always
+    ports:
+      - 80:3000
+    depends_on:
+      - app

@@ -6,6 +6,10 @@ class SyncSurveyLinksWorker
   include Sidekiq::Worker
 
   def perform(feed_file_path, file_path, texts)
+    logger.info(
+      "Starting SyncSurveyLinksWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
+    )
+
     project_id = feed_file_path.match(/p\d+/).to_s
 
     active_users = User.with_active_app
@@ -39,5 +43,13 @@ class SyncSurveyLinksWorker
 
     File.delete(feed_file_path)
     File.delete(file_path)
+
+    logger.info("Finished SyncSurveyLinksWorker")
+  end
+
+  def logger
+    environment = Rails.env
+
+    @logger ||= Logger.new("log/sync_survey_links_#{environment}.log", 'monthly')
   end
 end

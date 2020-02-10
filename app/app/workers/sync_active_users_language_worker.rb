@@ -11,6 +11,10 @@ class SyncActiveUsersLanguageWorker
   }.freeze
 
   def perform(feed_file_path, file_path)
+    logger.info(
+      "Starting SyncActiveUsersLanguageWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
+    )
+
     users_per_language = {}
     LANGUAGE_CODES.each do |_, v|
       users_per_language[v] = []
@@ -36,5 +40,13 @@ class SyncActiveUsersLanguageWorker
 
     File.delete(feed_file_path)
     File.delete(file_path)
+
+    logger.info("Finished SyncActiveUsersLanguageWorker")
+  end
+
+  def logger
+    environment = Rails.env
+
+    @logger ||= Logger.new("log/sync_active_users_language_#{environment}.log", 'monthly')
   end
 end

@@ -14,7 +14,7 @@ COPY Gemfile Gemfile.lock ./
 
 # Throw errors if Gemfile has been modified since Gemfile.lock
 
-RUN bundle config --global frozen 1
+# RUN bundle config --global frozen 1
 RUN bundle install --without development test
 
 COPY . ./
