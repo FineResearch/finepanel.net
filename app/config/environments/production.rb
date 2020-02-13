@@ -1,11 +1,6 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
-  config.middleware.use(
-    StackProf::Middleware, enabled:true, mode: :cpu, interval: 1000, save_every: 5,
-    out: 'log/stackprof/finepanel.dump'
-  )
-
   # Code is not reloaded between requests.
   config.cache_classes = true
 

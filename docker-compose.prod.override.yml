@@ -19,7 +19,7 @@ services:
     expose:
       - 80
     volumes:
-      - $PWD/app/tmp:/usr/src/app/tmp
+      - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
       - $PWD/log/app:/usr/src/app/log
 
   sidekiq:
@@ -29,9 +29,8 @@ services:
     environment:
       - SIDEKIQ_CONCURRENCY=5
     volumes:
-      # - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
+      - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
       - $PWD/log/app:/usr/src/app/log
-      - $PWD/app/tmp:/usr/src/app/tmp
 
   nginx:
     image: nginx:latest
