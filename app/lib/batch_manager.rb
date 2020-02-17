@@ -22,17 +22,13 @@ class BatchManager
   end
 
   def flush
-    logger.info(
-      "Starting flushing batch with #{@values.size} tuples"
-    )
+    logger.info("Starting flushing batch with #{@values.size} tuples")
 
     @model.connection.execute(sql)
 
     @values = []
 
-    logger.info(
-      "Flushing tuples finished"
-    )
+    logger.info("Flushing tuples finished")
   end
 
   def finish
