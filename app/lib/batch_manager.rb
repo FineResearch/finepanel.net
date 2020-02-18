@@ -51,7 +51,7 @@ class BatchManager
     if @on_conflict_action == :nothing
       'DO NOTHING'
     elsif @on_conflict_action == :update
-      'UPDATE'
+      'DO UPDATE'
     end
   end
 
