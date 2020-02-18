@@ -15,7 +15,7 @@ class SyncUsersWorker
     discard_conflicts_on = [:encrypted_email]
 
     batch_manager = BatchManager.new(User, insert_columns, discard_conflicts_on,
-                                     on_conflict_action = :update)
+                                     on_conflict_action = :nothing)
 
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
       next unless row[1].present?
