@@ -27,7 +27,7 @@ services:
       dockerfile: Dockerfile.prod
     command: bundle exec sidekiq -C config/sidekiq.yml | tee ./log/sidekiq.log
     environment:
-      - SIDEKIQ_CONCURRENCY=5
+      - SIDEKIQ_CONCURRENCY=1
     volumes:
       - $PWD/app/tmp/feed_files:/usr/src/app/tmp/feed_files
       - $PWD/log/app:/usr/src/app/log
