@@ -43,9 +43,9 @@ class SyncCreditsAndPaymentsWorker
     File.delete(feed_file_path)
     File.delete(file_path)
 
-    logger.info("Finished SyncActiveUsersLanguageWorker")
+    logger.info("Finished SyncCreditsAndPaymentsWorker")
   rescue => e
-    logger.error { "SyncActiveUsersLanguageWorker error: #{e.backtrace}: #{e.message[0,200]} (#{e.class}" }
+    logger.error { "SyncCreditsAndPaymentsWorker error: #{e.message[0, 300]} (#{e.class}" }
   end
 
   def logger

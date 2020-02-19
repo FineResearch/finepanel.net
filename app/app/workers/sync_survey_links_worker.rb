@@ -63,7 +63,7 @@ class SyncSurveyLinksWorker
 
     logger.info("Finished SyncSurveyLinksWorker")
   rescue => e
-    logger.error { "SyncSurveyLinksWorker error: #{e.backtrace}: #{e.message[0,200]} (#{e.class}" }
+    logger.error { "SyncSurveyLinksWorker error: #{e.message[0, 300]} (#{e.class}" }
   end
 
   def logger

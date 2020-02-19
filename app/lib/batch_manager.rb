@@ -24,9 +24,12 @@ class BatchManager
   def flush
     logger.info("Starting flushing batch with #{@values.size} tuples")
 
-    @model.connection.execute(sql)
-
-    @values = []
+    if @values.empty?
+      logger.info("Skipping due to empty values list")
+    else
+      @model.connection.execute(sql)
+      @values = []
+    end
 
     logger.info("Flushing tuples finished")
   end
