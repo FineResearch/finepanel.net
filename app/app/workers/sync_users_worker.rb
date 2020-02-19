@@ -36,6 +36,8 @@ class SyncUsersWorker
     File.delete(file_path)
 
     logger.info("Finished SyncUsersWorker")
+  rescue => e
+    logger.error { "SyncUsersWorker error: #{e.backtrace}: #{e.message[0, 200]} (#{e.class}" }
   end
 
   def logger

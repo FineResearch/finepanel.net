@@ -48,7 +48,6 @@ class BatchManager
   end
 
   def on_conflict_action
-    puts "on_conflict_action = #{@on_conflict_action}"
     if @on_conflict_action == :nothing
       'DO NOTHING'
     elsif @on_conflict_action == :update

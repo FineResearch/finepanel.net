@@ -62,6 +62,8 @@ class SyncSurveyLinksWorker
     File.delete(file_path)
 
     logger.info("Finished SyncSurveyLinksWorker")
+  rescue => e
+    logger.error { "SyncSurveyLinksWorker error: #{e.backtrace}: #{e.message[0,200]} (#{e.class}" }
   end
 
   def logger

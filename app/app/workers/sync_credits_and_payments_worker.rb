@@ -19,7 +19,7 @@ class SyncCreditsAndPaymentsWorker
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
 
       next unless row[0].present? && row[4].present?
-      next unless row[4].to_i != 0
+      next unless row[4].is_a?(Integer)
 
       section = row[2].split('.')[1] if row[2].present?
       project_name = section[1..-2] if section.present?
@@ -44,6 +44,8 @@ class SyncCreditsAndPaymentsWorker
     File.delete(file_path)
 
     logger.info("Finished SyncActiveUsersLanguageWorker")
+  rescue => e
+    logger.error { "SyncActiveUsersLanguageWorker error: #{e.backtrace}: #{e.message[0,200]} (#{e.class}" }
   end
 
   def logger
