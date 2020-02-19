@@ -19,7 +19,7 @@ class SyncCreditsAndPaymentsWorker
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
 
       next unless row[0].present? && row[4].present?
-      next unless row[4].is_a?(Integer)
+      next unless is_integer?(row[4])
 
       section = row[2].split('.')[1] if row[2].present?
       project_name = section[1..-2] if section.present?
@@ -53,4 +53,10 @@ class SyncCreditsAndPaymentsWorker
 
     @logger ||= Logger.new("log/sync_credits_and_payments_#{environment}.log", 'monthly')
   end
+
+  private
+
+  def is_integer?(number)
+    !!(number =~ /\A[-+]?[0-9]+\z/)
+ end
 end

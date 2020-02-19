@@ -18,24 +18,26 @@ class SyncUsersWorker
     batch_manager = BatchManager.new(User, insert_columns, discard_conflicts_on,
                                      on_conflict_action = :update, batch_size)
 
-    tuples = []
+    batch = []
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
-      next unless row[1].present?
+      encrypted_email = row[1]
+      next unless encrypted_email.present?
 
-      tuple = [
-        encrypted_email = row[1],
-        hash_respid = row[2],
-        spanel = row[3],
-        creation_time,
-        creation_time
-      ]
+      batch.push(encrypted_email)
 
-      tuples.push(tuple)
+      unless batch.include?(encrypted_email)
+        creation_time = Time.now
 
-      creation_time = Time.now
-      batch_manager.add_to_batch(*tuple)
+        batch_manager.add_to_batch(
+          encrypted_email,
+          hash_respid = row[2],
+          spanel = row[3],
+          creation_time,
+          creation_time
+        )
+      end
 
-      tuples = [] if tuples.size == batch_size
+      batch = [] if batch.size == batch_size
     end
 
     batch_manager.finish
