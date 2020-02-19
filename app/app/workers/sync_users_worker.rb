@@ -23,8 +23,6 @@ class SyncUsersWorker
       encrypted_email = row[1]
       next unless encrypted_email.present?
 
-      batch.push(encrypted_email)
-
       unless batch.include?(encrypted_email)
         creation_time = Time.now
 
@@ -35,6 +33,8 @@ class SyncUsersWorker
           creation_time,
           creation_time
         )
+
+        batch.push(encrypted_email)
       end
 
       batch = [] if batch.size == batch_size
