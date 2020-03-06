@@ -30,8 +30,8 @@ class SyncSurveyLinksWorker
       batch_manager.add_to_batch(
         project_id,
         resp_id = row[0],
-        link = row[1],
         spanel,
+        link = row[1],
         creation_time,
         creation_time,
         variables = row[2]
