@@ -17,6 +17,7 @@
 !/app/log/.keep
 !/app/tmp/.keep
 
+log/*
 # Ignore uploaded files in development
 /app/storage/*
 

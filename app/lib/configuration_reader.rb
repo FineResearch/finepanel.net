@@ -101,8 +101,8 @@ module ConfigurationReader
     load_config('aacd_profile_path', CONSTANTS_FILE_NAME)
   end
 
-  def self.icw_profile_path
-    load_config('icw_profile_path', CONSTANTS_FILE_NAME)
+  def self.garrahan_profile_path
+    load_config('garrahan_profile_path', CONSTANTS_FILE_NAME)
   end
 
   def self.stc_mx_profile_path

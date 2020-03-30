@@ -1,0 +1,40 @@
+.row.campaigns
+  .twelve.columns
+    %h3
+      = t('campaigns.page_title')
+    %hr
+    .row
+      .twelve.columns
+        %p
+          = t "campaigns.garrahan.paragraph1"
+          .row
+            .two.columns
+              = image_tag('campaigns/garrahan1.jpg')
+            .two.columns
+              = image_tag('campaigns/garrahan2.jpg')
+        %p
+          = t "campaigns.garrahan.paragraph2"
+        %p
+          = t "campaigns.garrahan.paragraph3"
+        %p
+          = t "campaigns.garrahan.commodity_title"
+        %ul
+          - t("campaigns.garrahan.commodities").each do |commodity|
+            %li
+              %p
+                = commodity
+        .row
+          .two.columns
+            = image_tag('campaigns/garrahan3.jpg')
+          .two.columns
+            = image_tag('campaigns/garrahan4.jpg')
+        %p
+          = t "campaigns.garrahan.paragraph4"
+        %p
+          = t "campaigns.garrahan.paragraph5"
+
+        .panel
+          %p
+            = t "campaigns.total_amount"
+            %strong
+              = number_to_currency(@data[:total_earned], unit: @data[:currency])
