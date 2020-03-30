@@ -51,7 +51,7 @@ Rails.application.routes.draw do
     get 'commitment'
     get 'privacy_policy'
     get 'aacd'
-    get 'icw'
+    get 'garrahan'
     get 'stc'
     get 'dynamed_disabled'
   end

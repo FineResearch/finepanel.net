@@ -454,7 +454,7 @@ es:
   campaigns:
     page_title: Campañas
     panelists_comments: Comentarios de panelistas sobre nuestra campaña!
-    total_amount: Queremos compartir con nuestros panelistas y colaboradores que segun nuestros registros el total acumulado por esta campaña de la comunidad Fine Panel a comienzos de este mes fue de
+    total_amount: "Queremos compartir con nuestros panelistas y colaboradores que segun nuestros registros el total acumulado por esta campaña de la comunidad Fine Panel a comienzos de este mes fue de "
     side_bar:
       title: Fine Panel apoya
       link: Ver Campaña
@@ -495,14 +495,24 @@ es:
       paragraph1: La comunidad Fine Panel ha firmado un acuerdo con AACD de Brasil para los médicos que prefieren donar en lugar de recibir pagos en su cuenta bancaria.
       paragraph2: Es muy importante para la AACD, Asociación de Ayuda a niños discapacitados, contar con la cooperación de personas que creen en la causa de los discapacitados físicos. Después de todo, el apoyo de la sociedad permite a la institución llevar a cabo casi 6.000 atenciones diarias, en sus 9 unidades en todo Brasil.
       paragraph3: "Para obtener más información acerca de AACD y otras formas de colaborar, por favor visite: www.aacd.org.br o llame dentro del pais al: 0800-771 78 78."
-      paragraph4: Esperamos su valiosa participación!
+      paragraph4: ¡Esperamos su valiosa participación!
       letter: Carta de agradecimiento de "AACD" a la comunidad de Fine Panel
-    icw:
-      paragraph1: La comunidad Fine Panel ha firmado un acuerdo con ICW - comunidad internacional de mujeres con VIH para su programa de niñas y adolescentes de modo de dar una opcion a los médicos que prefieren donar en lugar de recibir pagos en su cuenta bancaria.
-      paragraph2: ICW Global apoya, informa y representa a las mujeres y niñas con VIH-SIDA, promoviendo su participación en espacios donde se debaten las políticas públicas que las afectan. Desde 2007 impulsa la campaña mundial MÁS PAZ MENOS SIDA como herramienta para detener la pandemia. Por consultas escribanos a info@icwglobal.org
-      paragraph3: Para obtener más información acerca de ICW y otras formas de colaborar, puede escribir a info@icwglobal.org
-      paragraph4: Esperamos su valiosa participación!
-      letter: Carta de agradecimiento de "ICW" a la comunidad de Fine Panel
+    garrahan:
+      paragraph1: La comunidad Fine Panel ha firmado un acuerdo con la Fundacion Garrahan para apoyar su programa para Casa Garrahan de modo de dar una opción a los médicos que prefieren donar en lugar de recibir pagos en su cuenta bancaria.
+      paragraph2: La Casa Garrahan fue inaugurada el 25 de marzo de 1997 y presta especial atención a las necesidades sociales y emocionales de los pacientes y sus familias. Brinda un hogar a los niños, junto a sus madres, que residen a más de 100 kilómetros de la Ciudad de Buenos Aires y se atienden en los hospitales Elizalde, Garrahan o Gutiérrez y se hospedan mientras cumplen tratamientos médicos ambulatorios o esperan diagnósticos de complejas enfermedades que no requieren internación.
+      paragraph3: Aloja alrededor de 1000 niños por año.
+      paragraph4: "Para obtener más información acerca de la Fundacion Garrahan y otras formas de colaborar, puede escribir a casa@fhg.org.ar -  Pichincha 1731 - CABA • Teléfono: (011) 4308-5229/5236"
+      paragraph5: ¡Esperamos su valiosa participación!
+      commodity_title: "Casa Garrahan cuenta con:"
+      commodities:
+        - 43 habitaciones con baño privado.
+        - Amplias cocinas.
+        - Sala de estar, de juegos y de computación.
+        - Biblioteca.
+        - Lavadero.
+        - Patios de juegos.
+        - 3 habitaciones con múltiples propósitos. Talleres educativos y espacio de formación.
+
 
   commitments:
     page_title: Compromiso ético
