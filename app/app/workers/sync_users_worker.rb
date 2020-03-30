@@ -1,26 +1,58 @@
 # frozen_string_literal: true
 
 require 'csv'
+require 'batch_manager'
 
 class SyncUsersWorker
   include Sidekiq::Worker
 
   def perform(feed_file_path, file_path)
+    logger.info(
+      "Starting SyncUsersWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
+    )
+
+    insert_columns = [:encrypted_email, :hash_respid, :spanel, :created_at, :updated_at]
+    discard_conflicts_on = [:encrypted_email]
+    batch_size = 5000
+
+    batch_manager = BatchManager.new(User, insert_columns, discard_conflicts_on,
+                                     on_conflict_action = :update, batch_size)
+
+    batch = []
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
-      next unless row[1].present?
+      encrypted_email = row[1]
+      next unless encrypted_email.present?
 
-      new_user = User.find_or_initialize_by(encrypted_email: row[1])
-      new_user.hash_respid = row[2]
-      new_user.spanel = row[3]
-      new_user.save
+      unless batch.include?(encrypted_email)
+        creation_time = Time.now
 
-      if new_user.errors.present?
-        error_msg = new_user.encrypted_email + ' ' + new_user.errors.first[1]
-        Rails.logger.info(error_msg)
+        batch_manager.add_to_batch(
+          encrypted_email,
+          hash_respid = row[2],
+          spanel = row[3],
+          creation_time,
+          creation_time
+        )
+
+        batch.push(encrypted_email)
       end
+
+      batch = [] if batch.size == batch_size
     end
+
+    batch_manager.finish
 
     File.delete(feed_file_path)
     File.delete(file_path)
+
+    logger.info("Finished SyncUsersWorker")
+  rescue => e
+    logger.error { "SyncUsersWorker error: #{e.message[0, 200]} (#{e.class}" }
+  end
+
+  def logger
+    environment = Rails.env
+
+    @logger ||= Logger.new("log/sync_users_worker_#{environment}.log", 'monthly')
   end
 end
