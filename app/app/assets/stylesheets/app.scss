@@ -15,7 +15,7 @@
   border-radius: 4px;
 }
 
-.margin-home{
+.margin-home{ 
   width: 90%;
   &.row{
     max-width: 100%;
@@ -413,7 +413,7 @@ form{
         width: auto;
         max-width: none;
         min-width: 0;
-
+        
         .column{
           padding: 0 6px;
         }
@@ -482,7 +482,7 @@ form{
           a{
             padding: 0 20px;
             font-size: 14px;
-          }
+          }       
         }
         &.has-flyout{
           ul.flyout{
@@ -603,7 +603,7 @@ nav{
     padding: 10px 10px;
     text-align: right;
     box-sizing: border-box;
-
+    
     font-size: 30px;
     display: none;
   }
@@ -612,11 +612,11 @@ nav{
     background: none !important;
     border: none !important;
   }
-  .user-name{
+  .user-name{ 
     color: #4c4c4c;
   }
 
-  .dropdown-menu-mobile{
+  .dropdown-menu-mobile{ 
     display: none;
   }
   .dropdown-menu{
@@ -683,8 +683,8 @@ nav{
     //@include logos(aacd2);
     margin: 0 17px 0;
   }
-  .garrahan{
-    //@include logos(garrahan);
+  .icw{
+    //@include logos(icw);
     margin: 0 17px 0;
   }
   .language{
@@ -900,7 +900,7 @@ nav{
       }
     }
 
-    left-arrow-img{
+    left-arrow-img{ 
       background: url();
     }
   }

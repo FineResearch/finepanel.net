@@ -447,8 +447,8 @@ pt:
 
   campaigns:
     page_title: Campanhas
-    panelists_comments: Comentários de painelistas sobre nossa campanha!
-    total_amount: "Queremos compartilhar com nossos painelistas e colaboradores que, de acordo com nossos registros, o total acumulado por esta campanha da comunidade do Fine Panel até o momento é de "
+    panelists_comments: Comentários de panelistas sobre nossa campanha!
+    total_amount: Queremos compartilhar com nossos panelistas e colaboradores que, segundo nossos registros, o total acumulado por esta campanha da comunidade Fine Panel a começos deste mês foi de
     side_bar:
       title: Fine Panel apóia
       link: Ver Campanha
@@ -492,20 +492,12 @@ pt:
       paragraph4: Esperamos sua valiosa participação!
       letter: Carta de agradecimento de "AACD" à comunidade de Finepanel
 
-    garrahan:
-      paragraph1: A comunidade Fine Panel assinou um acordo com a Fundação Garrahan para apoiar seu programa na Casa Garrahan, a fim de dar uma opção aos médicos que preferem doar em vez de receber pagamentos em sua conta bancária.
-      paragraph2: A Casa Garrahan foi inaugurada em 25 de março de 1997 e presta atenção especial às necessidades sociais e emocionais dos pacientes e de suas famílias. Ele fornece um lar para crianças, juntamente com suas mães, que residem a mais de 100 quilômetros da cidade de Buenos Aires e são tratadas nos hospitais Elizalde, Garrahan ou Gutierrez e ficam enquanto realizam tratamentos médicos ambulatoriais ou aguardam diagnósticos de doenças complexas que não precisam de hospitalização.
-      paragraph3: "Para obter mais informações sobre a Fundação Garrahan e outras formas de colaborar, escreva para casa@fhg.org.ar - Pichincha 1731 - CABA • Telefone: (011) 4308-5229 / 5236"
-      paragraph4: Aguardamos a sua valiosa participação!
-      commodity_title: "Casa Garrahan possui:"
-      commodities:
-        - 43 quartos com banheiro privativo
-        - Cozinhas grandes
-        - Sala de estar, jogos e computadores
-        - Biblioteca.
-        - Lavanderia.
-        - Área de jogo
-        - 3 salas com múltiplas finalidades. Educativas e espaço de treinamento.
+    icw:
+      paragraph1: A comunidade de Fine Panel assinou um acordo com a ICW - comunidade internacional de mulheres com VIH para seu programa de meninas e adolescentes, para oferecer uma opção aos médicos que preferem doar  seus honorários ao invés de  receber os pagamentos nas suas contas bancárias.
+      paragraph2: A ICW Global apoia, informa e representa às mulheres e meninas com VIH-SIDA, promovendo sua participação em espaços onde são debatidas as políticas públicas que as afetam. Desde 2007 impulsiona a campanha mundial MAIS PAZ MENOS SIDA como ferramenta para deter a pandemia. Para consultas escreva para info@icwglobal.org
+      paragraph3: Para obter mais informação sobre a ICW e outras formas de colaborar, pode escrever para info@icwglobal.org
+      paragraph4: Aguardamos sua valiosa participação!
+      letter: Carta de agradecimento de "ICW" à comunidade de Fine Panel
 
   commitments:
     page_title: Compromisso ético

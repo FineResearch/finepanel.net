@@ -44,13 +44,9 @@ class ConfirmitGateway
       response = Net::HTTP.post_form(URI(user_url), 'q' => 'ruby', 'max' => '50')
       surveys = get_surveys_from_response(response.body).to_a
 
-      if surveys.any?
-        language_param = user.language_param(respid)
-        survey_list = get_active_surveys_for_user(surveys, language_param)
-        add_next_surveys_to_links(survey_list)
-      else
-        []
-      end
+      language_param = user.language_param(respid)
+      survey_list = get_active_surveys_for_user(surveys, language_param)
+      add_next_surveys_to_links(survey_list)
     end
 
     def get_surveys_for_redirect_to_portal(user, respid)
@@ -138,8 +134,6 @@ class ConfirmitGateway
         next unless survey[:project_id].starts_with?('p') && survey[:resp_id].present?
         or_conditions << "(survey_links.project_id = '#{survey[:project_id]}' AND survey_links.resp_id = '#{survey[:resp_id]}')"
       end
-
-      return [] if or_conditions.empty?
 
       survey_links = SurveyLink.where(or_conditions.join(' OR '))
       survey_links = survey_links.group_by(&:project_id)

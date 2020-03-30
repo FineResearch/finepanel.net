@@ -19,8 +19,8 @@ class HomeController < ApplicationController
     @data_co = get_campaign_payment_data(stc_co_profile_path)
   end
 
-  def garrahan
-    campaign_profile_path = ConfigurationReader.garrahan_profile_path
+  def icw
+    campaign_profile_path = ConfigurationReader.icw_profile_path
     @data = get_campaign_payment_data(campaign_profile_path)
   end
 
