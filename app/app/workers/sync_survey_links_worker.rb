@@ -25,13 +25,16 @@ class SyncSurveyLinksWorker
 
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
       spanel = row[1].split('=').last
+      link = row[1]
+
+      next unless link.start_with?('http')
 
       creation_time = Time.now
       batch_manager.add_to_batch(
         project_id,
         resp_id = row[0],
         spanel,
-        link = row[1],
+        link,
         creation_time,
         creation_time,
         variables = row[2]
