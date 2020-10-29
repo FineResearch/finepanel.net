@@ -705,9 +705,8 @@ pt:
         password_pre: 'Sua senha é: %{password}'
         notice: 'Entre em %{link} com seu nome de usuário (endereço de e-mail) e a senha que lhe enviamos.'
     new_comment:
-      p1_1: "O seu colega <strong>%{colleague_name}</strong> respondeu o comentário:"
-      p1_2: "<strong>&ldquo;%{post_text}&rdquo;</strong>"
-      p1_3: "para vê-lo pode ir para http://finepanel.net e digite seu e-mail e senha"
+      p1_1: "O seu colega %{colleague_name} respondeu o comentário:"
+      p1_2: "para vê-lo pode ir para https://finepanel.net e digite seu e-mail e senha"
       signature: Comunidade FinePanel
 
   bank_account_types:

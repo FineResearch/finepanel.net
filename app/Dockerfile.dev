@@ -1,8 +1,6 @@
 FROM ruby:2.5.1
 
-# throw errors if Gemfile has been modified since Gemfile.lock
-RUN bundle config --global frozen 1 && \
-  apt-get update && \
+RUN apt-get update && \
   curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
   apt-get install -y nodejs && \
   apt-get clean

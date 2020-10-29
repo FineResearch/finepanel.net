@@ -34,6 +34,6 @@ class Post < ApplicationRecord
   end
 
   def deliver_notification_mails
-    PostMailer.new_post_email(self, user.user_respid(user_info['email'])).deliver
+    PostMailer.new_post_email(self, user.user_respid(user_info['email'])).deliver_later
   end
 end

@@ -20,6 +20,10 @@ module Finepanel
     # Configure the default encoding used in templates for Ruby 1.9.
     config.encoding = "utf-8"
 
+    config.active_job.queue_adapter = :sidekiq
+
+    config.action_mailer.deliver_later_queue_name = :default
+
     config.assets.paths << Rails.root.join("app", "assets", "fonts")
 
     # Send log to STDOUT so docker-compose manages the logs

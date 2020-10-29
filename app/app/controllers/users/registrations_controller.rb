@@ -64,7 +64,7 @@ module Users
 
     def send_password
       if params[:email].present? && User.find_from_email(params[:email]).present?
-        RegistrationMailer.password_recovery_email(params[:email], User.automated_password(params[:email])).deliver
+        RegistrationMailer.password_recovery_email(params[:email], User.automated_password(params[:email])).deliver_later
         flash[:notice] = t('registrations.password_recovery.password_sent')
         redirect_to root_path
       else
