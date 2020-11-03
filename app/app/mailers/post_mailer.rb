@@ -1,4 +1,4 @@
-class PostMailer < ActionMailer::Base
+class PostMailer < ApplicationMailer
   TEMPLATE_IDS = {
     new_post: 'd-8a8150ba40264ab6a0358173159a194e'
   }
