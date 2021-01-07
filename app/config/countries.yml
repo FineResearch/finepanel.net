@@ -636,7 +636,7 @@ countries:
     language_code: '2058'
     country_code: EC
     language_iso: 'es'
-    currency: 'Sucres '
+    currency: 'USD'
   co22:
     id: 22
     name: Costa Rica
