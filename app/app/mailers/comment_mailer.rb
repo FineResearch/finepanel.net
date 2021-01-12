@@ -31,10 +31,10 @@ class CommentMailer < ApplicationMailer
       personalization = generate_personalization(recipient)
 
       personalization.add_dynamic_template_data({
-        subject: I18n.t("posts.mailer_subject")
+        subject: I18n.t("posts.mailer_subject"),
         first_paragraph: I18n.t('mailers.new_comment.p1_1', colleague_name: comment.user_info['complete_name']),
         second_paragraph: I18n.t('mailers.new_comment.p1_2', post_text: comment.post.text),
-        signature: I18n.t('mailers.new_comment.signature'),
+        signature: I18n.t('mailers.new_comment.signature')
       })
 
       mail.add_personalization(personalization)

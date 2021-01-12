@@ -2,6 +2,7 @@ version: '3.5'
 
 services:
   postgres:
+    restart: always
     environment:
       - POSTGRES_DB=finepanel_prod
       - POSTGRES_USER=postgres
@@ -26,6 +27,7 @@ services:
     build:
       dockerfile: Dockerfile.prod
     command: bundle exec sidekiq -C config/sidekiq.yml | tee ./log/sidekiq.log
+    restart: always
     environment:
       - SIDEKIQ_CONCURRENCY=1
     volumes:
