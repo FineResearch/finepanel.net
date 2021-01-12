@@ -14,7 +14,7 @@ services:
         - "com.mooveit.description=Finepanel"
         - "com.mooveit.department=mooveit"
         - "com.mooveit.environment=dev"
-    command: bash -c "bundle exec puma"
+    command: bash -c "bundle exec puma -p 3000 -b 0.0.0.0"
     ports:
       - 3000:3000
     volumes:
