@@ -403,11 +403,11 @@ es:
     all_questions: Ver todas las preguntas
     button_assistance: Solicite asistencia
     questions:
-      q1: ¿Cuales son las ventajas de participar de las encuestas de Fine Panel?
-      q2: ¿Cómo serán tratados mis respuestas y datos personales?
+      q1: ¿Cuáles son las ventajas de participar de las encuestas de Fine Panel?
+      q2: ¿Cómo serán tratadas mis respuestas y datos personales?
       q3: ¿Quién participa en esta comunidad?
-      q4: ¿Acerca de que estudios voy a ser invitado a participar?
-      q5: ¿Cómo puedo saber cuánto va a recibir por cada participación?
+      q4: ¿Acerca de qué estudios voy a ser invitado a participar?
+      q5: ¿Cómo puedo saber cuánto voy a recibir por cada participación?
       q6: ¿Qué tengo que hacer para recibir mis honorarios?
       q7: ¿Qué plazo tengo para participar de una invitación?
       q8: ¿Por qué se busca un perfil específico?
@@ -419,7 +419,7 @@ es:
       q14: ¿Cómo puedo controlar mis pagos y participaciones?
     answers:
       a1: Es un canal para que pueda influir con su opinión y experiencia sobre las discusiones de las futuras lineas terapéuticas, enterarse de innovaciones en su área, con las ventajas de participar on-line en el horario que le quede más cómodo y por el cual es recompensado con honorarios depositados en su cuenta bancaria.
-      a2: Con la máxima confidencialidad. Sus datos personales nunca serán cedidos a terceros ni ligados a ninguna respuesta, siguiendo las estrictas reglas de la Sociedad Europea de Investigación de Mercados (www.esomar.org) y la Sociedad Europea de Investigación Farmacéutica (www.ephmra.org/)
+      a2: Con la máxima confidencialidad. Sus datos personales nunca serán cedidos a terceros ni ligados a ninguna respuesta, siguiendo las estrictas reglas de la Sociedad Europea de Investigación de Mercados (www.esomar.org) y la Sociedad Europea de Investigación Farmacéutica (www.ephmra.org)
       a3: Las encuestas se destinan exclusivamente a médicos activos que viven en América Latina, registrados en conformidad con la ley aplicable. Tenemos miles de participantes regulares.
       a4: Dependiendo de su práctica médica y de especialidades, lo invitaremos a las diferentes encuestas que pueden ser de su interés.
       a5: El honorario se indica en la carta de invitación
@@ -429,9 +429,9 @@ es:
       a9: Se verifica a través de algunas preguntas iniciales lo que no lleva mas de 1-2 minutos.
       a10: Si. En este caso no le vamos a pedir que haga la entrevista completa que dura entre 15 a 40 minutos. Pero compensamos esos intentos de 1-2 minutos, con el 10% del honorario prometido para la encuesta completa. El importe se ingresará en su cuenta bancaria cuando el crédito acumulado sea superior a $500 (Mexico) / 150$ (Argentina) / R$100 (Brasil) o con la siguiente entrevista completa.
       a11: Dependerá de las investigaciones disponibles referentes a su especialidad, pero posiblemente si! Nuestra organización lleva a cabo más de 100 estudios médicos por año con diferentes tipos de especialistas tan pronto como le sea posible tener más posibilidades de participar.
-      a12: El método que sugerimos por velocidad y seguridad es hacer un depósito en su cuenta bancaria. Si lo prefiere podemos enviarle un cheque por correo a su consultorio. Luego de cada estudio se confirman los datos de pago según su preferencia.
-      a13: Los pagos por incentivos se hacen dentro de las 4 semanas de su participaron en una entrevista completa. Usted recibirá un correo electrónico confirmando los detalles de pago, fecha y cantidad, una vez hecho el mismo.
-      a14: Fine Panel permite un acceso trasparente a sus creditos y participaciones. Si desea verificar su crédito puede verlo en cualquier momento luego de completar una primera entrevista. Debe ir a la página www.fine-panel.com/medicos y usando el correo al cual fue invitado como usuario y seña entra -Mi Cuenta- y -Honorarios- de este portal. Allí podrá ver si quiere las ultimas participaciones, estado de cada una, pagos realizados y fecha de cada depósito.
+      a12: Recibirá el pago por sus participaciones via trasnferencia bancaria en una cuenta que nos proporcione a su nombre.
+      a13: Los pagos por incentivos por las encuestas que complete se procesan dentro de las 48 horas hábiles de su participación. Usted recibirá un correo electrónico confirmando los detalles de pago, fecha y cantidad, una vez hecho el mismo. En el caso de República Dominicana y Guatemala, los pagos se realizan via Western Union o Paypal dentro de las 4 semanas.
+      a14: Fine Panel permite un acceso trasparente a sus creditos y participaciones. Si desea verificar su crédito puede verlo en cualquier momento luego de completar una primera entrevista. Debe ir a la página www.finepanel.net y usando su correo y  contraseña. Allí podrá ver si quiere las ultimas participaciones, estado de cada una, pagos realizados y fecha de cada pago. Tambien puede bajar la aplicación Fine Panel disponible en Google Play y Apple Store.
     footer_title: Esperamos que estas reglas esten claras.<br/> Nuestro lema es que las reglas claras conservan la amistad!
     footer_thanks: Gracias por participar en nuestra comunidad!
 
@@ -518,13 +518,13 @@ es:
     page_title: Compromiso ético
     page_subtitle: Las reglas éticas que rigen esta comunidad son las siguientes
     standards: ESTANDARES.
-    standards_p: Las investigaciones realizadas en Fine Panel en toda América Latina se realizan siguiendo los estrictos estándares éticos de las organizaciones internacionales mas prestigiosas que regulan la actividad en Europa (EPHMRA y ESOMAR) y Estados Unidos (PMRG), y a las cuales pertenecen sus investigadores.
+    standards_p: Las investigaciones realizadas en Fine Panel en toda América Latina se realizan siguiendo los estrictos estándares éticos de las organizaciones internacionales más prestigiosas que regulan la actividad en Europa (EPHMRA, BHBIA y ESOMAR) y Estados Unidos (INTELLUS), y a las cuales pertenecen sus investigadores.
     privacy: PRIVACIDAD.
     privacy_p: Los datos personales de los panelistas participantes no serán en ningún caso compartidos con terceros, ni conectados de ningún modo con sus respuestas en cualquiera de las encuestas realizadas. Solo se podrá exceptuar esta regla por cuestiones de salud pública en caso de presentarse Eventos Adversos de algún tratamiento y solo en casos en que los entrevistados hayan aceptado previamente compartir sus datos para tal caso.
     fees: PAGOS DE HONORARIOS.
     fees_p: Fine Panel pagará siempre en tiempo y forma todos los honorarios prometidos por participación en encuestas según las reglas voluntariamente aceptadas por los panelistas participantes. Para asegurar la transparencia en el deposito de honorarios se seguirán las siguientes reglas
     fees_li1: Después de cada participación efectiva el participante recibirá un correo electrónico informando el resultado de su participación,  el valor acreditado y el nombre del proyecto completado.
-    fees_li2: Los depósitos se harán dentro de las 4 semanas siguientes a su participación
+    fees_li2: Los depósitos se harán dentro de las 4 semanas siguientes a su participación. En el caso de Argentina, Brasil, Chile, Costa Rica, Colombia, Ecuador, Mexico, Panamá y Peru, el pago se efectiviza a las 48 horas habiles de su última encuesta completa.
     fees_li3: Los panelistas recibirán el día del pago un email informando, fecha de pago, modo de pago y valor acreditado.
     fees_li4: En caso que así lo requieran podrán solicitar el comprobante bancario de la transferencia.
     fees_li5: En todo momento podrá verificar  el resultado de sus participaciones y pagos recientes, ingresando a su cuenta.
@@ -533,7 +533,7 @@ es:
     fees_li8: El honorario corresponderá a quien tiene el perfil buscado y complete hasta el final cada encuesta, lo que usualmente lleva entre 15 y 45 minutos. En caso de no tener el perfil buscado en una encuesta, lo cual se verifica luego de un par de minutos, en las primeras preguntas, Fine Panel informará esta situación al panelista y terminará la encuesta. En estos casos no se acreditará el valor completo pero si invirtió por lo menos un minuto se le acreditará un 10% del honorario, algo que nos diferencia de otros investigadores. Fine Panel intentará siempre invitarlo a estudios que según la información que contamos serían posiblemente adecuados a su perfil.
     fees_li9: En cualquier momento puede escribir a honorarios@finepanel.net por cualquier consulta respecto a sus participaciones y pagos.
     social_responsibility: RESPONSABILIDAD SOCIAL.
-    social_responsibility_p: En Fine Panel creemos en la responsabilidad social comunitaria en los países de América Latina donde desarrollamos nuestra actividad. En esta área colaboramos activamente con Save The Children en México, la Asociación Brasileña de Atención a los Niños con Discapacidad (AACD) y a la comunidad internacional de mujeres viviendo con VIH en Argentina (ICW).
+    social_responsibility_p: En Fine Panel creemos en la responsabilidad social comunitaria en los países de América Latina donde desarrollamos nuestra actividad. En esta área colaboramos activamente con Save The Children en Colombia y México, la Asociación Brasileña de Atención a los Niños con Discapacidad (AACD) y a la Fundación del Hospital Garrahan en Argentina.
     transparency: TRANSPARENCIA DE LAS DONACIONES.
     transparency_p: Para asegurar transparencia en la donación de créditos por participación en encuestas, cuando así lo escogieran los panelistas se seguirán las siguientes reglas
     transparency_li1: Después de cada participación efectiva donde el panelista decidiera donar su crédito, el participante con copia a la institución recibirá un correo electrónico informando la donación.
@@ -543,11 +543,11 @@ es:
     mission: MISION.
     mission_p: Fine Panel es un instrumento de investigación y comunicación, a través de la difusión de novedades, el intercambio de opiniones y la investigación de practicas relativas al cuidado de la salud, todo lo cual puede colaborar en el desarrollo del conocimiento de las necesidades de médicos y pacientes, y eventualmente contribuir a la implementación de tratamientos adecuados a la atención de las mismas.
     scope: ALCANCE.
-    scope_p: Fine Panel es una comunidad de participantes en encuestas y foro de información e intercambio con centros de soporte en Brasil, México, Chile, Argentina, Colombia, Venezuela y cobertura en toda América Latina, dirigido exclusivamente a médicos y profesionales de la salud legalmente registrados en estos países.
+    scope_p: Fine Panel es una comunidad de participantes en encuestas y foro de información e intercambio con centros de soporte en Brasil, México, Chile, Argentina, Colombia, Uruguay y cobertura en toda América Latina, dirigido exclusivamente a médicos y profesionales de la salud legalmente registrados en estos países
     responsibility: RESPONSABILIDAD.
     responsibility_p: Las opiniones médicas o de otro tipo vertidas durante el llenado de encuestas o dentro de la red social de Fine Panel, ya sea en el muro o compartiendo documento o archivos es de exclusiva autoría y responsabilidad de los panelistas participantes.
     autonomy: AUTONOMIA.
-    autonomy_p: Fine Panel no realiza actividades de promoción, publicidad ni estudios clínicos limitando su actividad a la realización de estudios médicos de opinión, presentación de nuevos conceptos con fines de investigación de mercado y/o difusión de información de artículos publicados en revistas de sociedades medicas acreditadas.
+    autonomy_p: Fine Panel no realiza actividades de promoción, publicidad ni estudios clínicos limitando su actividad a la realización de estudios médicos de opinión, presentación de nuevos conceptos con fines de investigación de mercado y/o difusión de información de artículos publicados en revistas de sociedades médicas acreditadas.
 
   privacy:
     page_title: Aviso de Privacidad
