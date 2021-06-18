@@ -12,14 +12,14 @@
           %th= t('dashboard.payment_history.today_credit.comment_project')
           %th
           %th
-          %th= t('dashboard.payment_history.today_credit.day')
+          %th
           %th
       - if credit_row
         %tr.payment-item
           %th= t('dashboard.payment_history.today_credit.comment_project')
           %th
           %th
-          %th= t('dashboard.payment_history.today_credit.day')
+          %th
           %th
       - history.each do |payment|
         %tr.payment-item{:class => ("payment-row" if payment.credit < 0)}
