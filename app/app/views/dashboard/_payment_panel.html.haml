@@ -17,7 +17,7 @@
           %span.right
             = "#{cookies[:currency]}#{payment_info[:total_payments]}" if payment_info.present?
         %li.payment-info-li
-          %span
+          %span.payment-light
             = t('dashboard.balance.total_fees')
           %span.right
             = "#{cookies[:currency]}#{payment_info[:total]}" if payment_info.present?
