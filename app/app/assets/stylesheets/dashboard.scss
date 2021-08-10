@@ -20,6 +20,7 @@ form#new_post {
     border-radius: 3px;
     line-height: 35px;
     font-size: 17px;
+    font-weight: bold;
     &:hover{
       background-color: darken($mainColor, 2%) !important;
     }
