@@ -5,15 +5,18 @@
 First you need to have **Docker** installed on your local machine.
 
 1. Clone the repo locally.
-2. Create a symlink for the **docker-compose.override.yml** file. ([More on docker compose files](https://docs.docker.com/compose/extends/#understanding-multiple-compose-files)).
-To create the symlink needed execute `ln -s docker-compose.override.dev.yml docker-compose.override.yml`.
-3. Execute `docker-compose up`. This will build the images needed and then start the services.
+2. `cd finepanel`
+3. Create a symlink for the **docker-compose.override.yml** file. ([More on docker compose files](https://docs.docker.com/compose/extends/#understanding-multiple-compose-files)).
+To create the symlink needed execute `ln -s docker-compose.dev.override.yml docker-compose.override.yml`.
+4. Execute `cp app/config/database.sample.yml app/config/database.yml`
+5. Execute `cp app/.env.sample app/.env`
+6. Execute `docker-compose up`. This will build the images needed and then start the services.
 
    To use docker detached run the above command with `-d` flag. This will start it as a deamon and will not block the console.
    The default dev configuration creates the database on postgres called `finepanel_dev`, user `postgres` and pass `postgres`.
    This is specified on the `docker-compose.yml` file.
-4. Then create the database inside postgres container: `docker-compose run app bundle exec rails db:create`.
-5. Execute migrations: `docker-compose run app bundle exec rails db:create`.
+7. Then create the database inside postgres container: `docker-compose run app bundle exec rails db:create`.
+8. Execute migrations: `docker-compose run app bundle exec rails db:migrate`.
 
 
 ## Developing
