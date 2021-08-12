@@ -343,10 +343,10 @@ es:
       fees: "Honorarios:"
       accumulated: Acumulados
       paid: Total pagado
-      pending: Total de Honorarios generados
+      pending: Crédito pendiente de pago
       last_payment: Último pago =
       last_payment_date: ", el día"
-      total_fees: Crédito pendiente de pago
+      total_fees: Total de Honorarios generados
     survey_history:
       survey_history: Últimas participaciones
       modal_title: Su historial de encuestas

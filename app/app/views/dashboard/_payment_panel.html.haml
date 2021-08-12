@@ -3,9 +3,9 @@
     .small-12.medium-12.columns
       %span.pending_money
         %h2#pending_credit
-          = "#{cookies[:currency]}#{payment_info[:credit]}" if payment_info.present?
+          = "#{cookies[:currency]}#{payment_info[:total]}" if payment_info.present?
         %h5
-          = t('dashboard.balance.pending')
+          = t('dashboard.balance.total_fees')
 
 .panel.payment-info.callout
   .row
@@ -18,9 +18,9 @@
             = "#{cookies[:currency]}#{payment_info[:total_payments]}" if payment_info.present?
         %li.payment-info-li
           %span.payment-light
-            = t('dashboard.balance.total_fees')
-          %span.right
-            = "#{cookies[:currency]}#{payment_info[:total]}" if payment_info.present?
+            = t('dashboard.balance.pending')
+          %span.right.payment-light
+            = "#{cookies[:currency]}#{payment_info[:credit]}" if payment_info.present?
   .row
     .ten.columns.centered
       %button.button.payment-button.small#payment-history{"data-open" => "history_payment_modal"}
