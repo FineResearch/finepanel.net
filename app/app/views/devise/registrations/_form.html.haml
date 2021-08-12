@@ -81,6 +81,15 @@
       %span.gray.small
         = t('forms.required_fields_notice')
   %hr
+  .row.terms-conditions
+    .columns.medium-4.small-8
+      = label_tag :terms_conditions, t('activerecord.attributes.user.terms_conditions') , :class => 'inline right required label-terms'
+    .columns.medium-6.small-4.end
+      = check_box_tag :terms_conditions, user_data[:terms_conditions], false, required: true, :class => 'checkbox-terms'
+  .row
+    .columns.medium-8.small-12.medium-offset-4
+      %p.privacy-text= t('privacy.privacy_policy_text').try(:html_safe)
+  %hr
   #edit-mode-buttons
     .row
       .columns.medium-9.small-12.medium-offset-4

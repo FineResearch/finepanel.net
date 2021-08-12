@@ -589,6 +589,7 @@ pt:
     sub7_li2: "Ou você pode entrar em contato conosco usando as seguintes informações:"
     sub7_li3: Fine do Brasil Pesquisas Ltda - Avenida Paulista 2494, 7mo Andar, Sao Paulo Brasil
     sub7_li4: Fine Research SRL - Olazabal 1334, Buenos Aires, Argentina
+    privacy_policy_text: 'Dando seu consentimento aceita que os dados pessoais que compartilhe serão utilizados apenas a fins de pesquisas de mercado e/ou receber por email evidencia e noticias médicas. Seus dados pessoais nunca serão repassados a terceiros, seguindo as estritas regras da Sociedade Européia de Estudos de Mercado.  A única exceção a esta regra é em casos de saúde pública caso o respondente expresse apresentação de Eventos Adversos (AE) de algum tratamento, Nós só usamos seus dados para: poder convidar lhe a acessar as nossas pesquisas disponíveis, dar acesso a ferramentas de conteúdo medico baseado em evidencias, checar a validade das identidades dos profissionais de saúde e evitar fraudes, processar os pagamentos de honorários pelas pesquisas, ou fornecer avisos aos pesquisadores envolvidos de Eventos Adversos (AE) e expressamente estabelecido neste Aviso, para manter operações comerciais, como com fornecedores trabalhando em nosso nome e garantindo que respeitem as mesmas praticas deste aviso de privacidade, conforme exigido por lei ou para responder ao processo legal, ou em outros casos com o seu consentimento expresso. Pode ver o nosso aviso de privacidade completo em <a href="https://www.fine-research.com/pt/blog/news/fine-atualiza-o-seu-aviso-de-privacidade-conforme-nova-lei-de-lgpd/" target="_blank"> Aviso de privacidade </a>'
 
   dynamed_content:
     line1: A Fine Panel oferece como beneficio a todos os seus membros a ferramenta DynaMed de aceso a conteúdos medicina baseada em evidencias, sem custos nem assinaturas.
@@ -842,6 +843,7 @@ pt:
         bank_account_number: Número de conta
         bank_account_name: Ao nome de quem esta essa conta
         bank_account_owner: A conta esta ao seu nome?
+        terms_conditions: Aceito os termos
       invitation:
         suffix: Título
         first_name: Nome(s)
