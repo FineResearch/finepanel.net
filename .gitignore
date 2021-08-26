@@ -5,36 +5,36 @@
 #   git config --global core.excludesfile '~/.gitignore_global'
 
 # Ignore bundler config.
-/app/.bundle
+.bundle
 
 # Ignore the default SQLite database.
-/app/db/*.sqlite3
-/app/db/*.sqlite3-journal
+db/*.sqlite3
+db/*.sqlite3-journal
 
 # Ignore all logfiles and tempfiles.
-/app/log/*
-/app/tmp/*
-!/app/log/.keep
-!/app/tmp/.keep
+log/*
+tmp/*
+!log/.keep
+!tmp/.keep
 
 log/*
 # Ignore uploaded files in development
-/app/storage/*
+storage/*
 
-/app/node_modules
-/app/yarn-error.log
+node_modules
+yarn-error.log
 
-/app/public/assets
-/app/.byebug_history
+public/assets
+.byebug_history
 
-/app/.env
+.env
 
 #Ignore the database's configuration
-/app/config/database.yml
+config/database.yml
 
 **/.DS_Store
-/app/vendor
-/app/config/rails_best_practices.yml
+vendor
+config/rails_best_practices.yml
 
 /data
 /docker-compose.override.yml

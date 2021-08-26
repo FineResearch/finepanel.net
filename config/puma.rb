@@ -32,4 +32,4 @@ environment ENV.fetch("RAILS_ENV") { "development" }
 
 # Allow puma to be restarted by `rails restart` command.
 plugin :tmp_restart
-stdout_redirect "/usr/src/app/log/puma_error.log", "/usr/src/app/log/puma.log", true
+
