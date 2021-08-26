@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_02_13_161244) do
+ActiveRecord::Schema.define(version: 2020_02_17_174000) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -35,6 +35,7 @@ ActiveRecord::Schema.define(version: 2020_02_13_161244) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["respid", "project_name", "credit", "concept", "email_date"], name: "index_payment_on_respid_project_credit_concept_email"
+    t.index ["respid", "project_name", "credit", "concept", "email_date"], name: "unique_payments", unique: true
     t.index ["respid"], name: "index_payments_on_respid"
   end
 

@@ -1,20 +1,21 @@
-common: &default
+default: &default
   adapter: postgresql
-  encoding: unicode
-  pool: 5
-  username: postgres
-  port: 5432
-  password: j
-  host: localhost
+  database: <%= ENV["DATABASE_NAME"] %>
+  password: <%= ENV["DATABASE_PASSWORD"] %>
+  username: <%= ENV["DATABASE_USER"] %>
+  host: <%= p ENV; ENV["DATABASE_HOST"] %>
+  port: <%= ENV["DATABASE_PORT"] %>
+  pool: <%= ENV["DB_POOL"] %>
 
 development:
   <<: *default
-  database: finepanel_dev
+  min_messages: WARNING
 
 test:
   <<: *default
-  database: finepanel_test
 
 production:
   <<: *default
-  database: finepanel_production
+
+staging:
+  <<: *default

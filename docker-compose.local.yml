@@ -1,0 +1,28 @@
+version: '3.5'
+
+services:
+  db:
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_MULTIPLE_DATABASES: finepanel_dev, finepanel_test
+    volumes:
+      - ./pg-init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5435:5432"
+
+  api:
+    tty: true
+    stdin_open: true
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    depends_on:
+      - db
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    volumes:
+      - $PWD:/app
+      - /bundle
