@@ -13,7 +13,7 @@ ENV AUTOMATICALLY_MIGRATE=$AUTOMATICALLY_MIGRATE
 ##########################
 
 # Install base packages and other software
-RUN apk add --no-cache nodejs build-base postgresql-dev libxml2-dev libxslt-dev sqlite-dev tzdata \
+RUN apk add --no-cache jq nodejs build-base postgresql-dev libxml2-dev libxslt-dev sqlite-dev tzdata \
   git openssh postgresql
 
 ##########################
