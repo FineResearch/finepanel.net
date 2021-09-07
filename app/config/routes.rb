@@ -58,4 +58,13 @@ Rails.application.routes.draw do
 
   get 'countries/cities/:country_id', to: 'countries#cities'
 
+  namespace :api do
+    namespace :v1 do
+      resources :payments, only: [:index]
+      resources :surveys, only: [:index] do
+        get 'participations', on: :collection
+      end
+    end
+  end
+
 end

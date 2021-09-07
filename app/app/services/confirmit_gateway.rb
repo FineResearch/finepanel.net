@@ -64,6 +64,7 @@ class ConfirmitGateway
     end
 
     def get_payments_for_user(user_data)
+      return nil unless user_data.present?
       {
         total_payments: user_data[:totalpagos],
         credit: user_data[:credito],
@@ -71,7 +72,10 @@ class ConfirmitGateway
       }
     end
 
-    def get_participations_for_user(user_data)
+    def get_participations_for_user(user_data, options = {})
+      language = options.fetch(:locale, nil) || I18n.locale
+
+      return nil unless user_data.present?
       last_participations = []
       1.upto(5) do |i|
         next unless user_data["detalle#{i}"].present?
@@ -88,7 +92,7 @@ class ConfirmitGateway
       end
 
       sort_last_participations!(last_participations).each do |participation|
-        participation[:date] = I18n.l(participation[:date], format: :participation_date)
+        participation[:date] = I18n.with_locale(language) { I18n.l(participation[:date], format: :participation_date) }
       end
     end
 
@@ -112,6 +116,7 @@ class ConfirmitGateway
     end
 
     def get_currency_for_user(user_data)
+      return nil unless user_data.present?
       ConfigurationReader.currency(user_data[:country_id])
     end
 

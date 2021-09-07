@@ -355,6 +355,7 @@ es:
       date: Fecha de pago
       participation_date: Fecha
       there_is_no_information_in_your_history_to_show: No hay información en su historial para mostrar
+      the: el
     payment_history:
      modal_title: Historial de participaciones y pagos
      modal_title_small: Hasta la hora 00:00 de hoy
@@ -893,7 +894,7 @@ es:
       participation_date: "%-d de %B de %Y"
 
   date:
-    month_names: [~, Enero, Febrero, Marzo, Abril, Mayo, Junio, Julio, Agosto, Setiembre, Octubre, Noviembre, Diciembre]
+    month_names: [~, Enero, Febrero, Marzo, Abril, Mayo, Junio, Julio, Agosto, Septiembre, Octubre, Noviembre, Diciembre]
     abbr_month_names: [~, Ene, Feb, Mar, Abr, May, Jun, Jul, Ago, Set, Oct, Nov, Dic]
 
   datetime:

@@ -350,6 +350,7 @@ pt:
       date: Data de pagamento
       participation_date: Data de participação
       there_is_no_information_in_your_history_to_show: Não há informação para exibir no seu histórico
+      the: em
     payment_history:
       modal_title: Histórico de participações e pagamentos
       modal_title_small: Até às 00:00 horas de hoje
