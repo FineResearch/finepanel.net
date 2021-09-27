@@ -64,6 +64,7 @@ Rails.application.routes.draw do
       resources :surveys, only: [:index] do
         get 'participations', on: :collection
       end
+      resources :news_feed, only: [:index]
     end
   end
 

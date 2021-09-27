@@ -685,6 +685,9 @@ es:
       recent_article: Artículo reciente
       source: "Fuente:"
 
+  newsfeed:
+    new: "NUEVA"
+
   articles:
     search: Buscar Artículos
     search_results: "%{quantity} artículos coinciden con su búsqueda “%{term}”:"
