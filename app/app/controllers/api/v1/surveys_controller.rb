@@ -3,7 +3,13 @@ module Api
     class SurveysController < ApiController
 
       def index
-        render json: {response: 'surveys index'}, status: :ok
+        survey_list = ConfirmitGateway.get_surveys_for_user(@resource, @resource.user_respid(@resource.email))
+
+        if survey_list.present?
+          render json: SurveyBlueprint.render(survey_list), status: :ok
+        else
+          render json: [], status: :ok
+        end
       end
 
       def participations
