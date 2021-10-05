@@ -28,6 +28,7 @@ module Api
 
         @resource = User.find_from_jti_and_email(resolve_jwt_token(request.authorization), params['email'])
         if @resource.present?
+          @current_user = @resource
           @user_data = @resource.profile_data(@resource.user_respid(@resource.email))
         else
           render json: {message: 'Unauthorized'}, status: :unauthorized

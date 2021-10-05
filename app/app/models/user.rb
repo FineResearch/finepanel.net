@@ -107,8 +107,8 @@ class User < ApplicationRecord
     ConfigurationReader.language_code(country_id)
   end
 
-  def info_for_post(respid)
-    user_data = profile_data(respid)
+  def info_for_post(respid, email = nil)
+    user_data = email.present? ? profile_data(user_respid(email)) : profile_data(respid)
     return nil unless user_data.present?
 
     complete_name = user_data[:suffix] + ' ' + user_data[:last_name]

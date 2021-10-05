@@ -71,6 +71,8 @@ Rails.application.routes.draw do
       end
       resources :news_feed, only: [:index]
       resources :user_information, only: [:index]
+      resources :posts, only: [:index, :create]
+      resources :comments, only: [:create, :destroy]
     end
   end
 

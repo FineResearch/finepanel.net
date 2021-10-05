@@ -14,4 +14,9 @@ class Comment < ApplicationRecord
       CommentMailer.new_comment_email_for_participants(self, recipients).deliver_later
     end
   end
+
+  def set_date
+    return ' ' unless self.created_at.present?
+    self.created_at.strftime("%d-%m-%Y")
+  end
 end

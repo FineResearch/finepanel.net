@@ -36,4 +36,9 @@ class Post < ApplicationRecord
   def deliver_notification_mails
     PostMailer.new_post_email(self, user.user_respid(user_info['email'])).deliver_later
   end
+
+  def set_date
+    return ' ' unless self.created_at.present?
+    self.created_at.strftime("%d-%m-%Y")
+  end
 end
