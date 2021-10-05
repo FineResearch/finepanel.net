@@ -60,11 +60,17 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      devise_for :users,
+        defaults: { format: :json },
+        skip: [:registrations, :invitations, :passwords, :confirmations, :unlocks],
+        path: '',
+        path_names: { sign_in: 'login', sign_out: 'logout' }
       resources :payments, only: [:index]
       resources :surveys, only: [:index] do
         get 'participations', on: :collection
       end
       resources :news_feed, only: [:index]
+      resources :user_information, only: [:index]
     end
   end
 

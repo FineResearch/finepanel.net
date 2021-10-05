@@ -1,6 +1,7 @@
 module Api
   module V1
     class PaymentsController < ApiController
+      before_action :set_user_data
 
       def index
         payments = ConfirmitGateway.get_payments_for_user(@user_data)

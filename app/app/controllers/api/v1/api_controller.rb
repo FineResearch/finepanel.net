@@ -1,32 +1,45 @@
 module Api
   module V1
     class ApiController < ActionController::Base
-      before_action :check_basic_auth, :set_user_data
       skip_before_action :verify_authenticity_token
-      private
+
+      protected
+
       def check_basic_auth
-        # unless request.authorization.present?
-        #   head :unauthorized
-        #   return
-        # end
-        authenticate_with_http_basic do |email, password|
-          user = User.first
-          if true
-            @current_user = user
-          else
-            head :unauthorized
-          end
+        unless request.authorization.present?
+          render json: {message: 'Unauthorized'}, status: :unauthorized
+          return
+        end
+
+        user = User.find_by_jti(resolve_jwt_token(request.authorization))
+
+        if user.present?
+          @current_user = user
+        else
+          render json: {message: 'Unauthorized'}, status: :unauthorized
         end
       end
 
-      def current_user
-        @current_user
+      def set_user_data
+        unless request.authorization.present? && params['email'].present?
+          render json: {message: 'Unauthorized'}, status: :unauthorized
+          return
+        end
+
+        @resource = User.find_from_jti_and_email(resolve_jwt_token(request.authorization), params['email'])
+        if @resource.present?
+          @user_data = @resource.profile_data(@resource.user_respid(@resource.email))
+        else
+          render json: {message: 'Unauthorized'}, status: :unauthorized
+          return
+        end
       end
 
-      def set_user_data
-        @resource = User.find_from_email_and_password('xxx@fine-research.com', 'xxx') rescue nil
-        return unless @resource.present?
-        @user_data = @resource.profile_data(@resource.user_respid(@resource.email))
+      def resolve_jwt_token(authorization)
+        token = authorization.split('Bearer ').last
+        decode_token = JWT.decode(token, nil, false)
+
+        jti = decode_token[0]['jti']
       end
     end
   end

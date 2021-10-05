@@ -1,6 +1,9 @@
 module Api
   module V1
     class NewsFeedController < ApiController
+      before_action :check_basic_auth
+
+      respond_to :json
 
       def index
         specialty = Specialty.find_by(slug: params.dig("specialty"))

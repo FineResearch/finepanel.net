@@ -32,7 +32,7 @@ module Users
       flash[:success] = t('messages.notice.logout')
     end
 
-    private 
+    private
 
     def redirect_existent_user_login(resource, exit_param:)
       if params[exit_param].present?
@@ -41,7 +41,7 @@ module Users
         redirect_to resource.user_profile_url(params[:r]) + "&return=#{params[exit_param]}" + surveys_params
       else
         sign_in(resource_name, resource)
-        set_cookies_for_redirect_user_login(resource)  
+        set_cookies_for_redirect_user_login(resource)
         create_post_from_redirect_user_login(resource) if params[:post].present?
         redirect_to root_path
       end

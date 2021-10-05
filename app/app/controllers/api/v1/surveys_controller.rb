@@ -1,6 +1,7 @@
 module Api
   module V1
     class SurveysController < ApiController
+      before_action :set_user_data
 
       def index
         survey_list = ConfirmitGateway.get_surveys_for_user(@resource, @resource.user_respid(@resource.email))

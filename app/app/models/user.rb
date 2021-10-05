@@ -3,7 +3,9 @@
 class User < ApplicationRecord
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
-  devise :database_authenticatable, :registerable, :rememberable
+  include Devise::JWT::RevocationStrategies::JTIMatcher
+
+  devise :database_authenticatable, :registerable, :rememberable, :jwt_authenticatable, jwt_revocation_strategy: self
 
   has_many :posts
   has_many :comments
@@ -15,6 +17,26 @@ class User < ApplicationRecord
   attr_accessor :email, :encrypted_password
 
   enum language: [:es, :por]
+
+  def jwt_payload
+    self.jti = self.class.generate_jti
+    self.save
+
+    super.merge('jti' => self.jti)
+  end
+
+  def self.find_from_jti_and_email(token, email)
+    return nil unless email.present?
+
+    encrypted_email = Digest::MD5.hexdigest(email)
+
+    user = User.find_by(encrypted_email: encrypted_email, jti: token)
+
+    return nil unless user.present?
+
+    user.email = email
+    user
+  end
 
   def self.find_from_email_and_password(email, password)
     return nil unless email.present?
