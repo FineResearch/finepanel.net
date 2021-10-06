@@ -69,7 +69,9 @@ Rails.application.routes.draw do
       resources :surveys, only: [:index] do
         get 'participations', on: :collection
       end
-      resources :news_feed, only: [:index]
+      resources :news_feed, only: [:index] do
+        post 'increment_view_count', on: :member
+      end
       resources :user_information, only: [:index]
       resources :posts, only: [:index, :create]
       resources :comments, only: [:create, :destroy]

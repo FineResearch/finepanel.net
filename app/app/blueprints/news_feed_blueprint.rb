@@ -19,5 +19,9 @@ class NewsFeedBlueprint < Blueprinter::Base
     news_feed.set_time_tag(options[:locale])
   end
 
+  field :viewCount do |news_feed|
+    news_feed.view_count
+  end
+
   association :article, blueprint: ArticleBlueprint
 end
