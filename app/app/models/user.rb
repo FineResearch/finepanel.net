@@ -9,6 +9,7 @@ class User < ApplicationRecord
 
   has_many :posts
   has_many :comments
+  has_many :news_comments
 
   scope :with_active_app, -> { where(active_app: true) }
 

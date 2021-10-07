@@ -75,6 +75,7 @@ Rails.application.routes.draw do
       resources :user_information, only: [:index]
       resources :posts, only: [:index, :create]
       resources :comments, only: [:create, :destroy]
+      resources :news_comment, only: [:create, :destroy]
     end
   end
 

@@ -4,7 +4,7 @@ class PostsBlueprint < Blueprinter::Base
   fields :text, :media, :external_media_url, :user_info, :kind
 
   field :date do |post|
-    post.set_date
+    post.created_at.strftime("%d-%m-%Y")
   end
 
   association :comments, blueprint: CommentBlueprint

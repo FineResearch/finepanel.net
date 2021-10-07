@@ -1,4 +1,4 @@
-class CommentBlueprint < Blueprinter::Base
+class NewsCommentBlueprint < Blueprinter::Base
   identifier :id
 
   fields :text, :user_info

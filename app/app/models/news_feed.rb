@@ -18,6 +18,7 @@ class NewsFeed < ApplicationRecord
   # -- Associations --
   belongs_to :specialty
   belongs_to :article
+  has_many :news_comments, dependent: :destroy
 
   DYNAMED_HOST = "https://www.dynamed.com"
 
@@ -31,26 +32,7 @@ class NewsFeed < ApplicationRecord
     self.update_column('link', "#{DYNAMED_HOST}#{self.article.slug}##{self.anchor}")
   end
 
-  def newsfeed_type
-    return 'No Type' unless self.article.present?
-    type = self.article.slug[/#{'/'}(.*?)#{'/'}/m, 1]
-    type.present? ? type.upcase : 'No Type'
-  end
-
-  def set_text
-    self.text.camelcase
-  end
-
-  def set_alert_date
-    return ' ' unless self.alert_created_at.present?
-    self.alert_created_at.strftime("%d/%m/%Y")
-  end
-
-  def set_time_tag(locale = nil)
-    if locale.present?
-      self.alert_created_at > 3.months.ago ? I18n.with_locale(locale) { I18n.t("newsfeed.new")} : ''
-    else
-      self.alert_created_at > 3.months.ago ? 'NUEVA' : ''
-    end
+  def get_news_type
+    self.article.slug[/#{'/'}(.*?)#{'/'}/m, 1]
   end
 end

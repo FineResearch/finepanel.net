@@ -4,8 +4,9 @@ module Api
       before_action :set_user_data
 
       def index
-        if @user_data.present?
-          render json: UserInformationBlueprint.render(@user_data), status: :ok
+        user_info = @current_user.info_for_post(nil, params['email'])
+        if user_info.present?
+          render json: UserInformationBlueprint.render(user_info), status: :ok
         else
           render json: {}, status: :unprocessable_entity
         end
