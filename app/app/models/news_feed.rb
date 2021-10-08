@@ -28,6 +28,10 @@ class NewsFeed < ApplicationRecord
   # -- Callbacks --
   after_create :set_link
 
+  # -- Scopes --
+  scope :search_by_text, -> (query) { where("text LIKE ?", "%#{query}%") }
+  scope :search_by_title, -> (query) {joins(:article).where("articles.title LIKE ?", "%#{query}%")}
+
   def set_link
     self.update_column('link', "#{DYNAMED_HOST}#{self.article.slug}##{self.anchor}")
   end

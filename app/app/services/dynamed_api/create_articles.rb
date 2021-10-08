@@ -53,7 +53,7 @@ module DynamedApi
       if article.save
         Rails.logger.info("Article #{article.dynamed_id} created")
       else
-        Rails.logger.warn("#{article.errors} ----- #{article_data}")
+        Rails.logger.warn("#{article.errors.messages} ----- #{article_data}")
       end
     end
 

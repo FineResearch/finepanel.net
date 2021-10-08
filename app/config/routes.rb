@@ -71,6 +71,7 @@ Rails.application.routes.draw do
       end
       resources :news_feed, only: [:index] do
         post 'increment_view_count', on: :member
+        get 'search', on: :collection
       end
       resources :user_information, only: [:index]
       resources :posts, only: [:index, :create]
