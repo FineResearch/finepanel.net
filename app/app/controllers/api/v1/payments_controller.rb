@@ -11,6 +11,12 @@ module Api
         render json: PaymentSummaryBlueprint.render(PaymentSummaryPresenter.new(payments, currency, history).payment_summary), status: :ok
       end
 
+      def payment_history
+        history = Payment.get_payment_history_for_user(@resource.user_respid(@resource.email))
+
+        render json: PaymentHistoryBlueprint.render(history, locale: params[:locale]), status: :ok
+      end
+
     end
   end
 end

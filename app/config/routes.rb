@@ -65,7 +65,9 @@ Rails.application.routes.draw do
         skip: [:registrations, :invitations, :passwords, :confirmations, :unlocks],
         path: '',
         path_names: { sign_in: 'login', sign_out: 'logout' }
-      resources :payments, only: [:index]
+      resources :payments, only: [:index] do
+        get 'payment_history', on: :collection
+      end
       resources :surveys, only: [:index] do
         get 'participations', on: :collection
       end
