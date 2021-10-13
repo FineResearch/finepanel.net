@@ -4,6 +4,7 @@ on:
     branches:
       - develop
       - new-dockerization
+      - master
 jobs:
   build-and-push:
     name: Build and push image to AWS ECR
