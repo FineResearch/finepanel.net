@@ -1,4 +1,4 @@
-name: Build and push
+name: Build, push and deploy
 on:
   push:
     branches:
@@ -34,3 +34,29 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  deployment:
+    name: Deploy stack to AWS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Deploy CloudFormation Stack
+        id: ecs-cluster
+        uses: jzeni/cloudformation-update-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          CAPABILITIES: '["CAPABILITY_NAMED_IAM"]'
+          STACK_NAME: FP-Stg-Servics
+          PARAMETER_OVERRIDES: '[{ "parameter_key": "ApiImageTag", "parameter_value": "${{ github.sha }}" }]'
+          FOLLOW_STATUS: true
+          ATTEMPTS_DELAY: 10
+          MAX_ATTEMPTS: 60
+          CANCEL_ON_TIMEOUT: true
