@@ -79,6 +79,9 @@ Rails.application.routes.draw do
       resources :posts, only: [:index, :create]
       resources :comments, only: [:create, :destroy]
       resources :news_comment, only: [:create, :destroy]
+      resources :home, only: [] do
+        get :stc, on: :collection
+      end
     end
   end
 
