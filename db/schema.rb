@@ -10,10 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_02_17_174000) do
+ActiveRecord::Schema.define(version: 2021_10_06_142940) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "articles", force: :cascade do |t|
+    t.string "dynamed_id"
+    t.string "title"
+    t.string "slug"
+    t.bigint "specialty_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["dynamed_id"], name: "index_articles_on_dynamed_id"
+    t.index ["specialty_id"], name: "index_articles_on_specialty_id"
+  end
 
   create_table "comments", force: :cascade do |t|
     t.string "text"
@@ -24,6 +35,33 @@ ActiveRecord::Schema.define(version: 2020_02_17_174000) do
     t.datetime "updated_at", null: false
     t.index ["post_id"], name: "index_comments_on_post_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
+  end
+
+  create_table "news_comments", force: :cascade do |t|
+    t.string "text"
+    t.bigint "user_id"
+    t.bigint "news_feed_id"
+    t.jsonb "user_info"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["news_feed_id"], name: "index_news_comments_on_news_feed_id"
+    t.index ["user_id"], name: "index_news_comments_on_user_id"
+  end
+
+  create_table "news_feeds", force: :cascade do |t|
+    t.text "text"
+    t.string "link"
+    t.string "anchor"
+    t.datetime "alert_created_at"
+    t.string "update_type"
+    t.string "update_priority"
+    t.bigint "specialty_id"
+    t.bigint "article_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "view_count", default: 0, null: false
+    t.index ["article_id"], name: "index_news_feeds_on_article_id"
+    t.index ["specialty_id"], name: "index_news_feeds_on_specialty_id"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -51,6 +89,13 @@ ActiveRecord::Schema.define(version: 2020_02_17_174000) do
     t.index ["user_id"], name: "index_posts_on_user_id"
   end
 
+  create_table "specialties", force: :cascade do |t|
+    t.string "name"
+    t.string "slug"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "survey_links", force: :cascade do |t|
     t.string "project_id", default: "", null: false
     t.string "resp_id", default: "", null: false
@@ -72,8 +117,15 @@ ActiveRecord::Schema.define(version: 2020_02_17_174000) do
     t.string "remember_token"
     t.boolean "active_app"
     t.integer "language"
+    t.string "jti", null: false
     t.index ["encrypted_email"], name: "index_users_on_encrypted_email", unique: true
+    t.index ["jti"], name: "index_users_on_jti", unique: true
     t.index ["spanel"], name: "index_users_on_spanel"
   end
 
+  add_foreign_key "articles", "specialties"
+  add_foreign_key "news_comments", "news_feeds"
+  add_foreign_key "news_comments", "users"
+  add_foreign_key "news_feeds", "articles"
+  add_foreign_key "news_feeds", "specialties"
 end

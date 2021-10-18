@@ -11,6 +11,11 @@ services:
     ports:
       - "5435:5432"
 
+  redis:
+    image: redis:latest
+    expose:
+      - 6379
+
   api:
     tty: true
     stdin_open: true
@@ -21,6 +26,22 @@ services:
       - db
     ports:
       - 3000:3000
+    env_file:
+      - .env
+    volumes:
+      - $PWD:/app
+      - /bundle
+
+  sidekiq:
+    tty: true
+    stdin_open: true
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    depends_on:
+      - redis
+      - db
     env_file:
       - .env
     volumes:
