@@ -42,6 +42,11 @@ module Api
 
         jti = decode_token[0]['jti']
       end
+
+      def user_params_info
+        return {} unless params[:text].present?
+        {email: params[:email], complete_name: params[:complete_name] , country: params[:country], city: params[:city], specialty: params[:specialty]}
+      end
     end
   end
 end

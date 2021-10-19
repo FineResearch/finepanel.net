@@ -11,6 +11,20 @@ module Api
         render json: StcBlueprint.render(StcPresenter.new(data_mx, data_col).stc_object), status: :ok
       end
 
+      def aacd
+        campaign_profile_path = ConfigurationReader.aacd_profile_path
+        data = get_campaign_payment_data(campaign_profile_path)
+
+        render json: AacdBlueprint.render(AacdPresenter.new(data).aacd_object), status: :ok
+      end
+
+      def garrahan
+        campaign_profile_path = ConfigurationReader.garrahan_profile_path
+        data = get_campaign_payment_data(campaign_profile_path)
+
+        render json: GarrahanBlueprint.render(GarrahanPresenter.new(data).garrahan_object), status: :ok
+      end
+
       private
 
       def get_campaign_payment_data(campaign_profile_path)

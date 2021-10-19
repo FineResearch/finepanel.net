@@ -1,7 +1,7 @@
 module Api
   module V1
     class PostsController < ApiController
-      before_action :set_user_data
+      before_action :check_basic_auth
 
       respond_to :json
 
@@ -24,7 +24,7 @@ module Api
       private
 
       def post_params
-        user_info = @current_user.info_for_post(nil, params['email'])
+        user_info = user_params_info
 
         params
           .permit(:text, :kind, :media, :external_media_url)

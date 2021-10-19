@@ -81,6 +81,8 @@ Rails.application.routes.draw do
       resources :news_comment, only: [:create, :destroy]
       resources :home, only: [] do
         get :stc, on: :collection
+        get :aacd, on: :collection
+        get :garrahan, on: :collection
       end
     end
   end
