@@ -62,9 +62,10 @@ Rails.application.routes.draw do
     namespace :v1 do
       devise_for :users,
         defaults: { format: :json },
-        skip: [:registrations, :invitations, :passwords, :confirmations, :unlocks],
+        skip: [:invitations, :passwords, :confirmations, :unlocks],
         path: '',
         path_names: { sign_in: 'login', sign_out: 'logout' }
+
       resources :payments, only: [:index] do
         get 'payment_history', on: :collection
       end
