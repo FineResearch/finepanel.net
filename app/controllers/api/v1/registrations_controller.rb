@@ -18,6 +18,15 @@ module Api
         end
       end
 
+      def send_password
+        if params[:email].present? && User.find_from_email(params[:email]).present?
+          RegistrationMailer.password_recovery_email(params[:email], User.automated_password(params[:email])).deliver_later
+          render json: {}, status: :ok
+        else
+          render json: {}, status: :not_found
+        end
+      end
+
       private
 
       def user_data_params
