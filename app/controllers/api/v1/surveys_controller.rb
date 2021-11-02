@@ -14,10 +14,11 @@ module Api
       end
 
       def participations
-        last_participation = ConfirmitGateway.get_participations_for_user(@user_data, {locale: params.dig("locale")}).first
-        formatted_text = resolve_participations_text(last_participation, params.dig("locale"))
+        last_participations = ConfirmitGateway.get_participations_for_user(@user_data, {locale: params.dig("locale")})
+        formatted_text = resolve_participations_text(last_participations.try(:first), params.dig("locale"))
+        participations = LastParticipationsBlueprint.render_as_json(last_participations)
 
-        render json: LastParticipationBlueprint.render(LastParticipationPresenter.new(formatted_text).last_participation), status: :ok
+        render json: ParticipationsBlueprint.render(LastParticipationPresenter.new(formatted_text, participations).last_participations), status: :ok
       end
 
       private
