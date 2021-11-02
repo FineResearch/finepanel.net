@@ -66,20 +66,23 @@ Rails.application.routes.draw do
         path: '',
         path_names: { sign_in: 'login', sign_out: 'logout' }
         as :user do
-          get 'send_password', to: 'registrations#send_password'
+          get :send_password, to: 'registrations#send_password'
         end
 
       resources :payments, only: [:index] do
-        get 'payment_history', on: :collection
+        get :payment_history, on: :collection
       end
       resources :surveys, only: [:index] do
-        get 'participations', on: :collection
+        get :participations, on: :collection
       end
       resources :news_feed, only: [:index] do
-        post 'increment_view_count', on: :member
-        get 'search', on: :collection
+        post :increment_view_count, on: :member
+        get :search, on: :collection
       end
-      resources :user_information, only: [:index]
+      resources :user_information, only: [:index] do
+        put :update_profile, on: :collection
+        put :update_payment_data, on: :collection
+      end
       resources :posts, only: [:index, :create]
       resources :comments, only: [:create, :destroy]
       resources :news_comment, only: [:create, :destroy]
