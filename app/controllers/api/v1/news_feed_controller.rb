@@ -9,7 +9,7 @@ module Api
         specialty = Specialty.find_by(slug: params.dig("specialty"))
 
         if specialty.present?
-          render json: NewsFeedBlueprint.render(specialty.news_feeds.order(set_sort)[0..4], {locale: params.dig("locale")}), status: :ok
+          render json: NewsFeedBlueprint.render(specialty.news_feeds.order(set_sort), {locale: params.dig("locale")}), status: :ok
         else
           render json: [], status: :ok
         end
@@ -18,7 +18,7 @@ module Api
       def search
         if params.dig("query").present?
           news = NewsFeed.joins(:article).search_by_text(params.dig("query")).or(NewsFeed.search_by_title(params.dig("query")))
-          render json: NewsFeedBlueprint.render(news.order(set_sort)[0..4], {locale: params.dig("locale")}), status: :ok
+          render json: NewsFeedBlueprint.render(news.order(set_sort), {locale: params.dig("locale")}), status: :ok
         else
           render json: [], status: :ok
         end

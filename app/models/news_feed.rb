@@ -11,6 +11,9 @@
 #  update_priority   :string
 #  specialty_id      :integer
 #  article_id        :integer
+#  title             :string
+#  translated_text   :hstore
+#  translated_title  :hstore
 #  created_at        :datetime
 #  updated_at        :updated_at
 
@@ -19,14 +22,18 @@ class NewsFeed < ApplicationRecord
   belongs_to :specialty
   belongs_to :article
   has_many :news_comments, dependent: :destroy
+  has_many :news_feed_translations, dependent: :destroy
 
   DYNAMED_HOST = "https://www.dynamed.com"
+  AVAILABLE_LOCALS = %w{es pt}
 
   # -- Vaidations --
   validates :text, presence: true
+  validates_uniqueness_of :text
 
   # -- Callbacks --
   after_create :set_link
+  after_create :set_title
 
   # -- Scopes --
   scope :search_by_text, -> (query) { where("text LIKE ?", "%#{query}%") }
@@ -34,6 +41,10 @@ class NewsFeed < ApplicationRecord
 
   def set_link
     self.update_column('link', "#{DYNAMED_HOST}#{self.article.slug}##{self.anchor}")
+  end
+
+  def set_title
+    self.update_column('title', self.article.title)
   end
 
   def get_news_type

@@ -1,4 +1,4 @@
-user_profile_path: 'https://survey.finepanel.net//wix/p785267057.aspx?exit=controlportal'
+user_profile_path: 'https://survey.finepanel.net/wix/7/p785267057.aspx?exit=controlportal'
 project_id: 'p785267057'
 sender_email: 'mailer@us.confirmit.com'
 sender_email_alternative: 'panel@fine-research.com'
@@ -7,10 +7,10 @@ status_initiated_survey: '66'
 status_dynamed_enabled: '1'
 admin_user_emails: ['dcasar@fine-research.com']
 
-aacd_profile_path: 'https://survey.finepanel.net//wix/p785267057.aspx?exit=controlportal&r=114170&s=YLLAYBFI'
-garrahan_profile_path: 'https://survey.finepanel.net//wix/p785267057.aspx?exit=controlportal&r=1078855&s=JNXEMBAW'
-stc_mx_profile_path: 'https://survey.finepanel.net//wix/p785267057.aspx?exit=controlportal&r=119287&s=OPVSITAQ'
-stc_co_profile_path: 'https://survey.finepanel.net//wix/p785267057.aspx?exit=controlportal&r=776431&s=YUGFWLST'
+aacd_profile_path: 'https://survey.finepanel.net/wix/7/p785267057.aspx?exit=controlportal&r=114170&s=YLLAYBFI'
+garrahan_profile_path: 'https://survey.finepanel.net/wix/7/p785267057.aspx?exit=controlportal&r=1078855&s=JNXEMBAW'
+stc_mx_profile_path: 'https://survey.finepanel.net/wix/7/p785267057.aspx?exit=controlportal&r=119287&s=OPVSITAQ'
+stc_co_profile_path: 'https://survey.finepanel.net/wix/7/p785267057.aspx?exit=controlportal&r=776431&s=YUGFWLST'
 privacy_policy_url_es: 'https://www.fine-research.com/es/blog/news/fine-actualiza-su-aviso-de-privacidad/'
 privacy_policy_url_pt: 'https://www.fine-research.com/pt/blog/news/fine-atualiza-o-seu-aviso-de-privacidade-conforme-nova-lei-de-lgpd/'
 

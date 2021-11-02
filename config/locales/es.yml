@@ -612,6 +612,13 @@ es:
     line6: Además, en la aplicación Fine Panel puede
     li5_list1: Participar más fácilmente en las encuestas disponibles.
     li5_list2: Revisar su cuenta para créditos y pagos.
+    articles_types:
+      approach-to: Acercarse
+      condition: Condición
+      evaluation: Evaluación
+      management: Gestion
+      prevention: Prevención
+      procedure: Procedimiento
   dynamed_access: Acceso a DynaMed
   dynamed_access_subtitle: Medicina Basada en Evidencias
   dynamed_read_more: Lea mas sobre el beneficio de DynaMed
