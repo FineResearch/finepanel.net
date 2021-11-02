@@ -91,6 +91,7 @@ Rails.application.routes.draw do
         get :aacd, on: :collection
         get :garrahan, on: :collection
       end
+      resources :refer_colleague, only: [:create]
     end
   end
 
