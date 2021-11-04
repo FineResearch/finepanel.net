@@ -17,7 +17,7 @@ module Api
 
       def search
         if params.dig("query").present?
-          news = NewsFeed.search_by_text(params.dig("query")).or(NewsFeed.search_by_title(params.dig("query")))
+          news = NewsFeed.search_by_text(params.dig("query")).or(NewsFeed.search_by_title(params.dig("query"))).distinct
           render json: NewsFeedBlueprint.render(news.order(set_sort), {locale: params.dig("locale")}), status: :ok
         else
           render json: [], status: :ok
