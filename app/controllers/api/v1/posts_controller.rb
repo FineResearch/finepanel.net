@@ -1,9 +1,7 @@
 module Api
   module V1
     class PostsController < ApiController
-      before_action :check_basic_auth
-
-      respond_to :json
+      before_action :check_basic_auth, only: [:index, :create]
 
       def index
         posts = Post.by_created_at
@@ -18,6 +16,16 @@ module Api
           render json: PostsBlueprint.render(post), status: :ok
         else
           render json: {}, status: :unprocessable_entity
+        end
+      end
+
+      def delete
+        post = Post.find_by(id: params[:id])
+
+        if post&.destroy
+          render json: {message: 'Delete Post Success'}, status: :ok
+        else
+          render json: :nothing, status: :unprocessable_entity
         end
       end
 

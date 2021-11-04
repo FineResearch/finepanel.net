@@ -19,4 +19,11 @@ class NewsComment < ApplicationRecord
 
   # -- Vaidations --
   validates :text, presence: true
+
+  # -- Callbacks --
+  after_create :deliver_notification_mails
+
+  def deliver_notification_mails
+    NewsCommentMailer.news_comment_email(self, user.user_respid(user_info['email'])).deliver_later
+  end
 end

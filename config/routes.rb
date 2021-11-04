@@ -72,25 +72,39 @@ Rails.application.routes.draw do
       resources :payments, only: [:index] do
         get :payment_history, on: :collection
       end
+
       resources :surveys, only: [:index] do
         get :participations, on: :collection
       end
+
       resources :news_feed, only: [:index] do
         post :increment_view_count, on: :member
         get :search, on: :collection
       end
+
       resources :user_information, only: [:index] do
         put :update_profile, on: :collection
         put :update_payment_data, on: :collection
       end
-      resources :posts, only: [:index, :create]
-      resources :comments, only: [:create, :destroy]
-      resources :news_comment, only: [:create, :destroy]
+
+      resources :posts, only: [:index, :create] do
+        get :delete, on: :member
+      end
+
+      resources :comments, only: [:create] do
+        get :delete, on: :member
+      end
+
+      resources :news_comment, only: [:create] do
+        get :delete, on: :member
+      end
+
       resources :home, only: [] do
         get :stc, on: :collection
         get :aacd, on: :collection
         get :garrahan, on: :collection
       end
+
       resources :refer_colleague, only: [:create]
     end
   end

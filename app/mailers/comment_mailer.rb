@@ -1,4 +1,6 @@
 class CommentMailer < ApplicationMailer
+  include MailersHelper
+
   TEMPLATE_IDS = {
     new_comment_participants: 'd-47d13bcbd6d643a8b95415fdaa20c684',
     new_comment: 'd-0beaeb01e336406291026237df6ebfd4'
@@ -16,7 +18,7 @@ class CommentMailer < ApplicationMailer
       text: comment.text,
       respid: respid,
       email: comment.user_info['email'],
-      delete_url: Rails.application.routes.url_helpers.delete_comment_url(comment.id, locale: :es, host: 'finepanel.net')
+      delete_url: Rails.application.routes.url_helpers.delete_api_v1_comment_url(comment.id, host: resolve_host)
     })
 
     mail.add_personalization(personalization)

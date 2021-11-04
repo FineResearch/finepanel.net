@@ -1,7 +1,7 @@
 module Api
   module V1
     class NewsCommentController < ApiController
-      before_action :check_basic_auth
+      before_action :check_basic_auth, only: [:create]
 
       def create
         parent_news = NewsFeed.find(params['parent_newsfeed_id'])
@@ -11,18 +11,18 @@ module Api
         if comment.valid?
           render json: NewsCommentBlueprint.render(comment), status: :ok
         else
-          render json: {}, status: :unprocessable_entity
+          render json: :nothing, status: :unprocessable_entity
         end
 
       end
 
-      def destroy
+      def delete
         comment = NewsComment.find_by(id: params[:id])
 
         if comment&.destroy
           render json: {message: 'Delete Comment Success'}, status: :ok
         else
-          render json: {}, status: :unprocessable_entity
+          render json: :nothing, status: :unprocessable_entity
         end
       end
     end
