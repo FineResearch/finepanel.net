@@ -106,6 +106,8 @@ Rails.application.routes.draw do
       end
 
       resources :refer_colleague, only: [:create]
+
+      post :news_mailer, to: 'news_mailer#create'
     end
   end
 
