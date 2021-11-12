@@ -1,8 +1,6 @@
-name: Build, push and deploy
+name: Build, push and deploy to production
 on:
-  push:
-    branches:
-      - develop
+  workflow_dispatch:
 jobs:
   build-and-push:
     name: Build and push image to AWS ECR
@@ -26,7 +24,7 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: finepanel
+        ECR_REPOSITORY: production/finepanel
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -f Dockerfile.release -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -53,7 +51,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
           CAPABILITIES: '["CAPABILITY_NAMED_IAM"]'
-          STACK_NAME: FP-Stg-Servics
+          STACK_NAME: FP-Prod-Services
           PARAMETER_OVERRIDES: '[{ "parameter_key": "ApiImageTag", "parameter_value": "${{ github.sha }}" }]'
           FOLLOW_STATUS: true
           ATTEMPTS_DELAY: 10
