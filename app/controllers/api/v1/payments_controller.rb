@@ -8,7 +8,7 @@ module Api
         currency = ConfirmitGateway.get_currency_for_user(@user_data) || ''
         history = Payment.get_payment_history_for_user(@resource.user_respid(@resource.email)).first
 
-        render json: PaymentSummaryBlueprint.render(PaymentSummaryPresenter.new(payments, currency, history).payment_summary), status: :ok
+        render json: PaymentSummaryBlueprint.render(PaymentSummaryPresenter.new(payments, currency, history).payment_summary, {locale: params.dig("locale")}), status: :ok
       end
 
       def payment_history
