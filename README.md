@@ -6,53 +6,15 @@ First you need to have **Docker** installed on your local machine.
 
 1. Clone the repo locally.
 2. `cd finepanel`
-3. Create a symlink for the **docker-compose.override.yml** file. ([More on docker compose files](https://docs.docker.com/compose/extends/#understanding-multiple-compose-files)).
-To create the symlink needed execute `ln -s docker-compose.dev.override.yml docker-compose.override.yml`.
-4. Execute `cp app/config/database.sample.yml app/config/database.yml`
-5. Execute `cp app/.env.sample app/.env`
-6. Execute `docker-compose up`. This will build the images needed and then start the services.
-
-   To use docker detached run the above command with `-d` flag. This will start it as a deamon and will not block the console.
-   The default dev configuration creates the database on postgres called `finepanel_dev`, user `postgres` and pass `postgres`.
-   This is specified on the `docker-compose.yml` file.
-7. Then create the database inside postgres container: `docker-compose run app bundle exec rails db:create`.
-8. Execute migrations: `docker-compose run app bundle exec rails db:migrate`.
-
-
-## Developing
-
-Before doing a deploy to staging, be sure to test on production environment locally.
-
-Docker gets the correct environment trough the `docker-compose.yml` symlink.
-Have the local environment just like production:
-
-1. Remove the local symlink: `rm docker-compose.yml`
-2. Create the symlink again but with the docker-compose from production:
-`ln -s docker-compose.prod.override.yml docker-compose.override.yml`
-
-Remember the poduction env doesn't have any volumes mounted, so there is no auto reload or things like that. The image is generated with everything the application needs. If there is any code change then you will have to rebuild the image and start again the cointainer.
-
+3. Create .env file based on .env.sample.
+4. Run `bin/start` to start all containers with the services
+5.  Create basic data: inside API container run:
+  - `bundle exec rails newsfeed:create_specialties`  => Create all allowed specialties
+  - `bundle exec rails newsfeed:create_articles SPECIALTY=xxx`(xxx is each one of the specialties slug for example infectious_diseases) => Create all articles by specialty
+6. Finally, you need to create some tests user, contact your project manager to get this information.
 
 ## Deploy
-
-1. SSH to the server forwarding the agent to the user `mooveit`: `ssh -A mooveit@staging.finepanel.net`.
-
- *Ask on slack to include your public key to the `mooveit` user.*
-
-2. Inside `~/finepanel` do a pull from the github repo.
-3. Execute `docker-compose down`.
-4. Execute `docker-compose up -d --build`.
- This will rebuild the image if it's needed, such as if the Dockerfile changed.
-5. Go to <a href="http://staging.finepanel.net" target="_blank">http://staging.finepanel.net</a> and check for the new version.
-
-## Logs
-
-All the logs from the containers are redirected to stdout so they can be picked up by docker.
-This means there is no file under `log/` folder.
-To see the logs from the containers just execute `docker-compose logs [Container name]` where container name is specified inside the docker-compose.yml file.
-Eg: app, redis, sidekiq...
-
-
+The application uses GitHub Actions to make the deploys only for the staging environment, to the production environment is manually.
 
 ## Docker usage
 
