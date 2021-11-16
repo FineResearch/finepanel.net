@@ -7,7 +7,7 @@ class SyncCreditsAndPaymentsWorker
   include Sidekiq::Worker
 
   def perform(feed_file_path, file_path)
-    logger.info(
+    Rails.logger.info(
       "Starting SyncCreditsAndPaymentsWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
     )
 
@@ -43,15 +43,9 @@ class SyncCreditsAndPaymentsWorker
     File.delete(feed_file_path)
     File.delete(file_path)
 
-    logger.info("Finished SyncCreditsAndPaymentsWorker")
+    Rails.logger.info("Finished SyncCreditsAndPaymentsWorker")
   rescue => e
-    logger.error { "SyncCreditsAndPaymentsWorker error: #{e.message[0, 300]} (#{e.class}" }
-  end
-
-  def logger
-    environment = Rails.env
-
-    @logger ||= Logger.new("log/sync_credits_and_payments_#{environment}.log", 'monthly')
+    Rails.logger.error { "SyncCreditsAndPaymentsWorker error: #{e.message[0, 300]} (#{e.class}" }
   end
 
   private

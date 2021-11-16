@@ -7,7 +7,7 @@ class SyncSurveyLinksWorker
   include Sidekiq::Worker
 
   def perform(feed_file_path, file_path, texts)
-    logger.info(
+    Rails.logger.info(
       "Starting SyncSurveyLinksWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
     )
 
@@ -64,14 +64,8 @@ class SyncSurveyLinksWorker
     File.delete(feed_file_path)
     File.delete(file_path)
 
-    logger.info("Finished SyncSurveyLinksWorker")
+    Rails.logger.info("Finished SyncSurveyLinksWorker")
   rescue => e
-    logger.error { "SyncSurveyLinksWorker error: #{e.message[0, 300]} (#{e.class}" }
-  end
-
-  def logger
-    environment = Rails.env
-
-    @logger ||= Logger.new("log/sync_survey_links_#{environment}.log", 'monthly')
+    Rails.logger.error { "SyncSurveyLinksWorker error: #{e.message[0, 300]} (#{e.class}" }
   end
 end

@@ -7,11 +7,11 @@ class SyncUsersWorker
   include Sidekiq::Worker
 
   def perform(feed_file_path, file_path)
-    logger.info(
+    Rails.logger.info(
       "Starting SyncUsersWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
     )
 
-    insert_columns = [:encrypted_email, :hash_respid, :spanel, :created_at, :updated_at]
+    insert_columns = [:encrypted_email, :hash_respid, :spanel, :created_at, :updated_at, :jti]
     discard_conflicts_on = [:encrypted_email]
     batch_size = 5000
 
@@ -31,7 +31,8 @@ class SyncUsersWorker
           hash_respid = row[2],
           spanel = row[3],
           creation_time,
-          creation_time
+          creation_time,
+          SecureRandom.uuid
         )
 
         batch.push(encrypted_email)
@@ -45,14 +46,8 @@ class SyncUsersWorker
     File.delete(feed_file_path)
     File.delete(file_path)
 
-    logger.info("Finished SyncUsersWorker")
+    Rails.logger.info("Finished SyncUsersWorker")
   rescue => e
-    logger.error { "SyncUsersWorker error: #{e.message[0, 200]} (#{e.class}" }
-  end
-
-  def logger
-    environment = Rails.env
-
-    @logger ||= Logger.new("log/sync_users_worker_#{environment}.log", 'monthly')
+    Rails.logger.error { "SyncUsersWorker error: #{e.message[0, 200]} (#{e.class}" }
   end
 end

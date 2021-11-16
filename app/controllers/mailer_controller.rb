@@ -4,7 +4,7 @@ class MailerController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:sync]
 
   def sync
-    logger.info("Starting sync: #{params.inspect}")
+   Rails.logger.info("Starting sync: #{params.inspect}")
 
     file = params[:attachment1]
     sender = params[:from].scan(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)[0].strip
@@ -29,33 +29,23 @@ class MailerController < ApplicationController
 
       if feed_file_path.include?('PanelistCredits')
         SyncCreditsAndPaymentsWorker.perform_async(feed_file_path, file_path)
-        logger.info("Sync finished and SyncCreditsAndPaymentsWorker was enqueued")
+        Rails.logger.info("Sync finished and SyncCreditsAndPaymentsWorker was enqueued")
       else
         if feed_file_path.include?(ConfigurationReader.project_id)
           if text_parser.match_users_language_file
             SyncActiveUsersLanguageWorker.perform_async(feed_file_path, file_path)
-            logger.info("Sync finished and SyncActiveUsersLanguageWorker was enqueued")
+            Rails.logger.info("Sync finished and SyncActiveUsersLanguageWorker was enqueued")
           else
             SyncUsersWorker.perform_async(feed_file_path, file_path)
-            logger.info("Sync finished and SyncUsersWorker was enqueued")
+            Rails.logger.info("Sync finished and SyncUsersWorker was enqueued")
           end
         else
           SyncSurveyLinksWorker.perform_async(feed_file_path, file_path, texts_per_lang)
-          logger.info("Sync finished and SyncSurveyLinksWorker was enqueued")
+          Rails.logger.info("Sync finished and SyncSurveyLinksWorker was enqueued")
         end
       end
     end
 
     head :ok
-  end
-
-  def logger
-    MailerController.logger
-  end
-
-  def self.logger
-    environment = Rails.env
-
-    @@logger ||= Logger.new("log/mailer_#{environment}.log", 'monthly')
   end
 end

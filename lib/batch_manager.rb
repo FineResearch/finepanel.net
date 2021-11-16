@@ -22,16 +22,16 @@ class BatchManager
   end
 
   def flush
-    logger.info("Starting flushing batch with #{@values.size} tuples")
+    Rails.logger.info("Starting flushing batch with #{@values.size} tuples")
 
     if @values.empty?
-      logger.info("Skipping due to empty values list")
+      Rails.logger.info("Skipping due to empty values list")
     else
       @model.connection.execute(sql)
       @values = []
     end
 
-    logger.info("Flushing tuples finished")
+    Rails.logger.info("Flushing tuples finished")
   end
 
   def finish
@@ -70,7 +70,4 @@ class BatchManager
     values.map { |v| ActiveRecord::Base.connection.quote(v) }.join(',')
   end
 
-  def logger
-    @logger ||= Logger.new("log/sync_survey_links_#{Rails.env}.log", 'monthly')
-  end
 end
