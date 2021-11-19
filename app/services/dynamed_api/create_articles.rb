@@ -12,6 +12,8 @@ module DynamedApi
       return set_error unless @specialty_id.present?
       data = DynamedApi::Client.new("#{CATEGORY_PATH}#{@specialty}").process
 
+      Rails.logger.warn("===> Cron Job runs with specialty:#{@specialty} date:#{Time.now}")
+
       extract_articles(data['children']) if data['children']
     end
 

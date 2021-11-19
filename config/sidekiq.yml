@@ -4,3 +4,34 @@ staging:
   :concurrency: <%= ENV['SIDEKIQ_CONCURRENCY'] || 2 %>
 production:
   :concurrency: <%= ENV['SIDEKIQ_CONCURRENCY'] || 5 %>
+
+:schedule:
+  articles_creator_1:
+    cron: '0 0 6 * * 6'   # Runs every Saturday at 6:00 AM
+    class: ArticlesCreatorWorker
+    args: [3, 0]
+
+  articles_creator_2:
+    cron: '0 0 7 * * 6'   # Runs every Saturday at 7:00 AM
+    class: ArticlesCreatorWorker
+    args: [3, 3]
+
+  articles_creator_3:
+    cron: '0 0 8 * * 6'    # Runs every Saturday at 8:00 AM
+    class: ArticlesCreatorWorker
+    args: [3, 6]
+
+  articles_creator_4:
+    cron: '0 0 9 * * 6'   # Runs every Saturday at 9:00 AM
+    class: ArticlesCreatorWorker
+    args: [3, 9]
+
+  articles_creator_5:
+    cron: '0 0 10 * * 6'   # Runs every Saturday at 10:00 AM
+    class: ArticlesCreatorWorker
+    args: [3, 12]
+
+  articles_creator_6:
+    cron: '0 0 11 * * 6'   # Runs every Saturday at 11:00 AM
+    class: ArticlesCreatorWorker
+    args: [5, 15]
