@@ -26,7 +26,7 @@ class NewsFeed < ApplicationRecord
 
   DYNAMED_HOST = "https://www.dynamed.com"
   AVAILABLE_LOCALS = %w{es pt}
-  MAXIMUM_NEWS_BY_SPECIALTY = 20
+  MAXIMUM_NEWS_BY_SPECIALTY = 50
 
   # -- Vaidations --
   validates :text, presence: true

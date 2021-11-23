@@ -614,11 +614,17 @@ es:
     li5_list2: Revisar su cuenta para créditos y pagos.
     articles_types:
       approach-to: Acercarse
+      clinical-calculators: Calculadoras clínicas
+      drug: Drogas
+      drug-review: Revisión de drogas
       condition: Condición
+      device: Dispositivo
       evaluation: Evaluación
+      lab-monograph: Laboratorio
       management: Gestion
       prevention: Prevención
       procedure: Procedimiento
+      quality-improvement: Mejora de calidad
   dynamed_access: Acceso a DynaMed
   dynamed_access_subtitle: Medicina Basada en Evidencias
   dynamed_read_more: Lea mas sobre el beneficio de DynaMed
