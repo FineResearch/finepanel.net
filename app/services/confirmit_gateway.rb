@@ -209,8 +209,11 @@ class ConfirmitGateway
 
     def survey_data_from_initiated_survey(raw_response, language_param)
       survey_data = Nokogiri::HTML.parse(raw_response).css('#avisodeinc_text')
-      return sanitize_data_from_initiated_survey_pt(survey_data) if language_pt?(language_param)
-      sanitize_data_from_initiated_survey_es(survey_data)
+      return nil unless survey_data.children[0].children[0].present?
+
+      return sanitize_data_from_initiated_survey_pt(survey_data.children[0].children[0]) if language_pt?(language_param)
+      return nil unless survey_data.children[1].children[0].children[0].present?
+      sanitize_data_from_initiated_survey_es(survey_data.children[1].children[0].children[0])
     end
 
     def sanitize_data_from_survey_lang_pt(survey_data)
@@ -239,24 +242,24 @@ class ConfirmitGateway
 
     def sanitize_data_from_initiated_survey_pt(survey_data)
       {
-        name: sanitize_survey_attribute(survey_data.children[0]),
-        subject: sanitize_survey_attribute(survey_data.children[1]),
-        profile: sanitize_survey_attribute(survey_data.children[2]),
-        duration: sanitize_survey_attribute(survey_data.children[3]),
-        fee: sanitize_survey_attribute(survey_data.children[4]),
-        priority: sanitize_survey_attribute(survey_data.children[5]),
-        status: ConfigurationReader.status_initiated_survey
-      }
-    end
-
-    def sanitize_data_from_initiated_survey_es(survey_data)
-      {
         name: sanitize_survey_attribute(survey_data.children[1]),
         subject: sanitize_survey_attribute(survey_data.children[2]),
         profile: sanitize_survey_attribute(survey_data.children[3]),
         duration: sanitize_survey_attribute(survey_data.children[4]),
         fee: sanitize_survey_attribute(survey_data.children[5]),
         priority: sanitize_survey_attribute(survey_data.children[6]),
+        status: ConfigurationReader.status_initiated_survey
+      }
+    end
+
+    def sanitize_data_from_initiated_survey_es(survey_data)
+      {
+        name: sanitize_survey_attribute(survey_data.children[0]),
+        subject: sanitize_survey_attribute(survey_data.children[1]),
+        profile: sanitize_survey_attribute(survey_data.children[2]),
+        duration: sanitize_survey_attribute(survey_data.children[3]),
+        fee: sanitize_survey_attribute(survey_data.children[4]),
+        priority: sanitize_survey_attribute(survey_data.children[5]),
         status: ConfigurationReader.status_initiated_survey
       }
     end

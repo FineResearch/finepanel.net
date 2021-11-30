@@ -1,7 +1,7 @@
 class SurveyBlueprint < Blueprinter::Base
   identifier :project_id, name: :id
 
-  fields :name, :subject, :link
+  fields :name, :subject, :link, :status
 
   field :duration do |survey|
     survey[:duration].try(:delete, ' minutos')
