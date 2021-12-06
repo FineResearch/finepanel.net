@@ -5,7 +5,11 @@ module Api
       skip_before_action :verify_signed_out_user
 
       def create
-        user = User.find_from_email_and_password(params[:email], params[:password])
+        if params[:email].present?
+          user = User.find_from_email_and_password(params[:email], params[:password])
+        else
+          user = User.find_from_respid_spanel_and_encrypted_email(params[:r], params[:s], params[:e])
+        end
 
         if user.present?
           sign_in(resource_name, user)
