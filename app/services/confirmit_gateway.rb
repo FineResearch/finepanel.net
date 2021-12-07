@@ -91,9 +91,7 @@ class ConfirmitGateway
         last_participations << participation
       end
 
-      sort_last_participations!(last_participations).each do |participation|
-        participation[:date] = I18n.with_locale(language) { I18n.l(participation[:date], format: :participation_date) }
-      end
+      sort_last_participations!(last_participations)
     end
 
     def sort_last_participations!(participations)

@@ -25,7 +25,8 @@ module Api
 
       def resolve_participations_text(survey, locale)
         return 'false' unless survey.present?
-        "#{survey[:project]} #{I18n.with_locale(locale){I18n.t('dashboard.survey_history.the')}} #{survey[:date]}"
+        date = I18n.with_locale(locale) { I18n.l(survey[:date], format: :participation_date) }
+        "#{survey[:project]} #{I18n.with_locale(locale){I18n.t('dashboard.survey_history.the')}} #{date}"
       end
 
     end
