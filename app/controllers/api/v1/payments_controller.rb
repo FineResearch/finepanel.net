@@ -6,7 +6,7 @@ module Api
       def index
         payments = ConfirmitGateway.get_payments_for_user(@user_data)
         currency = ConfirmitGateway.get_currency_for_user(@user_data) || ''
-        history = Payment.get_payment_history_for_user(@resource.user_respid(@resource.email)).first
+        history = Payment.get_payment_history_for_user(@resource.user_respid(@resource.email)).paid.first
 
         render json: PaymentSummaryBlueprint.render(PaymentSummaryPresenter.new(payments, currency, history).payment_summary, {locale: params.dig("locale")}), status: :ok
       end
