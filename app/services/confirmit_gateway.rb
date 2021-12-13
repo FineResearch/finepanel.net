@@ -144,7 +144,7 @@ class ConfirmitGateway
 
       return [] if or_conditions.empty?
 
-      survey_links = SurveyLink.where(or_conditions.join(' OR '))
+      survey_links = SurveyLink.active.where(or_conditions.join(' OR '))
       survey_links = survey_links.group_by(&:project_id)
       valid_surveys(surveys, survey_links, language_param)
     end
@@ -185,14 +185,16 @@ class ConfirmitGateway
       response.body.downcase.include?('legalmente') && response.code != 404
     end
 
-    def data_from_valid_survey(link, language_param)
+    def data_from_valid_survey(link, language_param, id = nil)
       response = Net::HTTP.post_form(URI(link + '&l=' + language_param), 'q' => 'ruby', 'max' => '50')
-      return nil unless response.body.downcase.include?('legalmente') && response.code != 404
 
-      survey_data = get_survey_data_from_response(response.body, language_param)
-      return nil unless survey_data.present?
-
-      check_empty_values(survey_data)
+      if response.body.downcase.include?('legalmente') && response.code != 404
+        survey_data = get_survey_data_from_response(response.body, language_param)
+        return nil unless survey_data.present?
+        check_empty_values(survey_data)
+      else
+        close_survey(id)
+      end
     end
 
     def get_survey_data_from_response(raw_response, language_param)
@@ -394,6 +396,13 @@ class ConfirmitGateway
 
     def language_pt?(language)
       language == ConfigurationReader.language_code('1')
+    end
+
+    def close_survey(survey_id)
+      survey = SurveyLink.find_by_id(survey_id)
+      return nil unless survey.present?
+      survey.update_attributes(closed: true)
+      nil
     end
   end
 end
