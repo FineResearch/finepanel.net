@@ -12,7 +12,7 @@ class SyncSurveyLinksWorker
     )
 
     insert_columns = [:project_id, :resp_id, :spanel, :link, :created_at, :updated_at, :variables, :closed]
-    discard_conflicts_on = [:project_id, :resp_id, :spanel, :link, :variables, :closed]
+    discard_conflicts_on = [:project_id, :resp_id, :spanel, :link, :variables]
 
     batch_manager = BatchManager.new(SurveyLink, insert_columns, discard_conflicts_on)
 
@@ -38,7 +38,7 @@ class SyncSurveyLinksWorker
         creation_time,
         creation_time,
         variables = row[2],
-        closed = false
+        false
       )
 
       email = row[2]
