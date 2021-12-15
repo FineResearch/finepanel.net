@@ -11,8 +11,8 @@ class SyncSurveyLinksWorker
       "Starting SyncSurveyLinksWorker, feed_file_path: #{feed_file_path}, file_path: #{file_path}"
     )
 
-    insert_columns = [:project_id, :resp_id, :spanel, :link, :created_at, :updated_at, :variables]
-    discard_conflicts_on = [:project_id, :resp_id, :spanel, :link, :variables]
+    insert_columns = [:project_id, :resp_id, :spanel, :link, :created_at, :updated_at, :variables, :closed]
+    discard_conflicts_on = [:project_id, :resp_id, :spanel, :link, :variables, :closed]
 
     batch_manager = BatchManager.new(SurveyLink, insert_columns, discard_conflicts_on)
 
@@ -37,7 +37,8 @@ class SyncSurveyLinksWorker
         link,
         creation_time,
         creation_time,
-        variables = row[2]
+        variables = row[2],
+        closed = false
       )
 
       email = row[2]
