@@ -1,3 +1,3 @@
 class ParticipationsBlueprint < Blueprinter::Base
-  fields :lastParticipation, :participations
+  fields :lastParticipation, :participations, :lastPayment
 end
