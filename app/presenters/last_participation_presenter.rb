@@ -6,14 +6,16 @@ LastParticipationPresenter = Struct.new(:participation, :participations, :locale
   end
 
   def extract_last_payment
-    payments = []
-    ordered_participations = sort_participations(participations)
+    surveys = []
 
-    ordered_participations.each do |participation|
-      payments << participation if participation[:status] == "8"
+    participations.each do |participation|
+      next unless participation[:payment_date].to_time.present?
+      surveys << participation if participation[:status] == "8"
     end
 
-    formatted_payment_text(payments.first)
+    ordered_participations = sort_participations(surveys)
+
+    formatted_payment_text(ordered_participations.first)
   end
 
   def formatted_payment_text(payment)
