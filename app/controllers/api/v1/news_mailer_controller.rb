@@ -14,7 +14,8 @@ module Api
       private
 
       def validate_email_params
-        params['html'].present? && (params['to'] == ENV.fetch("EMAIL_NEWS_RECIPIENT", 'test@news-test.finepanel.net'))
+        allowed_emails = ENV.fetch('EMAIL_NEWS_RECIPIENT', 'test@news-test.finepanel.net').try(:split, /,\s*/)
+        params['html'].present? && allowed_emails.include?(params['to'])
       end
 
     end
