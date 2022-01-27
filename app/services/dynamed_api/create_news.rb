@@ -19,9 +19,15 @@ module DynamedApi
 
     def extract_news(data)
       return log_news_missing unless data[0].present?
-      last_news = data[0]
 
-      news = NewsFeed.new(text: last_news['text'], anchor: last_news['anchor'], alert_created_at: last_news['timestamp'], update_type: last_news['updateType'], update_priority: last_news['updatePriority'], specialty_id: @finepanel_article.specialty_id, article_id: @finepanel_article.id)
+      (0..4).each do |index|
+        next unless data[index].present?
+        create_dynamed_news(data[index])
+      end
+    end
+
+    def create_dynamed_news(dynamed_news)
+      news = NewsFeed.new(text: dynamed_news['text'], anchor: dynamed_news['anchor'], alert_created_at: dynamed_news['timestamp'], update_type: dynamed_news['updateType'], update_priority: dynamed_news['updatePriority'], specialty_id: @finepanel_article.specialty_id, article_id: @finepanel_article.id)
 
       if news.save
         Rails.logger.info("News created: #{news.text}")
