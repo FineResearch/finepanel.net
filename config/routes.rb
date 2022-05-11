@@ -77,7 +77,7 @@ Rails.application.routes.draw do
         get :participations, on: :collection
       end
 
-      resources :news_feed, only: [:index] do
+      resources :news_feed, only: [:index, :create, :destroy] do
         post :increment_view_count, on: :member
         get :search, on: :collection
       end
