@@ -83,16 +83,17 @@ module Api
         article_slug = params[:link].present? ? params[:link][/#{'https://www.dynamed.com'}(.*?)#{'#'}/m, 1] : nil
         article      = Article.find_by_slug(article_slug)
         specialty    = Specialty.find_by_slug(params[:specialty])
+        return {} unless specialty.present? && article.present?
+
         anchor       = params[:link].present? ? params[:link][/^[^#]*#([\s\S]*)$/m, 1] : ''
         alert_date   = Date.parse(params[:date]) rescue nil
-
-        return {} unless article.try(:specialty_id) == specialty.try(:id)
+        update_type  = params[:link].present? ? params[:link][/#{'https://www.dynamed.com/'}(.*?)#{'/'}/m, 1] : ''
 
         attributes = {
           text: params[:text],
           anchor: anchor,
           alert_created_at: alert_date,
-          update_type: params[:category],
+          update_type: update_type,
           update_priority: 'standard',
           specialty_id: specialty.id,
           article_id: article.id
