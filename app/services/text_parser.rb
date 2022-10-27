@@ -19,6 +19,17 @@ class TextParser
     @text.match(/Expression Filter: IN\(dynamed, \"1\"\)/)
   end
 
+  def bind_values(bind)
+    text = @text.dup
+    variables = text.scan(/<(\w+)>/).flatten
+
+    variables.each do |variable|
+      text.gsub!("<#{variable}>", eval("#{variable.downcase}", bind))
+    end
+
+    text
+  end
+
   private
 
   def get_portuguese_text

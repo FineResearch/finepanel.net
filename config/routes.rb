@@ -24,6 +24,8 @@ Rails.application.routes.draw do
   root to: 'home#index'
 
   post 'mailer', to: 'mailer#sync'
+  post 'whatsapp_mailer', to: 'mailer#whatsapp_mailer'
+  post 'update_user_mailer', to: 'mailer#update_user_mailer'
 
   devise_scope :user do
     namespace :users do

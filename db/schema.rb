@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_10_06_142940) do
+ActiveRecord::Schema.define(version: 2022_10_18_123438) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -48,6 +48,16 @@ ActiveRecord::Schema.define(version: 2021_10_06_142940) do
     t.index ["user_id"], name: "index_news_comments_on_user_id"
   end
 
+  create_table "news_feed_translations", force: :cascade do |t|
+    t.bigint "news_feed_id"
+    t.integer "locale"
+    t.string "title"
+    t.text "text"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["news_feed_id"], name: "index_news_feed_translations_on_news_feed_id"
+  end
+
   create_table "news_feeds", force: :cascade do |t|
     t.text "text"
     t.string "link"
@@ -60,6 +70,7 @@ ActiveRecord::Schema.define(version: 2021_10_06_142940) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "view_count", default: 0, null: false
+    t.string "title"
     t.index ["article_id"], name: "index_news_feeds_on_article_id"
     t.index ["specialty_id"], name: "index_news_feeds_on_specialty_id"
   end
@@ -104,6 +115,7 @@ ActiveRecord::Schema.define(version: 2021_10_06_142940) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "variables"
+    t.boolean "closed", default: false
     t.index ["project_id", "resp_id", "spanel", "link", "variables"], name: "unique_survey_links", unique: true
   end
 
@@ -118,6 +130,12 @@ ActiveRecord::Schema.define(version: 2021_10_06_142940) do
     t.boolean "active_app"
     t.integer "language"
     t.string "jti", null: false
+    t.string "country"
+    t.string "whatsapp_number"
+    t.string "first_name"
+    t.string "last_name"
+    t.string "professional_title"
+    t.string "formal_title"
     t.index ["encrypted_email"], name: "index_users_on_encrypted_email", unique: true
     t.index ["jti"], name: "index_users_on_jti", unique: true
     t.index ["spanel"], name: "index_users_on_spanel"
@@ -126,6 +144,7 @@ ActiveRecord::Schema.define(version: 2021_10_06_142940) do
   add_foreign_key "articles", "specialties"
   add_foreign_key "news_comments", "news_feeds"
   add_foreign_key "news_comments", "users"
+  add_foreign_key "news_feed_translations", "news_feeds"
   add_foreign_key "news_feeds", "articles"
   add_foreign_key "news_feeds", "specialties"
 end
