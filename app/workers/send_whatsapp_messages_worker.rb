@@ -25,7 +25,6 @@ class SendWhatsappMessagesWorker
       Rails.logger.info("Sending Whatsapp message to #{user.whatsapp_number}")
 
       # The following variables should be named as they come in the message
-      tituloest = user.formal_title
       titulo = user.professional_title
       name = user.first_name
       apellido = user.last_name

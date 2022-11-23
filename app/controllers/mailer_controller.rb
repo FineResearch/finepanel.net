@@ -80,7 +80,7 @@ class MailerController < ApplicationController
     [
       ConfigurationReader.sender_email.strip,
       ConfigurationReader.sender_email_alternative.strip
-    ].includes?(sender)
+    ].include?(sender)
   end
 
   def file_path(file, file_format = 'txt')
