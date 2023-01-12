@@ -990,3 +990,28 @@ es:
             kb: KB
             mb: MB
             tb: TB
+
+  whatsapp:
+    message:
+      "Hola, %{title} %{name} %{last_name},
+
+
+      Nos gustaría invitarle a participar en una encuesta on line sobre %{subject} (Proyecto: %{project_code}).
+
+
+      La encuesta tiene una duración de %{duration}, y tiene un honorario asignado de %{currency} (vía transferencia bancaria) para quienes califiquen y la completen.
+
+
+      Puede participar directamente en el enlace %{survey_link}
+
+
+      Gracias,
+
+
+      %{sender_name} - FinePanel
+
+
+      Acesso al portal: %{survey_link}&exit=portal
+
+
+      Cancelar el envío de mensajes %{survey_link}&exit=cancelar"

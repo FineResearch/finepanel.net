@@ -54,10 +54,10 @@ class MailerController < ApplicationController
     sender = params[:from].scan(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)[0].strip
     text = params[:text]
 
-    if valid_send?(sender)
+    #if valid_send?(sender)
       feed_file_path = file_path(file)
       SendWhatsappMessagesWorker.perform_async(feed_file_path, text)
-    end
+    #end
 
     head :ok
   end
