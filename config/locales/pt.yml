@@ -980,3 +980,28 @@ pt:
             kb: KB
             mb: MB
             tb: TB
+  
+  whatsapp:
+    message:
+      "Olá %{title} %{name} %{last_name},
+
+
+      Gostaríamos de convidá-la a participar de uma pesquisa online sobre %{subject} (Projeto: %{project_code}).
+
+
+      A pesquisa tem duração de %{duration}, e tem um honorário de %{currency} (via transferência bancária) para quem qualifica e completa.
+
+
+      Pode participar direto no link %{survey_link}
+
+
+      Obrigado,
+
+
+      %{sender_name} - Fine Panel
+
+
+      Acesso ao portal: %{survey_link}&exit=portal
+
+
+      Cancelar o envio de mensagens %{survey_link}&exit=cancelar"
