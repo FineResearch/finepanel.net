@@ -6,14 +6,18 @@ class SendWhatsappMessagesWorker
   include Sidekiq::Worker
   include FilesHelper
 
+  DEFAULT_SUPPORT_NUMBER = ENV['WHATSAPP_SUPPORT_NUMBER'] || '+5491130321213' # Diego Casavarilla number
+
   def perform(file_path, text)
     Rails.logger.info(
       "Starting SendWhatsappMessagesWorker, feed_file_path: #{file_path}"
     )
 
     csv_content = tab_separated_to_hash(file_path)
-    twilio = ::Twilio::Client.new
-    text_parser = TextParser.new(text)
+    #twilio = ::Twilio::Client.new
+    client = WhatsApp::Client.new
+    values = fetch_variables(text)
+    support_link = "https://api.whatsapp.com/send?phone=#{values[:numerosoporte] || DEFAULT_SUPPORT_NUMBER}"
 
     csv_content.each do |row|
       next if row[:respid].nil?
@@ -24,17 +28,10 @@ class SendWhatsappMessagesWorker
 
       Rails.logger.info("Sending Whatsapp message to #{user.whatsapp_number}")
 
-      # The following variables should be named as they come in the message
-      titulo = user.professional_title
-      name = user.first_name
-      apellido = user.last_name
-      surveylink = row[:surveylink]
-      message = text_parser.bind_values(binding)
-
-      twilio.send_message(
-        to_number: user.whatsapp_number,
-        message: message
-      )
+      client.send_message(to_number: user.whatsapp_number,
+                          parameters: build_whatsapp_params(user, row, values, support_link),
+                          language: resolve_language(values[:idioma]),
+                          template: 'survey_template')
     rescue StandardError => e
       Rails.logger.error("[SendWhatsappMessagesWorker] Error Sending Whatsapp message to #{user.whatsapp_number}: #{e.message[0, 200]}")
       next
@@ -45,5 +42,42 @@ class SendWhatsappMessagesWorker
     Rails.logger.info('Finished SendWhatsappMessagesWorker')
   rescue StandardError => e
     Rails.logger.error { "SendWhatsappMessagesWorker error: #{e.message[0, 200]} (#{e.class}" }
+  end
+
+  private
+
+  def fetch_variables(text)
+    text.split("\n").map do |item|
+      item.gsub(/\r/,"").split(":")
+    end.to_h
+       .transform_keys { |key| key.to_s.downcase.gsub('-', '_').gsub(/\s+/, "") }
+       .transform_keys(&:to_sym)
+       .transform_values(&:lstrip)
+  end
+
+  def build_whatsapp_params(user, row, values, support_link)
+    # we have to respect the order of the params, based on Whatsapp template
+    text_values = [
+      user.professional_title,
+      user.first_name,
+      user.last_name,
+      values[:asunto],
+      values[:codigodelproyecto],
+      values[:duracion],
+      values[:moneda_valor],
+      row[:surveylink],
+      support_link,
+      values[:envia],
+      "#{row[:surveylink]}&exit=portal",
+      "#{row[:surveylink]}&exit=cancelar",
+    ]
+
+    text_values.map do |text|
+      { type: 'text', text: text }
+    end
+  end
+
+  def resolve_language(language)
+    language.include?('por') || language.include?('pt') ? 'pt_BR' : language
   end
 end
