@@ -68,6 +68,9 @@ gem 'google-cloud-translate-v2', '~> 0.3.0'
 # Twilio Communication API for SMS
 gem 'twilio-ruby', '~> 5.72.0'
 
+# Consuming restful web services
+gem 'httparty'
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]

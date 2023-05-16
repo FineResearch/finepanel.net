@@ -992,6 +992,7 @@ es:
             tb: TB
 
   whatsapp:
+    default_support_text: Puede responder este mensaje cliqueando aquí
     message:
       "Hola, %{title} %{name} %{last_name},
 
@@ -1003,6 +1004,9 @@ es:
 
 
       Puede participar directamente en el enlace %{survey_link}
+
+
+      %{soporte}
 
 
       Gracias,
