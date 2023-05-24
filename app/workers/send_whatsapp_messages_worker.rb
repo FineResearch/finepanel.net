@@ -20,9 +20,9 @@ class SendWhatsappMessagesWorker
     support_link = "https://api.whatsapp.com/send?phone=#{values[:numerosoporte] || DEFAULT_SUPPORT_NUMBER}"
 
     csv_content.each do |row|
-      next if row[:respid].nil?
+      next if row[:username].nil?
 
-      user = User.find_by_hash_respid(row[:respid])
+      user = User.find_from_email(row[:username])
 
       next unless user
 

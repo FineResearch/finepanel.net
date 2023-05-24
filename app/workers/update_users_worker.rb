@@ -14,15 +14,15 @@ class UpdateUsersWorker
     csv_content = tab_separated_to_hash(file_path)
 
     csv_content.each do |row|
-      next if row[:wapp_wapp].nil?
+      next if row[:wapp_wapp].nil? || row[:email_o_seu_email_principal].nil?
 
       whatsapp_number = row[:wapp_wapp].to_s.start_with?('+') ? row[:wapp_wapp] : "+#{row[:wapp_wapp]}"
-
-      user = User.find_by_hash_respid(row[:respid])
+      email = row[:email_o_seu_email_principal]
+      user = User.find_from_email(email)
 
       next unless user
 
-      Rails.logger.info("Updating user #{row[:respid]}")
+      Rails.logger.info("Updating user #{email}")
 
       user.update!(
         first_name: row[:name_poderia_confirmar_os_seus_nomes],
