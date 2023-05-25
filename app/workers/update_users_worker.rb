@@ -6,6 +6,8 @@ class UpdateUsersWorker
   include Sidekiq::Worker
   include FilesHelper
 
+  BATCH_SIZE = 500
+
   def perform(file_path)
     Rails.logger.info(
       "Starting UpdateUsersWorker, feed_file_path: #{file_path}"
@@ -13,24 +15,26 @@ class UpdateUsersWorker
 
     csv_content = tab_separated_to_hash(file_path)
 
-    csv_content.each do |row|
-      next if row[:wapp_wapp].nil? || row[:email_o_seu_email_principal].nil?
+    csv_content.each_slice(BATCH_SIZE) do |batch|
+      batch.each do |row|
+        next if row[:wapp_wapp].nil? || row[:email_o_seu_email_principal].nil?
 
-      whatsapp_number = row[:wapp_wapp].to_s.start_with?('+') ? row[:wapp_wapp] : "+#{row[:wapp_wapp]}"
-      email = row[:email_o_seu_email_principal]
-      user = User.find_from_email(email)
+        whatsapp_number = row[:wapp_wapp].to_s.start_with?('+') ? row[:wapp_wapp] : "+#{row[:wapp_wapp]}"
+        email = row[:email_o_seu_email_principal]
+        user = User.find_from_email(email)
 
-      next unless user
+        next unless user
 
-      Rails.logger.info("Updating user #{email}")
+        Rails.logger.info("Updating user #{email}")
 
-      user.update!(
-        first_name: row[:name_poderia_confirmar_os_seus_nomes],
-        last_name: row[:apellido_sobrenomes],
-        professional_title: row[:titulo_titulo],
-        formal_title: row[:titulo_titulo],
-        whatsapp_number: whatsapp_number
-      )
+        user.update!(
+          first_name: row[:name_poderia_confirmar_os_seus_nomes],
+          last_name: row[:apellido_sobrenomes],
+          professional_title: row[:titulo_titulo],
+          formal_title: row[:titulo_titulo],
+          whatsapp_number: whatsapp_number
+        )
+      end
     end
 
     File.delete(file_path)

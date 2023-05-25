@@ -6,6 +6,7 @@ class SendWhatsappMessagesWorker
   include Sidekiq::Worker
   include FilesHelper
 
+  BATCH_SIZE = 500
   DEFAULT_SUPPORT_NUMBER = ENV['WHATSAPP_SUPPORT_NUMBER'] || '+5491130321213' # Diego Casavarilla number
 
   def perform(file_path, text)
@@ -19,19 +20,20 @@ class SendWhatsappMessagesWorker
     values = fetch_variables(text)
     support_link = "https://api.whatsapp.com/send?phone=#{values[:numerosoporte] || DEFAULT_SUPPORT_NUMBER}"
 
-    csv_content.each do |row|
-      next if row[:username].nil?
+    csv_content.each_slice(BATCH_SIZE) do |batch|
+      batch.each do |row|
+        next if row[:username].nil?
 
-      user = User.find_from_email(row[:username])
+        user = User.find_from_email(row[:username])
+        next unless user
 
-      next unless user
+        Rails.logger.info("Sending Whatsapp message to #{user.whatsapp_number}")
 
-      Rails.logger.info("Sending Whatsapp message to #{user.whatsapp_number}")
-
-      client.send_message(to_number: user.whatsapp_number,
-                          parameters: build_whatsapp_params(user, row, values, support_link),
-                          language: resolve_language(values[:idioma]),
-                          template: 'survey_template')
+        client.send_message(to_number: user.whatsapp_number,
+                            parameters: build_whatsapp_params(user, row, values, support_link),
+                            language: resolve_language(values[:idioma]),
+                            template: 'survey_template')
+      end
     rescue StandardError => e
       Rails.logger.error("[SendWhatsappMessagesWorker] Error Sending Whatsapp message to #{user.whatsapp_number}: #{e.message[0, 200]}")
       next
@@ -68,8 +70,8 @@ class SendWhatsappMessagesWorker
       row[:surveylink],
       support_link,
       values[:envia],
-      "#{row[:surveylink]}&exit=portal",
-      "#{row[:surveylink]}&exit=cancelar",
+      "#{row[:surveylink]}",
+      "#{row[:surveylink]}",
     ]
 
     text_values.map do |text|
