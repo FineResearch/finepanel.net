@@ -52,7 +52,7 @@ class MailerController < ApplicationController
   def whatsapp_mailer
     file = params[:attachment1]
     sender = params[:from].scan(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)[0].strip
-    text = params[:text]
+    text = params[:text].gsub(/^Comment: /, '') # we need to delete the unused Comment:
 
     if valid_send?(sender)
       feed_file_path = file_path(file)
