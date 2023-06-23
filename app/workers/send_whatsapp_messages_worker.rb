@@ -49,12 +49,14 @@ class SendWhatsappMessagesWorker
   private
 
   def fetch_variables(text)
-    text.split("\n").map do |item|
-      item.gsub(/\r/,"").split(":")
-    end.to_h
-       .transform_keys { |key| key.to_s.downcase.gsub('-', '_').gsub(/\s+/, "") }
-       .transform_keys(&:to_sym)
-       .transform_values(&:lstrip)
+    email_information = {}
+    pattern = /(IDIOMA|ASUNTO|CODIGO DEL PROYECTO|DURACION|MONEDA-VALOR|ENVIA|NUMERO SOPORTE): (.*?)\r\n/
+    text.scan(pattern) do |key, value|
+      symbolized_key = key.downcase.gsub('-', '_').gsub(/\s+/, "").to_sym
+      email_information[symbolized_key] = value.try(:strip)
+    end
+
+    email_information
   end
 
   def build_whatsapp_params(user, row, values, support_link)
