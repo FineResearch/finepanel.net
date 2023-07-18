@@ -61,6 +61,7 @@ class SendWhatsappMessagesWorker
 
   def build_whatsapp_params(user, row, values, support_link)
     # we have to respect the order of the params, based on Whatsapp template
+    main_surveylink = "#{row[:surveylink]}&wp=1"
     text_values = [
       user.professional_title,
       user.first_name,
@@ -69,7 +70,7 @@ class SendWhatsappMessagesWorker
       values[:codigodelproyecto],
       values[:duracion],
       values[:moneda_valor],
-      row[:surveylink],
+      main_surveylink,
       support_link,
       values[:envia],
       "#{row[:surveylink]}",
