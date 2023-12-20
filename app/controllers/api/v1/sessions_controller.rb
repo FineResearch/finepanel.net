@@ -14,8 +14,7 @@ module Api
         if user.present?
           sign_in(resource_name, user)
           @current_user = user
-          survey_list = ConfirmitGateway.get_surveys_for_user(@current_user, @current_user.user_respid(@current_user.email))
-          render json: { email: user.email, userInfo: {surveys: SurveyBlueprint.render_as_json(survey_list)}}, status: :ok
+          render json: { email: user.email, userInfo: {surveys: []}}, status: :ok
         else
           render json: {message: 'User not found'}, status: :not_found
         end

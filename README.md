@@ -29,3 +29,18 @@ For example, if you want to have a shell inside the app container do the followi
 Or if you want to load a dump to the database you can include the dump file inside the `data/` folder which is mounted as a volume to the postgres container
 and do the following: `docker-compose run postgres bash` and inside there use [`psql`](https://www.postgresql.org/docs/8.1/backup.html) for example.
 [More on volumes](https://docs.docker.com/storage/volumes/).
+
+
+## Caveats for Apple M2 chip users
+There some problems when run `bin/start` and we're getting some errors when compiling gem dependencies, to avoid those errors should edit the `Dockerfile.local` file
+adding some packages. Find this line:
+```
+RUN apk add --no-cache nodejs build-base postgresql-dev libxml2-dev libxslt-dev sqlite-dev tzdata \
+  git openssh postgresql
+```
+And add these packages `gcc libtool linux-headers`, so should looks like:
+```
+RUN apk add --no-cache nodejs build-base postgresql-dev libxml2-dev libxslt-dev sqlite-dev tzdata \
+  git openssh postgresql gcc libtool linux-headers
+```
+Note: Please, don't commit those changes.
