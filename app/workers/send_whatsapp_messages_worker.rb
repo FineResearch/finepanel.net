@@ -7,7 +7,6 @@ class SendWhatsappMessagesWorker
   include FilesHelper
 
   BATCH_SIZE = 500
-  DEFAULT_SUPPORT_NUMBER = ENV['WHATSAPP_SUPPORT_NUMBER'] || '+5491130321213' # Diego Casavarilla number
 
   def perform(file_path, text)
     Rails.logger.info(
@@ -15,35 +14,49 @@ class SendWhatsappMessagesWorker
     )
 
     csv_content = tab_separated_to_hash(file_path)
-    #twilio = ::Twilio::Client.new
     client = WhatsApp::Client.new
     values = fetch_variables(text)
-    support_link = "https://api.whatsapp.com/send?phone=#{values[:numerosoporte] || DEFAULT_SUPPORT_NUMBER}"
+    user = nil
 
     csv_content.each_slice(BATCH_SIZE) do |batch|
       batch.each do |row|
-        next if row[:username].nil?
+        Rails.logger.info("[SendWhatsappMessagesWorker] row=#{row.to_h.inspect}")
+
+        if row[:username].nil?
+          Rails.logger.info("[SendWhatsappMessagesWorker] skipping row because username is nil")
+          next
+        end
 
         user = User.find_from_email(row[:username])
-        next unless user
+
+        unless user
+          Rails.logger.info("[SendWhatsappMessagesWorker] no user found for username=#{row[:username]}")
+          next
+        end
 
         Rails.logger.info("Sending Whatsapp message to #{user.whatsapp_number}")
 
-        client.send_message(to_number: user.whatsapp_number,
-                            parameters: build_whatsapp_params(user, row, values, support_link),
-                            language: resolve_language(values[:idioma]),
-                            template: 'survey_template')
+        language = resolve_language(values[:idioma])
+        cancel_link = "#{row[:surveylink]}&exit=cancelar"
+
+        client.send_message(
+          to_number: user.whatsapp_number,
+          parameters: build_whatsapp_params(user, row, values, cancel_link),
+          language: language,
+          template: 'survey_template'
+        )
       end
     rescue StandardError => e
-      Rails.logger.error("[SendWhatsappMessagesWorker] Error Sending Whatsapp message to #{user.whatsapp_number}: #{e.message[0, 200]}")
-      next
-    end
+  Rails.logger.error("[SendWhatsappMessagesWorker] Error Sending Whatsapp message to #{user&.whatsapp_number}: 
+#{e.class} - #{e.message}")
+  next
+end
 
-    File.delete(file_path)
+    File.delete(file_path) if File.exist?(file_path)
 
     Rails.logger.info('Finished SendWhatsappMessagesWorker')
   rescue StandardError => e
-    Rails.logger.error { "SendWhatsappMessagesWorker error: #{e.message[0, 200]} (#{e.class}" }
+    Rails.logger.error("[SendWhatsappMessagesWorker] fatal error: #{e.class} - #{e.message}")
   end
 
   private
@@ -59,9 +72,9 @@ class SendWhatsappMessagesWorker
     email_information
   end
 
-  def build_whatsapp_params(user, row, values, support_link)
-    # we have to respect the order of the params, based on Whatsapp template
+  def build_whatsapp_params(user, row, values, cancel_link)
     main_surveylink = "#{row[:surveylink]}&wp=1"
+
     text_values = [
       user.professional_title,
       user.first_name,
@@ -71,10 +84,8 @@ class SendWhatsappMessagesWorker
       values[:duracion],
       values[:moneda_valor],
       main_surveylink,
-      support_link,
       values[:envia],
-      "#{row[:surveylink]}",
-      "#{row[:surveylink]}",
+      cancel_link
     ]
 
     text_values.map do |text|
