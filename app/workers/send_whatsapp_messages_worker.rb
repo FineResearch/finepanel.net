@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+	# frozen_string_literal: true
 
 require 'csv'
 
@@ -45,6 +45,23 @@ class SendWhatsappMessagesWorker
           language: language,
           template: 'survey_template'
         )
+main_surveylink = "#{row[:surveylink]}&wp=1"
+
+WhatsappOutbound.create!(
+  user: user,
+  whatsapp_number: user.whatsapp_number,
+  panelist_email: row[:username],
+  subject: values[:asunto],
+  project_code: values[:codigodelproyecto],
+  duration: values[:duracion],
+  incentive: values[:moneda_valor],
+  sent_by: values[:envia],
+  survey_link: row[:surveylink],
+  main_survey_link: main_surveylink,
+  template_name: 'survey_template',
+  language: language,
+  status: 'sent'
+)
       end
     rescue StandardError => e
   Rails.logger.error("[SendWhatsappMessagesWorker] Error Sending Whatsapp message to #{user&.whatsapp_number}: 

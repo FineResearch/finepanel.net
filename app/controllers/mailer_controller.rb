@@ -49,18 +49,30 @@ class MailerController < ApplicationController
     head :ok
   end
 
-  def whatsapp_mailer
-    file = params[:attachment1]
-    sender = params[:from].scan(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)[0].strip
-    text = params[:text]
+def whatsapp_mailer
+  Rails.logger.info("[whatsapp_mailer] params_keys=#{params.keys.inspect}")
+  Rails.logger.info("[whatsapp_mailer] from=#{params[:from].inspect}")
+  Rails.logger.info("[whatsapp_mailer] text=#{params[:text].inspect}")
+  Rails.logger.info("[whatsapp_mailer] attachment1_present=#{params[:attachment1].present?}")
 
-    if valid_send?(sender)
-      feed_file_path = file_path(file)
-      SendWhatsappMessagesWorker.perform_async(feed_file_path, text)
-    end
+  file = params[:attachment1]
+  sender = params[:from].scan(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)[0].strip rescue nil
+  text = params[:text]
 
-    head :ok
+  Rails.logger.info("[whatsapp_mailer] parsed_sender=#{sender.inspect}")
+  Rails.logger.info("[whatsapp_mailer] valid_send=#{valid_send?(sender)}")
+
+  if valid_send?(sender)
+    feed_file_path = file_path(file)
+    Rails.logger.info("[whatsapp_mailer] feed_file_path=#{feed_file_path}")
+    SendWhatsappMessagesWorker.perform_async(feed_file_path, text)
+    Rails.logger.info("[whatsapp_mailer] worker enqueued")
+  else
+    Rails.logger.warn("[whatsapp_mailer] invalid sender or sender missing")
   end
+
+  head :ok
+end
 
   def update_user_mailer
     file = params[:attachment1]

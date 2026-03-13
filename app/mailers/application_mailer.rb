@@ -24,7 +24,15 @@ class ApplicationMailer < ActionMailer::Base
     personalization
   end
 
-  def send_email(mail)
-    @client.mail._('send').post(request_body: mail.to_json)
-  end
+def send_email(mail)
+  response = @client.mail._('send').post(request_body: mail.to_json)
+
+  Rails.logger.info("[SendGrid] status=#{response.status_code} body=#{response.body}
+headers=#{response.headers}")
+
+  response
+rescue StandardError => e
+  Rails.logger.error("[SendGrid] error=#{e.class} message=#{e.message}")
+  raise e
+end
 end

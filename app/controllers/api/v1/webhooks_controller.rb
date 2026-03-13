@@ -1,12 +1,11 @@
 module Api
   module V1
     class WebhooksController < ApiController
-
       def handle_whatsapp_response
         if request.get?
           handle_webhook_config
         else
-          send_whatsapp_response
+          handle_inbound_message
         end
       end
 
@@ -29,43 +28,66 @@ module Api
         end
       end
 
-      def send_whatsapp_response
-        contact_information = params.dig('entry', 0, 'changes', 0, 'value', 'contacts', 0)
+      def handle_inbound_message
+        payload = params.to_unsafe_h
 
-        if contact_information
-          wa_number = contact_information['wa_id']
-          user = User.where("whatsapp_number LIKE ?", "%#{wa_number}%").first
-          return unless user
+        contact_information = payload.dig('entry', 0, 'changes', 0, 'value', 'contacts', 0)
+        message_information = payload.dig('entry', 0, 'changes', 0, 'value', 'messages', 0)
 
-          send_whatsapp_message(user)
+        unless contact_information || message_information
+          Rails.logger.info("[WhatsAppInbound] No contact/message info. Payload: #{payload}")
+          return head :ok
         end
 
+        wa_number = contact_information&.dig('wa_id')
+        profile_name = contact_information&.dig('profile', 'name')
+        message_type = message_information&.dig('type')
+	from_number = message_information&.dig('from')
+	timestamp = message_information&.dig('timestamp')
+
+	message_body =
+	message_information&.dig('text', 'body') ||
+	message_information&.dig('button', 'text') ||
+	message_information&.dig('interactive', 'button_reply', 'title') ||
+	message_information&.dig('interactive', 'list_reply', 'title')
+
+	message_id = message_information&.dig('id')
+
+        user = nil
+	last_outbound = nil
+
+	if wa_number.present?
+	user = User.where("whatsapp_number LIKE ?", "%#{wa_number}%").first
+	last_outbound = WhatsappOutbound.where(user_id: user.id).order(created_at: :desc).first if user
+	end
+
+Rails.logger.info(
+  "[WhatsAppInbound] message_id=#{message_id} from=#{wa_number} profile_name=#{profile_name} " \
+  "type=#{message_type} body=#{message_body} user_id=#{user&.id} " \
+  "last_project_code=#{last_outbound&.project_code} " \
+  "last_subject=#{last_outbound&.subject} " \
+  "last_survey_link=#{last_outbound&.survey_link}"
+)
+WhatsappMailer.new.inbound_message_alert(
+  profile_name: profile_name,
+  from_number: wa_number,
+  user_id: user&.id,
+  message_body: message_body,
+  message_id: message_id,
+  message_type: message_type,
+  project_code: last_outbound&.project_code,
+  survey_subject: last_outbound&.subject,
+  duration: last_outbound&.duration,
+  incentive: last_outbound&.incentive,
+  sent_by: last_outbound&.sent_by,
+  survey_link: last_outbound&.survey_link,
+  main_survey_link: last_outbound&.main_survey_link
+)
+
+	head :ok
+      rescue StandardError => e
+        Rails.logger.error("[WhatsAppInbound] Error: #{e.class} - #{e.message}")
         head :ok
-      end
-
-      def send_whatsapp_message(user)
-        user_language = user.language || 'es'
-        wp_language = user_language.include?('por') ? 'pt_BR' : user_language
-
-        client = WhatsApp::Client.new
-
-        begin
-          client.send_message(
-            to_number: user.whatsapp_number,
-            parameters: [build_whatsapp_attributes],
-            language: wp_language,
-            template: 'support_response_template'
-          )
-        rescue StandardError => e
-          Rails.logger.error("[SendWhatsappResponse] Error Sending Whatsapp response #{e}")
-        end
-      end
-
-      def build_whatsapp_attributes
-        support_number = ENV['WHATSAPP_SUPPORT_NUMBER'] || '+5491130321213' # Diego Casavarilla number
-        support_text = "https://api.whatsapp.com/send?phone=#{support_number}"
-
-        { type: 'text', text: support_text }
       end
     end
   end
