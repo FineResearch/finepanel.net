@@ -33,6 +33,7 @@ module Api
 
         contact_information = payload.dig('entry', 0, 'changes', 0, 'value', 'contacts', 0)
         message_information = payload.dig('entry', 0, 'changes', 0, 'value', 'messages', 0)
+        metadata_information = payload.dig('entry', 0, 'changes', 0, 'value', 'metadata')
 
         unless contact_information || message_information
           Rails.logger.info("[WhatsAppInbound] No contact/message info. Payload: #{payload}")
@@ -42,52 +43,76 @@ module Api
         wa_number = contact_information&.dig('wa_id')
         profile_name = contact_information&.dig('profile', 'name')
         message_type = message_information&.dig('type')
-	from_number = message_information&.dig('from')
-	timestamp = message_information&.dig('timestamp')
+        from_number = message_information&.dig('from')
+        timestamp = message_information&.dig('timestamp')
+        recipient_phone_number_id = metadata_information&.dig('phone_number_id')
+        display_phone_number = metadata_information&.dig('display_phone_number')
 
-	message_body =
-	message_information&.dig('text', 'body') ||
-	message_information&.dig('button', 'text') ||
-	message_information&.dig('interactive', 'button_reply', 'title') ||
-	message_information&.dig('interactive', 'list_reply', 'title')
+        message_body =
+          message_information&.dig('text', 'body') ||
+          message_information&.dig('button', 'text') ||
+          message_information&.dig('interactive', 'button_reply', 'title') ||
+          message_information&.dig('interactive', 'list_reply', 'title')
 
-	message_id = message_information&.dig('id')
+        message_id = message_information&.dig('id')
 
         user = nil
-	last_outbound = nil
+        last_outbound = nil
 
-	if wa_number.present?
-	user = User.where("whatsapp_number LIKE ?", "%#{wa_number}%").first
-	last_outbound = WhatsappOutbound.where(user_id: user.id).order(created_at: :desc).first if user
-	end
+        if wa_number.present?
+          user = User.where("whatsapp_number LIKE ?", "%#{wa_number}%").first
+          last_outbound = WhatsappOutbound.where(user_id: user.id).order(created_at: :desc).first if user
+        end
 
-Rails.logger.info(
-  "[WhatsAppInbound] message_id=#{message_id} from=#{wa_number} profile_name=#{profile_name} " \
-  "type=#{message_type} body=#{message_body} user_id=#{user&.id} " \
-  "last_project_code=#{last_outbound&.project_code} " \
-  "last_subject=#{last_outbound&.subject} " \
-  "last_survey_link=#{last_outbound&.survey_link}"
-)
-WhatsappMailer.new.inbound_message_alert(
-  profile_name: profile_name,
-  from_number: wa_number,
-  user_id: user&.id,
-  message_body: message_body,
-  message_id: message_id,
-  message_type: message_type,
-  project_code: last_outbound&.project_code,
-  survey_subject: last_outbound&.subject,
-  duration: last_outbound&.duration,
-  incentive: last_outbound&.incentive,
-  sent_by: last_outbound&.sent_by,
-  survey_link: last_outbound&.survey_link,
-  main_survey_link: last_outbound&.main_survey_link
-)
+        support_email = last_outbound&.support_email.presence || default_support_email_for(wa_number)
 
-	head :ok
+        Rails.logger.info(
+          "[WhatsAppInbound] message_id=#{message_id} from=#{wa_number} profile_name=#{profile_name} " \
+          "type=#{message_type} body=#{message_body} user_id=#{user&.id} " \
+          "panelist_id=#{last_outbound&.panelist_id} sample_number=#{last_outbound&.sample_number} " \
+          "project_code=#{last_outbound&.project_code} subject=#{last_outbound&.subject} " \
+          "from_phone_number=#{last_outbound&.from_phone_number} " \
+          "from_phone_number_id=#{last_outbound&.from_phone_number_id} " \
+          "recipient_phone_number_id=#{recipient_phone_number_id} display_phone_number=#{display_phone_number} " \
+          "support_email=#{support_email} timestamp=#{timestamp}"
+        )
+
+        WhatsappMailer.new.inbound_message_alert(
+          profile_name: profile_name,
+          from_number: wa_number,
+          user_id: user&.id,
+          message_body: message_body,
+          message_id: message_id,
+          message_type: message_type,
+          project_code: last_outbound&.project_code,
+          survey_subject: last_outbound&.subject,
+          duration: last_outbound&.duration,
+          incentive: last_outbound&.incentive,
+          sent_by: last_outbound&.sent_by,
+          survey_link: last_outbound&.survey_link,
+          main_survey_link: last_outbound&.main_survey_link,
+          panelist_id: last_outbound&.panelist_id,
+          sample_number: last_outbound&.sample_number,
+          support_email: support_email,
+          from_phone_number: last_outbound&.from_phone_number || display_phone_number,
+          from_phone_number_id: last_outbound&.from_phone_number_id || recipient_phone_number_id,
+          inbound_timestamp: timestamp
+        )
+
+        head :ok
       rescue StandardError => e
         Rails.logger.error("[WhatsAppInbound] Error: #{e.class} - #{e.message}")
         head :ok
+      end
+
+      def default_support_email_for(phone)
+        normalized_phone = phone.to_s.gsub(/\D/, '')
+
+        if normalized_phone.start_with?('55')
+          'suporte@finepanel.net'
+        else
+          'soporte@finepanel.net'
+        end
       end
     end
   end
