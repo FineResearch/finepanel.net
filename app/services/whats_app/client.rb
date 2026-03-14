@@ -11,8 +11,10 @@ module WhatsApp
       set_headers
     end
 
-    def send_message(to_number:, parameters:, language:, template:)
-      response = self.class.post("/#{api_id_number}/messages", {
+    def send_message(phone_number_id: nil, to_number:, parameters:, language:, template:)
+      phone_number_id ||= api_id_number
+
+      response = self.class.post("/#{phone_number_id}/messages", {
         body: {
           messaging_product: 'whatsapp',
           to: to_number,
