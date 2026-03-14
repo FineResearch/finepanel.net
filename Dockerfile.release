@@ -59,4 +59,18 @@ RUN bundle install --jobs `expr $(cat /proc/cpuinfo | grep -c "cpu cores") - 1` 
 
 ENTRYPOINT ["/app/entrypoint.release.sh"]
 
+# --- SSL.com root CA fix (required after cert renewal) ---
+RUN apk add --no-cache ca-certificates openssl \
+ && mkdir -p /usr/local/share/ca-certificates
+
+COPY sslcom-root-ca-rsa.crt /usr/local/share/ca-certificates/sslcom-root-ca-rsa.crt
+
+RUN update-ca-certificates
+
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+# --- end SSL.com fix ---
+
+
+
+
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]

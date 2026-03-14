@@ -1,23 +1,13 @@
 require 'rack-proxy'
 
 class DynamedProxy < Rack::Proxy
+  # Nota: no sobrecargamos initialize; Rack pasa (app, opts)
   def perform_request(env)
     request = Rack::Request.new(env)
-    
-    # use rack proxy for anything hitting our host app at /example_service
+
     if request.host =~ %r{^dynamed}
-        backend = URI(ENV['SERVICE_URL'])
-        env['SERVER_PORT'] = 80
-        # most backends required host set properly, but rack-proxy doesn't set this for you automatically
-        # even when a backend host is passed in via the options
-        env["HTTP_HOST"] = backend.host
-        # This is the only path that needs to be set currently on Rails 5 & greater
-        env['PATH_INFO'] = ENV['SERVICE_PATH'] || request.path
-        
-        # don't send your sites cookies to target service, unless it is a trusted internal service that can parse all your cookies
-        env['HTTP_COOKIE'] = ''
-        @streaming = true
-        super(env)
+      target = ENV['SERVICE_URL'] # e.g. https://dynamed.com/tokenlink?tokenId=...
+      return [302, { 'Location' => target, 'Cache-Control' => 'no-cache' }, []]
     else
       @app.call(env)
     end
