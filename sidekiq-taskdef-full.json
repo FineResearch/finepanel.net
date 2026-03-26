@@ -1,0 +1,113 @@
+{
+    "taskDefinition": {
+        "taskDefinitionArn": "arn:aws:ecs:us-east-1:784064929014:task-definition/Sidekiq:105",
+        "containerDefinitions": [
+            {
+                "name": "sidekiq",
+                "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260320-152033",
+                "cpu": 600,
+                "memory": 3056,
+                "links": [],
+                "portMappings": [],
+                "essential": true,
+                "entryPoint": [],
+                "command": [
+                    "bundle",
+                    "exec",
+                    "sidekiq",
+                    "-C",
+                    "config/sidekiq.yml"
+                ],
+                "environment": [],
+                "environmentFiles": [],
+                "mountPoints": [
+                    {
+                        "sourceVolume": "EmailParsing",
+                        "containerPath": "/app/tmp/feed_files"
+                    }
+                ],
+                "volumesFrom": [],
+                "secrets": [
+                    {
+                        "name": "SECRETS",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-1:784064929014:secret:FP-Finepanel-production-Secret-8gqTF4"
+                    }
+                ],
+                "stopTimeout": 6,
+                "dnsServers": [],
+                "dnsSearchDomains": [],
+                "extraHosts": [],
+                "dockerSecurityOptions": [],
+                "dockerLabels": {},
+                "ulimits": [],
+                "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                        "awslogs-group": "FP-Finepanel-Sidekiq-production-LogGroup",
+                        "awslogs-region": "us-east-1",
+                        "awslogs-stream-prefix": "Sidekiq"
+                    },
+                    "secretOptions": []
+                },
+                "systemControls": [],
+                "credentialSpecs": []
+            }
+        ],
+        "family": "Sidekiq",
+        "executionRoleArn": "arn:aws:iam::784064929014:role/ECS-production-Task-Execution-Role",
+        "revision": 105,
+        "volumes": [
+            {
+                "name": "EmailParsing",
+                "efsVolumeConfiguration": {
+                    "fileSystemId": "fs-0e25f34c37ebb85b8",
+                    "rootDirectory": "/"
+                }
+            }
+        ],
+        "status": "ACTIVE",
+        "requiresAttributes": [
+            {
+                "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+            },
+            {
+                "name": "ecs.capability.execution-role-awslogs"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.ecr-auth"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+            },
+            {
+                "name": "ecs.capability.secrets.asm.environment-variables"
+            },
+            {
+                "name": "ecs.capability.efs"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.17"
+            },
+            {
+                "name": "ecs.capability.container-ordering"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.25"
+            },
+            {
+                "name": "ecs.capability.execution-role-ecr-pull"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+            }
+        ],
+        "placementConstraints": [],
+        "compatibilities": [
+            "EXTERNAL",
+            "EC2"
+        ],
+        "registeredAt": "2026-03-20T15:22:40.091000+00:00",
+        "registeredBy": "arn:aws:iam::784064929014:user/github-actions-deploy"
+    },
+    "tags": []
+}

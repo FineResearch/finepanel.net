@@ -1,15 +1,16 @@
-require 'rack-proxy'
+class DynamedProxy
+  def initialize(app, _options = {})
+    @app = app
+  end
 
-class DynamedProxy < Rack::Proxy
-  # Nota: no sobrecargamos initialize; Rack pasa (app, opts)
-  def perform_request(env)
+  def call(env)
     request = Rack::Request.new(env)
 
-    if request.host =~ %r{^dynamed}
-      target = ENV['SERVICE_URL'] # e.g. https://dynamed.com/tokenlink?tokenId=...
-      return [302, { 'Location' => target, 'Cache-Control' => 'no-cache' }, []]
-    else
-      @app.call(env)
+    if request.host.to_s =~ %r{^dynamed}
+      target = ENV['SERVICE_URL'].to_s
+      return [302, { 'Location' => target, 'Cache-Control' => 'no-cache' }, []] if target.present?
     end
+
+    @app.call(env)
   end
 end

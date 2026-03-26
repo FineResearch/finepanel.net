@@ -1,6 +1,33 @@
 module Api
   module V1
     class WebhooksController < ApiController
+      COUNTRY_BY_PREFIX = {
+        '598'  => 'Uruguay',
+        '595'  => 'Paraguay',
+        '593'  => 'Ecuador',
+        '591'  => 'Bolivia',
+        '507'  => 'Panamá',
+        '506'  => 'Costa Rica',
+        '505'  => 'Nicaragua',
+        '504'  => 'Honduras',
+        '503'  => 'El Salvador',
+        '502'  => 'Guatemala',
+        '351'  => 'Portugal',
+        '1939' => 'Puerto Rico',
+        '1787' => 'Puerto Rico',
+        '1849' => 'República Dominicana',
+        '1829' => 'República Dominicana',
+        '1809' => 'República Dominicana',
+        '58'   => 'Venezuela',
+        '57'   => 'Colombia',
+        '56'   => 'Chile',
+        '55'   => 'Brasil',
+        '54'   => 'Argentina',
+        '52'   => 'México',
+        '51'   => 'Perú',
+        '34'   => 'España'
+      }.freeze
+
       def handle_whatsapp_response
         if request.get?
           handle_webhook_config
@@ -16,10 +43,10 @@ module Api
         token = params['hub.verify_token']
         challenge = params['hub.challenge']
 
-        if mode && token
+        if mode.present? && token.present?
           if mode == 'subscribe' && token == 'FINEPANEL'
-            puts 'WEBHOOK_VERIFIED'
-            render plain: challenge, status: 200
+            Rails.logger.info('[WhatsAppInbound] WEBHOOK_VERIFIED')
+            render plain: challenge, status: :ok
           else
             head :forbidden
           end
@@ -31,22 +58,23 @@ module Api
       def handle_inbound_message
         payload = params.to_unsafe_h
 
-        contact_information = payload.dig('entry', 0, 'changes', 0, 'value', 'contacts', 0)
-        message_information = payload.dig('entry', 0, 'changes', 0, 'value', 'messages', 0)
-        metadata_information = payload.dig('entry', 0, 'changes', 0, 'value', 'metadata')
+        value = payload.dig('entry', 0, 'changes', 0, 'value')
+        contact_information = value&.dig('contacts', 0)
+        message_information = value&.dig('messages', 0)
 
-        unless contact_information || message_information
-          Rails.logger.info("[WhatsAppInbound] No contact/message info. Payload: #{payload}")
+        unless message_information.present?
+          Rails.logger.info("[WhatsAppInbound] No inbound message found. Payload: #{payload}")
           return head :ok
         end
 
-        wa_number = contact_information&.dig('wa_id')
+        wa_number = normalize_phone(contact_information&.dig('wa_id') || message_information&.dig('from'))
         profile_name = contact_information&.dig('profile', 'name')
         message_type = message_information&.dig('type')
-        from_number = message_information&.dig('from')
-        timestamp = message_information&.dig('timestamp')
-        recipient_phone_number_id = metadata_information&.dig('phone_number_id')
-        display_phone_number = metadata_information&.dig('display_phone_number')
+        from_number = normalize_phone(message_information&.dig('from'))
+        timestamp = parse_timestamp(message_information&.dig('timestamp'))
+        message_id = message_information&.dig('id')
+        phone_number_id = value&.dig('metadata', 'phone_number_id')
+        display_phone_number = value&.dig('metadata', 'display_phone_number')
 
         message_body =
           message_information&.dig('text', 'body') ||
@@ -54,37 +82,85 @@ module Api
           message_information&.dig('interactive', 'button_reply', 'title') ||
           message_information&.dig('interactive', 'list_reply', 'title')
 
-        message_id = message_information&.dig('id')
+        inbound_number = wa_number.presence || from_number
+        panelist_country = country_from_phone(inbound_number)
 
-        user = nil
-        last_outbound = nil
-
-        if wa_number.present?
-          user = User.where("whatsapp_number LIKE ?", "%#{wa_number}%").first
-          last_outbound = WhatsappOutbound.where(user_id: user.id).order(created_at: :desc).first if user
-        end
-
-        support_email = last_outbound&.support_email.presence || default_support_email_for(wa_number)
-
-        Rails.logger.info(
-          "[WhatsAppInbound] message_id=#{message_id} from=#{wa_number} profile_name=#{profile_name} " \
-          "type=#{message_type} body=#{message_body} user_id=#{user&.id} " \
-          "panelist_id=#{last_outbound&.panelist_id} sample_number=#{last_outbound&.sample_number} " \
-          "project_code=#{last_outbound&.project_code} subject=#{last_outbound&.subject} " \
-          "from_phone_number=#{last_outbound&.from_phone_number} " \
-          "from_phone_number_id=#{last_outbound&.from_phone_number_id} " \
-          "recipient_phone_number_id=#{recipient_phone_number_id} display_phone_number=#{display_phone_number} " \
-          "support_email=#{support_email} timestamp=#{timestamp}"
+        user = find_user_by_whatsapp(inbound_number)
+        last_outbound = find_last_outbound(user, inbound_number)
+        panelist_record = find_project_panelist(
+          last_outbound: last_outbound,
+          inbound_number: inbound_number
         )
 
-        WhatsappMailer.new.inbound_message_alert(
+        conversation = find_or_create_conversation(
+          user: user,
+          last_outbound: last_outbound,
+          inbound_number: inbound_number,
+          panelist_country: panelist_country
+        )
+
+        if conversation.present?
+          WhatsappMessage.create!(
+            whatsapp_conversation: conversation,
+            direction: 'inbound',
+            source: 'webhook',
+            message_type: message_type,
+            message_body: message_body,
+            message_id: message_id,
+            status: 'received',
+            from_phone_number: inbound_number,
+            from_phone_number_id: phone_number_id,
+            to_phone_number: display_phone_number,
+            payload_json: payload.to_json,
+            received_at: timestamp
+          )
+
+          conversation.touch_inbound!
+        end
+
+        panelist_record&.mark_reply_received!
+
+        Rails.logger.info(
+          "[WhatsAppInbound] message_id=#{message_id} from=#{from_number} wa_number=#{wa_number} " \
+          "profile_name=#{profile_name} type=#{message_type} body=#{message_body} " \
+          "timestamp=#{timestamp} phone_number_id=#{phone_number_id} display_phone_number=#{display_phone_number} " \
+          "panelist_country=#{panelist_country} user_id=#{user&.id} " \
+          "conversation_id=#{conversation&.id} panelist_record_id=#{panelist_record&.id} " \
+          "last_project_code=#{last_outbound&.project_code} last_sample_number=#{last_outbound&.sample_number} " \
+          "last_subject=#{last_outbound&.subject} support_email=#{last_outbound&.support_email}"
+        )
+
+        if cancellation_request?(message_body)
+          process_text_opt_out!(
+            inbound_number: inbound_number,
+            profile_name: profile_name,
+            phone_number_id: phone_number_id,
+            panelist_record: panelist_record,
+            last_outbound: last_outbound
+          )
+
+          return head :ok
+        end
+
+        panelist_user = panelist_record&.user || user
+        panelist_first_name = panelist_user&.first_name
+        panelist_last_name = panelist_user&.last_name
+        panelist_email = last_outbound&.panelist_email
+
+        WhatsappMailer.inbound_message_alert(
           profile_name: profile_name,
-          from_number: wa_number,
+          from_number: inbound_number,
           user_id: user&.id,
           message_body: message_body,
           message_id: message_id,
           message_type: message_type,
+          timestamp: timestamp.respond_to?(:iso8601) ? timestamp.iso8601 : timestamp.to_s,
+          phone_number_id: phone_number_id,
+          display_phone_number: display_phone_number,
+          panelist_country: panelist_country,
           project_code: last_outbound&.project_code,
+          sample_number: last_outbound&.sample_number,
+          support_email: last_outbound&.support_email,
           survey_subject: last_outbound&.subject,
           duration: last_outbound&.duration,
           incentive: last_outbound&.incentive,
@@ -92,26 +168,226 @@ module Api
           survey_link: last_outbound&.survey_link,
           main_survey_link: last_outbound&.main_survey_link,
           panelist_id: last_outbound&.panelist_id,
-          sample_number: last_outbound&.sample_number,
-          support_email: support_email,
-          from_phone_number: last_outbound&.from_phone_number || display_phone_number,
-          from_phone_number_id: last_outbound&.from_phone_number_id || recipient_phone_number_id,
-          inbound_timestamp: timestamp
-        )
+          from_phone_number: last_outbound&.from_phone_number,
+          from_phone_number_id: last_outbound&.from_phone_number_id,
+          include_respondent_phone: last_outbound&.include_respondent_phone,
+          respondent_phone: inbound_number,
+          panelist_first_name: panelist_first_name,
+          panelist_last_name: panelist_last_name,
+          panelist_email: panelist_email      
+        ).deliver_later
 
         head :ok
       rescue StandardError => e
         Rails.logger.error("[WhatsAppInbound] Error: #{e.class} - #{e.message}")
+        Rails.logger.error(e.backtrace.join("\n")) if e.backtrace.present?
         head :ok
       end
 
-      def default_support_email_for(phone)
-        normalized_phone = phone.to_s.gsub(/\D/, '')
+      def find_project_panelist(last_outbound:, inbound_number:)
+        record =
+          if last_outbound.present?
+            WhatsappProjectPanelist.find_by(
+              project_code: last_outbound.project_code,
+              panelist_id: last_outbound.panelist_id
+            )
+          end
 
-        if normalized_phone.start_with?('55')
-          'suporte@finepanel.net'
+        record ||= WhatsappProjectPanelist.find_by(
+          whatsapp_number: normalize_phone(inbound_number)
+        )
+
+        record
+      end
+
+      def process_text_opt_out!(inbound_number:, profile_name:, phone_number_id:, panelist_record:, last_outbound:)
+        Rails.logger.info(
+          "[WhatsAppInbound] Opt-out request detected from=#{inbound_number} profile_name=#{profile_name}"
+        )
+
+        if panelist_record.present? && panelist_record.status != 'cancelled'
+          Rails.logger.info(
+            "[WhatsAppInbound] Marking panelist as cancelled project_code=#{panelist_record.project_code} panelist_id=#{panelist_record.panelist_id}"
+          )
+
+          panelist_record.mark_cancelled!
         else
-          'soporte@finepanel.net'
+          Rails.logger.info(
+            "[WhatsAppInbound] Panelist already cancelled or not found project_code=#{panelist_record&.project_code} panelist_id=#{panelist_record&.panelist_id}"
+          )
+        end
+
+        exclusion_link =
+          panelist_record&.tracked_cancel_link.presence ||
+          panelist_record&.original_cancel_link.presence
+
+        support_email = opt_out_support_email(inbound_number)
+
+        Rails.logger.info(
+          "[WhatsAppInbound] Queueing opt-out email to=#{support_email} exclusion_link=#{exclusion_link}"
+        )
+
+        WhatsappMailer.whatsapp_opt_out_alert(
+          support_email: support_email,
+          exclusion_link: exclusion_link.to_s,
+          from_number: inbound_number,
+          profile_name: profile_name,
+          project_code: panelist_record&.project_code || last_outbound&.project_code,
+          panelist_id: panelist_record&.panelist_id || last_outbound&.panelist_id,
+          panelist_first_name: panelist_record&.first_name || last_outbound&.first_name,
+          panelist_last_name: panelist_record&.last_name || last_outbound&.last_name,
+          panelist_email: last_outbound&.panelist_email,
+          panelist_country: panelist_record&.country || last_outbound&.country
+        ).deliver_later
+
+        begin
+          message = opt_out_confirmation_message(inbound_number)
+
+          Rails.logger.info(
+            "[WhatsAppInbound] Sending opt-out confirmation via WhatsApp to=#{inbound_number} phone_number_id=#{phone_number_id}"
+          )
+
+          response = WhatsApp::Client.new.send_text_message(
+            phone_number_id: phone_number_id,
+            to_number: inbound_number,
+            body: message
+          )
+
+          Rails.logger.info(
+            "[WhatsAppInbound] Opt-out confirmation sent successfully to=#{inbound_number} response=#{response.inspect}"
+          )
+        rescue StandardError => e
+          Rails.logger.error(
+            "[WhatsAppInbound] Opt-out confirmation send failed to=#{inbound_number} error=#{e.class} message=#{e.message}"
+          )
+        end
+
+        Rails.logger.info(
+          "[WhatsAppInbound] opt_out_processed from=#{inbound_number} " \
+          "project_code=#{panelist_record&.project_code || last_outbound&.project_code} " \
+          "panelist_id=#{panelist_record&.panelist_id || last_outbound&.panelist_id} " \
+          "support_email=#{support_email} exclusion_link=#{exclusion_link}"
+        )
+      end
+
+      def cancellation_request?(message_body)
+        normalized = message_body.to_s.strip.downcase
+
+        opt_out_keywords = %w[
+          cancelar
+          baja
+          baixa
+          stop
+        ]
+
+        match = opt_out_keywords.include?(normalized)
+
+        if match
+          Rails.logger.info(
+            "[WhatsAppInbound] cancellation keyword detected body=#{message_body.inspect}"
+          )
+        end
+
+        match
+      end
+
+      def find_user_by_whatsapp(number)
+        normalized_number = normalize_phone(number)
+        return nil if normalized_number.blank?
+
+        User.where(
+          "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(whatsapp_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?",
+          "%#{normalized_number}%"
+        ).first
+      rescue StandardError => e
+        Rails.logger.error("[WhatsAppInbound] find_user_by_whatsapp error: #{e.class} - #{e.message}")
+        nil
+      end
+
+      def find_last_outbound(user, number)
+        return WhatsappOutbound.where(user_id: user.id).order(created_at: :desc).first if user.present?
+
+        normalized_number = normalize_phone(number)
+        return nil if normalized_number.blank?
+
+        WhatsappOutbound.where("whatsapp_number LIKE ?", "%#{normalized_number}%")
+                        .order(created_at: :desc)
+                        .first
+      rescue StandardError => e
+        Rails.logger.error("[WhatsAppInbound] find_last_outbound error: #{e.class} - #{e.message}")
+        nil
+      end
+
+      def find_or_create_conversation(user:, last_outbound:, inbound_number:, panelist_country:)
+        panelist_id = last_outbound&.panelist_id
+        project_code = last_outbound&.project_code
+
+        if panelist_id.present? && project_code.present?
+          conversation = WhatsappConversation.find_or_initialize_by(
+            panelist_id: panelist_id,
+            project_code: project_code
+          )
+
+          conversation.user = user if user.present?
+          conversation.panelist_email = last_outbound&.panelist_email
+          conversation.whatsapp_number = inbound_number
+          conversation.sample_number = last_outbound&.sample_number
+          conversation.support_email = last_outbound&.support_email
+          conversation.panelist_country = panelist_country
+          conversation.status = 'open'
+          conversation.save!
+
+          return conversation
+        end
+
+        nil
+      rescue StandardError => e
+        Rails.logger.error("[WhatsAppInbound] find_or_create_conversation error: #{e.class} - #{e.message}")
+        nil
+      end
+
+      def country_from_phone(phone)
+        normalized = normalize_phone(phone)
+
+        COUNTRY_BY_PREFIX.keys.sort_by { |prefix| -prefix.length }.each do |prefix|
+          return COUNTRY_BY_PREFIX[prefix] if normalized.start_with?(prefix)
+        end
+
+        'Otro'
+      end
+
+      def normalize_phone(phone)
+        phone.to_s.gsub(/\D/, '')
+      end
+
+      def parse_timestamp(timestamp)
+        return nil if timestamp.blank?
+
+        Time.at(timestamp.to_i)
+      rescue StandardError
+        nil
+      end
+
+      def opt_out_support_email(phone)
+        normalized = normalize_phone(phone)
+
+        base_email =
+          if normalized.start_with?('55')
+            'suporte@finepanel.net'
+          else
+            'soporte@finepanel.net'
+          end
+
+        [base_email, 'dcasar@fine-research.com'].join(',')
+      end
+
+      def opt_out_confirmation_message(phone)
+        normalized = normalize_phone(phone)
+
+        if normalized.start_with?('55')
+          'Sua solicitação de exclusão de contatos por WhatsApp foi recebida com sucesso. Obrigado.'
+        else
+          'Tu solicitud de exclusión de contactos por WhatsApp fue recibida con éxito. Gracias.'
         end
       end
     end

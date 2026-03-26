@@ -1,7 +1,36 @@
 require 'sidekiq/web'
 
 Rails.application.routes.draw do
-  devise_for :users, controllers: { sessions: "users/sessions", registrations: "users/registrations" }
+  constraints(lambda { |req| req.host.to_s =~ %r{^dynamed} }) do
+    match '*path',
+          to: redirect { |_params, _req| ENV['SERVICE_URL'].presence || '/' },
+          via: :all
+  end
+
+  namespace :internal do
+    namespace :whatsapp do
+      get 'inbox', to: 'inbox#index'
+      resources :conversations, only: [:index, :show] do
+        member do
+          post :send_text
+          post :send_template
+          post :resolve
+          post :reopen
+        end
+      end
+    end
+  end
+
+  get 'health', to: 'tracked_surveys#health'
+
+  constraints(lambda { |req| req.host == 'survey-wp.finepanel.net' }) do
+    get 'health', to: 'tracked_surveys#health'
+    get 'up', to: 'tracked_surveys#health'
+    get '*tracked_path', to: 'tracked_surveys#redirect'
+  end
+
+  devise_for :users, controllers: { sessions: 'users/sessions', registrations: 'users/registrations' }
+
   authenticated :user do
     root to: 'dashboard#index'
     mount Sidekiq::Web => '/sidekiq'
@@ -14,6 +43,7 @@ Rails.application.routes.draw do
         post 'update_payment_data', to: 'registrations#update_payment_data'
       end
     end
+
     get 'list_all_projects', to: 'surveys#list_all_projects'
     get 'payment_history', to: 'dashboard#payment_history'
     get 'survey_list', to: 'dashboard#survey_list'
@@ -37,13 +67,14 @@ Rails.application.routes.draw do
 
   resources :posts, only: [:create, :show] do
     member do
-      get "download"
-      get "delete"
+      get 'download'
+      get 'delete'
     end
   end
+
   resources :comments, only: [:create] do
     member do
-      get "delete"
+      get 'delete'
     end
   end
 
@@ -63,13 +94,14 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       devise_for :users,
-        defaults: { format: :json },
-        skip: [:invitations, :passwords, :confirmations, :unlocks],
-        path: '',
-        path_names: { sign_in: 'login', sign_out: 'logout' }
-        as :user do
-          get :send_password, to: 'registrations#send_password'
-        end
+                 defaults: { format: :json },
+                 skip: [:invitations, :passwords, :confirmations, :unlocks],
+                 path: '',
+                 path_names: { sign_in: 'login', sign_out: 'logout' }
+
+      devise_scope :user do
+        get 'send_password', to: 'registrations#send_password'
+      end
 
       resources :payments, only: [:index] do
         get :payment_history, on: :collection
@@ -112,7 +144,8 @@ Rails.application.routes.draw do
       post :news_mailer, to: 'news_mailer#create'
       get 'webhooks/handle_whatsapp_response', to: 'webhooks#handle_whatsapp_response'
       post 'webhooks/handle_whatsapp_response', to: 'webhooks#handle_whatsapp_response'
+      post 'confirmit_callbacks/update_whatsapp_status', to: 'confirmit_callbacks#update_whatsapp_status'
+      get 'confirmit_callbacks/update_whatsapp_status', to: 'confirmit_callbacks#update_whatsapp_status'
     end
   end
-
 end

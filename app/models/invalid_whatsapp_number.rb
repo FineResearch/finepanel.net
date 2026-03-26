@@ -1,0 +1,2 @@
+class InvalidWhatsappNumber < ApplicationRecord
+end
