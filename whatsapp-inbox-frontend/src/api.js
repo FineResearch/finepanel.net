@@ -3,16 +3,7 @@ const ENV_INTERNAL_USER_EMAIL = import.meta.env.VITE_INTERNAL_USER_EMAIL || "";
 
 function currentInternalUserEmail() {
   const fromQuery = new URLSearchParams(window.location.search).get("internal_user_email");
-  return fromQuery || ENV_INTERNAL_USER_EMAIL || "dcasar@fine-research.com";
-}
-
-function appendInternalUserEmail(path) {
-  const internalUserEmail = currentInternalUserEmail();
-
-  if (!internalUserEmail) return path;
-
-  const separator = path.includes("?") ? "&" : "?";
-  return `${path}${separator}internal_user_email=${encodeURIComponent(internalUserEmail)}`;
+  return fromQuery || ENV_INTERNAL_USER_EMAIL || "";
 }
 
 function buildHeaders(extraHeaders = {}) {
@@ -30,6 +21,7 @@ function buildHeaders(extraHeaders = {}) {
   return headers;
 }
 
+
 async function parseJsonSafe(response) {
   const text = await response.text();
 
@@ -41,8 +33,7 @@ async function parseJsonSafe(response) {
 }
 
 async function request(path, options = {}) {
-  const pathWithAuth = appendInternalUserEmail(path);
-  const url = `${API_BASE_URL}${pathWithAuth}`;
+  const url = `${API_BASE_URL}${path}`;
 
   const response = await fetch(url, {
     credentials: "include",
@@ -56,7 +47,7 @@ async function request(path, options = {}) {
     const message =
       data?.error ||
       data?.message ||
-      `Error HTTP ${response.status} al llamar ${pathWithAuth}`;
+      `Error HTTP ${response.status} al llamar ${path}`;
     throw new Error(message);
   }
 
@@ -78,6 +69,7 @@ export async function fetchConversations(filters = {}) {
   if (filters.limit) params.append("limit", filters.limit);
   if (filters.country) params.append("country", filters.country);
   if (filters.panelist_id) params.append("panelist_id", filters.panelist_id);
+
 
   const queryString = params.toString();
   const path = queryString
@@ -122,6 +114,7 @@ export async function sendReminder(id) {
     body: JSON.stringify({})
   });
 }
+
 
 export async function sendText(id, messageBody) {
   return request(`/internal/whatsapp/conversations/${id}/send_text`, {

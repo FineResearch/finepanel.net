@@ -125,33 +125,12 @@ export default function FiltersBar({ filters, onChange }) {
           onChange={(e) => updateField("limit", e.target.value)}
         >
           <option value="50">50</option>
-	<option value="200">200</option>
-	<option value="all">Todos</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
         </select>
       </div>
 
-<button
-  onClick={() => {
-    const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v && v !== "")
-    );
-
-    cleanFilters.limit = "all";
-
-    const currentParams = new URLSearchParams(window.location.search);
-    const internalUserEmail =
-  currentParams.get("internal_user_email") || "dcasar@fine-research.com";
-
-    if (internalUserEmail) {
-      cleanFilters.internal_user_email = internalUserEmail;
-    }
-
-    const params = new URLSearchParams(cleanFilters).toString();
-
-    window.open(`/internal/whatsapp/conversations/export?${params}`, "_blank");
-  }}
->
-  Exportar CSV
-</button></div>
+      <button onClick={clearFilters}>Limpiar</button>
+    </div>
   );
 }
