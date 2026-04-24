@@ -1,54 +1,46 @@
+require 'csv'
+
 class Internal::Whatsapp::ConversationsController < ApplicationController
   skip_before_action :verify_authenticity_token
   before_action :authenticate_internal_access!
   before_action :set_internal_user
-  before_action :set_conversation, only: [:show, :send_text, :send_template, :resolve, :reopen]
-  before_action :authorize_conversation!, only: [:show, :send_text, :send_template, :resolve, :reopen]
+  before_action :set_conversation, only: [:show, :send_text, :send_template, :send_reminder, :resolve, :reopen]
+  before_action :authorize_conversation!, only: [:show, :send_text, :send_template, :send_reminder, :resolve, :reopen]
+
+  DAILY_WHATSAPP_LIMIT = 2000
 
   def index
     scope = WhatsappConversation.recent_first
 
-    if operator_user?
-      scope = scope.where(project_code: allowed_project_codes)
-    end
-
-    if params[:project_code].present?
-      scope = scope.where(project_code: params[:project_code].to_s)
-    end
-
-    if truthy_param?(params[:unread])
-      scope = scope.where(has_unread_messages: true)
-    end
+    scope = scope.where(project_code: allowed_project_codes) if operator_user?
+    scope = scope.where(project_code: params[:project_code]) if params[:project_code].present?
+    scope = scope.where(has_unread_messages: true) if truthy_param?(params[:unread])
 
     if params[:status].present?
-      case params[:status].to_s
-      when 'open'
-        scope = scope.where(resolved_at: nil)
-      when 'resolved'
-        scope = scope.where.not(resolved_at: nil)
-      end
+      scope = params[:status] == 'open' ? scope.where(resolved_at: nil) : scope.where.not(resolved_at: nil)
     end
 
-    conversations = scope.limit(limit_param)
+    conversations = scope.limit(1000)
+    serialized = conversations.map { |c| serialize_conversation_summary(c) }
 
-    render json: {
-      success: true,
-      conversations: conversations.map { |conversation| serialize_conversation_summary(conversation) }
-    }
+    serialized = apply_last_reply_type_filter(serialized, params[:last_reply_type]) if params[:last_reply_type].present?
+    serialized = apply_last_reply_answered_filter(serialized, params[:last_reply_answered]) if params[:last_reply_answered].present?
+    serialized = apply_last_reply_window_filter(serialized, params[:last_reply_window]) if params[:last_reply_window].present?
+    serialized = apply_country_filter(serialized, params[:country]) if params[:country].present?
+
+    limit = limit_param
+    serialized = serialized.first(limit) if limit.present?
+
+    render json: { success: true, conversations: serialized }
   end
 
   def show
-    render json: {
-      success: true,
-      conversation: serialize_conversation_detail(@conversation)
-    }
+    render json: { success: true, conversation: serialize_conversation_detail(@conversation) }
   end
 
   def send_text
-    result = ManualMessageSender.new(
-      internal_user: @internal_user,
-      conversation: @conversation
-    ).send_free_text!(body: params[:body])
+    result = ManualMessageSender.new(internal_user: @internal_user, conversation: @conversation)
+                                 .send_free_text!(body: params[:body])
 
     if result.success?
       render json: {
@@ -58,56 +50,63 @@ class Internal::Whatsapp::ConversationsController < ApplicationController
         provider_response: result.provider_response
       }
     else
-      render json: {
-        success: false,
-        error_code: result.error_code,
-        message: result.message
-      }, status: :unprocessable_entity
+      render json: { success: false, error_code: result.error_code, message: result.message }, status: :unprocessable_entity
     end
   end
 
-  def send_template
-    result = ManualMessageSender.new(
-      internal_user: @internal_user,
-      conversation: @conversation
-    ).send_template!(
-      template_name: params[:template_name],
-      template_language: params[:template_language].presence || 'es',
-      parameters: normalized_template_parameters
-    )
+  def project_metrics
+    outbound_scope = WhatsappOutbound.all
+    panelists_scope = WhatsappProjectPanelist.all
 
-    if result.success?
-      render json: {
-        success: true,
-        conversation: serialize_conversation_detail(@conversation.reload),
-        sent_message: serialize_message(result.whatsapp_message),
-        provider_response: result.provider_response
-      }
-    else
-      render json: {
-        success: false,
-        error_code: result.error_code,
-        message: result.message
-      }, status: :unprocessable_entity
+    if operator_user?
+      outbound_scope = outbound_scope.where(project_code: allowed_project_codes)
+      panelists_scope = panelists_scope.where(project_code: allowed_project_codes)
     end
+
+    render json: { success: true } # <-- mantenlo simple por ahora
+  end
+
+  def export
+    scope = WhatsappConversation.recent_first
+    scope = scope.where(project_code: allowed_project_codes) if operator_user?
+    scope = scope.where(project_code: params[:project_code]) if params[:project_code].present?
+    scope = scope.where(panelist_id: params[:panelist_id]) if params[:panelist_id].present?
+
+    conversations = scope.limit(10000)
+
+    csv = CSV.generate(headers: true) do |csv|
+      csv << ["conversation_id", "status", "panelist_id", "project_code"]
+
+      conversations.each do |c|
+        csv << [c.id, c.status, c.panelist_id, c.project_code]
+      end
+    end
+
+    send_data csv, filename: "whatsapp_export.csv", type: 'text/csv'
+  end
+
+  def send_template
+    result = ManualMessageSender.new(internal_user: @internal_user, conversation: @conversation)
+                                .send_template!(template_name: params[:template_name])
+
+    render json: { success: result.success? }
   end
 
   def resolve
     @conversation.mark_resolved!(@internal_user)
-
-    render json: {
-      success: true,
-      conversation: serialize_conversation_detail(@conversation.reload)
-    }
+    render json: { success: true }
   end
 
   def reopen
     @conversation.reopen!
+    render json: { success: true }
+  end
 
-    render json: {
-      success: true,
-      conversation: serialize_conversation_detail(@conversation.reload)
-    }
+  def send_reminder
+    result = ManualMessageSender.new(internal_user: @internal_user, conversation: @conversation)
+                                .send_reminder!
+
+    render json: { success: result.success? }
   end
 
   private
@@ -115,66 +114,38 @@ class Internal::Whatsapp::ConversationsController < ApplicationController
   def authenticate_internal_access!
     return if current_user.present?
     return if header_internal_user_present_and_active?
-
     authenticate_user!
   end
 
   def header_internal_user_present_and_active?
-    email =
-      request.headers['X-Internal-User-Email'].presence ||
-      params[:internal_user_email].presence
-
+    email = request.headers['X-Internal-User-Email'] || params[:internal_user_email]
     return false if email.blank?
-
-    InternalUser.active.exists?(email: email.to_s.strip.downcase)
+    InternalUser.active.exists?(email: email.downcase)
   end
 
   def set_internal_user
-    email =
-      current_user&.email.presence ||
-      request.headers['X-Internal-User-Email'].presence ||
-      params[:internal_user_email].presence
+    email = current_user&.email || request.headers['X-Internal-User-Email'] || params[:internal_user_email]
+    @internal_user = InternalUser.active.find_by(email: email.to_s.downcase)
 
-    @internal_user = InternalUser.active.find_by(email: email.to_s.strip.downcase)
-
-    return if @internal_user.present?
-
-    render json: {
-      success: false,
-      error_code: 'internal_user_not_found',
-      message: 'Internal user not found'
-    }, status: :unauthorized
+    unless @internal_user
+      render json: { success: false, message: 'Internal user not found' }, status: :unauthorized
+    end
   end
 
   def set_conversation
     @conversation = WhatsappConversation.find(params[:id])
-  rescue ActiveRecord::RecordNotFound
-    render json: {
-      success: false,
-      error_code: 'conversation_not_found',
-      message: 'Conversation not found'
-    }, status: :not_found
+  rescue
+    render json: { success: false }, status: :not_found
   end
 
   def authorize_conversation!
     return if performed?
-
-    policy = ConversationPolicy.new(
-      internal_user: @internal_user,
-      conversation: @conversation
-    )
-
-    return if policy.can_view?
-
-    render json: {
-      success: false,
-      error_code: 'forbidden',
-      message: 'You do not have access to this conversation'
-    }, status: :forbidden
+    policy = ConversationPolicy.new(internal_user: @internal_user, conversation: @conversation)
+    render json: { success: false }, status: :forbidden unless policy.can_view?
   end
 
   def operator_user?
-    @internal_user.present? && @internal_user.operator?
+    @internal_user&.operator?
   end
 
   def allowed_project_codes
@@ -182,92 +153,20 @@ class Internal::Whatsapp::ConversationsController < ApplicationController
   end
 
   def limit_param
-    raw = params[:limit].to_i
-    return 50 if raw <= 0
-    return 200 if raw > 200
-
-    raw
-  end
-
-  def truthy_param?(value)
-    %w[1 true yes].include?(value.to_s.downcase)
-  end
-
-  def normalized_template_parameters
-    raw = params[:parameters]
-    return [] if raw.blank?
-    return raw.to_unsafe_h.values if raw.is_a?(ActionController::Parameters)
-
-    raw
+    return nil if params[:limit] == 'all'
+    params[:limit].to_i
   end
 
   def serialize_conversation_summary(conversation)
-    policy = ConversationPolicy.new(
-      internal_user: @internal_user,
-      conversation: conversation
-    )
-
-    {
-      id: conversation.id,
-      panelist_id: conversation.panelist_id,
-      project_code: conversation.project_code,
-      status: conversation.status,
-      has_unread_messages: conversation.has_unread_messages,
-      last_inbound_at: conversation.last_inbound_at,
-      last_outbound_at: conversation.last_outbound_at,
-      last_message_at: conversation.last_message_at,
-      window_expires_at: conversation.window_expires_at,
-      resolved_at: conversation.resolved_at,
-      resolved_by_user_id: conversation.resolved_by_user_id,
-      allowed_actions: policy.allowed_actions,
-      conversation_window_status: policy.conversation_window_status
-    }
+    { id: conversation.id, status: conversation.status }
   end
 
   def serialize_conversation_detail(conversation)
-    policy = ConversationPolicy.new(
-      internal_user: @internal_user,
-      conversation: conversation
-    )
-
-    {
-      id: conversation.id,
-      panelist_id: conversation.panelist_id,
-      project_code: conversation.project_code,
-      status: conversation.status,
-      has_unread_messages: conversation.has_unread_messages,
-      last_inbound_at: conversation.last_inbound_at,
-      last_outbound_at: conversation.last_outbound_at,
-      last_message_at: conversation.last_message_at,
-      window_expires_at: conversation.window_expires_at,
-      resolved_at: conversation.resolved_at,
-      resolved_by_user_id: conversation.resolved_by_user_id,
-      allowed_actions: policy.allowed_actions,
-      conversation_window_status: policy.conversation_window_status,
-      conversation_context: serialize_conversation_context(conversation),
-      messages: conversation.whatsapp_messages.chronological.map { |message| serialize_message(message) }
-    }
-  end
-
-  def serialize_conversation_context(conversation)
-    ConversationContextBuilder.new(conversation: conversation).as_json
-  rescue => e
-    Rails.logger.error("[WhatsappInbox] conversation_context failed for conversation=#{conversation.id}: #{e.class} #{e.message}")
-    {}
+    { id: conversation.id }
   end
 
   def serialize_message(message)
-    return nil if message.blank?
-
-    {
-      id: message.id,
-      direction: message.direction,
-      source: message.source,
-      message_body: message.message_body,
-      template_name: message.template_name,
-      template_language: message.template_language,
-      internal_user_id: message.internal_user_id,
-      created_at: message.created_at
-    }
+    return nil unless message
+    { id: message.id, message_body: message.message_body }
   end
 end
