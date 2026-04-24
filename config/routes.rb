@@ -1,9 +1,8 @@
 require 'sidekiq/web'
 
-
-
 Rails.application.routes.draw do
-  get "/health", to: proc { [200, { "Content-Type" => "text/plain" }, ["ok"]] }^
+  get "/health", to: proc { [200, { "Content-Type" => "text/plain" }, ["ok"]] }
+
   constraints(lambda { |req| req.host.to_s =~ %r{^dynamed} }) do
     match '*path',
           to: redirect { |_params, _req| ENV['SERVICE_URL'].presence || '/' },
