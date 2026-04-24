@@ -4,6 +4,7 @@ class WhatsappProjectPanelist < ApplicationRecord
   STATUSES = %w[
     not_sent
     sent_no_response
+    postponed
     survey_started
     filtered_with_agent
     filtered_without_agent
@@ -63,6 +64,13 @@ class WhatsappProjectPanelist < ApplicationRecord
         status: 'sent_no_response',
         message_sent_at: Time.current
       }.merge(attrs)
+    )
+  end
+
+  def mark_postponed!
+    update!(
+      status: 'postponed',
+      message_sent_at: Time.current
     )
   end
 

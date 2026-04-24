@@ -97,10 +97,11 @@ textarea {
 }
 
 .conversation-list {
-  overflow: auto;
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
 }
-
 .conversation-row {
   width: 100%;
   text-align: left;

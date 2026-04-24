@@ -1,0 +1,67 @@
+{
+    "desired": 1,
+    "running": 1,
+    "pending": 0,
+    "events": [
+        {
+            "id": "f3103470-6bae-474c-9ff6-35a247a369b2",
+            "createdAt": "2026-04-18T19:10:25.561000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has reached a steady state."
+        },
+        {
+            "id": "38dd5c52-40d4-49bd-a3cf-850e5399b422",
+            "createdAt": "2026-04-18T19:10:25.560000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) (deployment ecs-svc/6038064962644471713) deployment completed."
+        },
+        {
+            "id": "e40be31e-1ecf-421f-8020-bd3bf65611ea",
+            "createdAt": "2026-04-18T19:06:32.723000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has started 1 tasks: (task c4f1ff65993f452580a5baadca160dc2)."
+        },
+        {
+            "id": "973b9ff3-1cab-457a-a35a-5c563a2f524a",
+            "createdAt": "2026-04-18T19:06:21.566000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has stopped 1 running tasks: (task 06f3027fcc76407a9be5580c2c7b9969)."
+        },
+        {
+            "id": "f7fac781-9d6b-4bd3-ba36-d387f5e692e3",
+            "createdAt": "2026-04-18T15:58:20.980000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has reached a steady state."
+        },
+        {
+            "id": "f4072b9c-a4eb-4f64-9f63-c3fb0ed68eb9",
+            "createdAt": "2026-04-18T15:58:20.979000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) (deployment ecs-svc/5652700669546315028) deployment completed."
+        },
+        {
+            "id": "964fd671-0f85-46aa-bb3f-3e4b57546447",
+            "createdAt": "2026-04-18T15:55:16.026000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has started 1 tasks: (task 06f3027fcc76407a9be5580c2c7b9969)."
+        },
+        {
+            "id": "b7fc4a9a-86d4-483e-baba-f77ba6b5e194",
+            "createdAt": "2026-04-18T15:55:04.986000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has stopped 1 running tasks: (task ac7e89d1392c4266818497899c9fafcf)."
+        },
+        {
+            "id": "12637026-1f86-482c-b19e-525c937451e2",
+            "createdAt": "2026-04-18T13:58:11.456000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has reached a steady state."
+        },
+        {
+            "id": "bdd39479-6701-4f15-84f7-91a8257aa06f",
+            "createdAt": "2026-04-18T07:57:57.121000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has reached a steady state."
+        },
+        {
+            "id": "71a6b3ae-54ee-46a4-94a3-eefffb530b70",
+            "createdAt": "2026-04-18T01:57:37.020000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has reached a steady state."
+        },
+        {
+            "id": "f74fe73e-fb44-482c-a59d-32dc78cd3e8e",
+            "createdAt": "2026-04-17T19:57:10.256000+00:00",
+            "message": "(service Sidekiq-ECSService-production-4) has reached a steady state."
+        }
+    ]
+}

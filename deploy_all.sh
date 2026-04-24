@@ -56,8 +56,33 @@ aws ecr get-login-password --region "${AWS_REGION}" \
 "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
 echo
+
+
+echo
+echo "[1.5/9] Build WhatsApp Inbox frontend"
+if [[ -d "whatsapp-inbox-frontend" ]]; then
+  docker run --rm \
+    -v "$(pwd)/whatsapp-inbox-frontend":/app \
+    -w /app \
+    node:20 \
+    sh -c "npm install && npm run build"
+
+  rm -rf public/whatsapp-inbox/*
+  mkdir -p public/whatsapp-inbox
+  cp -R whatsapp-inbox-frontend/dist/* public/whatsapp-inbox/
+
+  echo "WhatsApp Inbox frontend built and copied to public/whatsapp-inbox"
+else
+  echo "WARNING: whatsapp-inbox-frontend directory not found. Skipping frontend build."
+fi
+
+
+
 echo "[2/9] Build Docker image"
 docker build -f Dockerfile.release -t "${IMAGE_URI}" .
+
+
+
 
 echo
 echo "[3/9] Push Docker image"

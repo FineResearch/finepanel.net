@@ -4,7 +4,7 @@
   "containerDefinitions": [
     {
       "name": "sidekiq",
-      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260326-194640",
+      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260424-192558",
       "cpu": 600,
       "memory": 3056,
       "links": [],
@@ -18,7 +18,32 @@
         "-C",
         "config/sidekiq.yml"
       ],
-      "environment": [],
+      "environment": [
+        {
+          "name": "WHATSAPP_AR_NUMBER",
+          "value": "+5491154755941"
+        },
+        {
+          "name": "WHATSAPP_AR_NUMBER_ID",
+          "value": "971372539403107"
+        },
+        {
+          "name": "WHATSAPP_BR_NUMBER",
+          "value": "+5511915481193"
+        },
+        {
+          "name": "WHATSAPP_BR_NUMBER_ID",
+          "value": "1114040171782459"
+        },
+        {
+          "name": "WHATSAPP_CO_NUMBER",
+          "value": "+573239509827"
+        },
+        {
+          "name": "WHATSAPP_CO_NUMBER_ID",
+          "value": "1080109058512178"
+        }
+      ],
       "environmentFiles": [],
       "mountPoints": [
         {

@@ -4,13 +4,16 @@ require 'csv'
 require 'securerandom'
 require 'uri'
 require 'cgi'
+require 'set'
 
 class SendWhatsappMessagesWorker
   include Sidekiq::Worker
   include FilesHelper
 
   BATCH_SIZE = 500
-  TEMPLATE_NAME = 'survey_template'.freeze
+  DAILY_WHATSAPP_LIMIT = 2000
+  CAPACITY_BUFFER = 25
+  OPT_IN_TEMPLATE_NAMES = %w[preferencia_es perferencia_pt].freeze
 
   def perform(file_path, text)
     Rails.logger.info(
@@ -20,15 +23,26 @@ class SendWhatsappMessagesWorker
     Rails.logger.info("[SendWhatsappMessagesWorker] raw_text=#{text.inspect}")
 
     csv_content = tab_separated_to_hash(file_path)
-values = fetch_variables(text)
-include_respondent_phone = values.key?(:agregartel)
+    values = fetch_variables(text)
+    include_respondent_phone = values.key?(:agregartel)
 
-Rails.logger.info("[SendWhatsappMessagesWorker] parsed_values=#{values.inspect}")
-Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{include_respondent_phone}")
+    Rails.logger.info("[SendWhatsappMessagesWorker] parsed_values=#{values.inspect}")
+    Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{include_respondent_phone}")
+
     if csv_content.blank?
       Rails.logger.warn(
         "[SendWhatsappMessagesWorker] Aborting because file has no rows file_path=#{file_path}"
       )
+      return
+    end
+
+    if reminder_request?(values)
+      process_reminder_campaign(csv_content, values)
+      return
+    end
+
+    if optin_request?(values)
+      process_optin_campaign(csv_content, values)
       return
     end
 
@@ -37,11 +51,18 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
 
     client = WhatsApp::Client.new
     campaign_uuid = SecureRandom.uuid
+    campaign_sent_numbers = Set.new
 
     csv_content.each_slice(BATCH_SIZE) do |batch|
       batch.each do |row|
-        
-	process_row(row, values, include_respondent_phone, campaign_uuid, client)
+        process_row(
+          row,
+          values,
+          include_respondent_phone,
+          campaign_uuid,
+          client,
+          campaign_sent_numbers
+        )
       rescue StandardError => e
         Rails.logger.error(
           "[SendWhatsappMessagesWorker] Unexpected row-level error row=#{safe_row_log(row)} error=#{e.class} - #{e.message}"
@@ -64,7 +85,190 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
 
   private
 
-   def process_row(row, values, include_respondent_phone, campaign_uuid, client)
+  def reminder_request?(values)
+    values[:template].to_s.strip.upcase == 'REMINDER'
+  end
+
+  def optin_request?(values)
+    values[:template].to_s.strip.upcase == 'OPTIN'
+  end
+
+  def process_reminder_campaign(csv_content, values)
+    project_code = values[:codigodelproyecto].to_s.strip
+    raise StandardError, 'Missing CODIGO DEL PROYECTO for reminder' if project_code.blank?
+
+    panelist_ids = csv_content.map { |row| row[:panelistid].to_s.strip }
+                             .reject(&:blank?)
+                             .uniq
+
+    raise StandardError, 'No panelist_id found in file for reminder' if panelist_ids.blank?
+
+    Rails.logger.info(
+      "[SendWhatsappMessagesWorker] Processing reminder campaign project_code=#{project_code} panelist_ids_count=#{panelist_ids.size}"
+    )
+
+    result = WhatsApp::ReminderSender.new(
+      project_code: project_code,
+      panelist_ids: panelist_ids,
+      text_es: values[:texto_es],
+      text_pt: values[:texto_pt],
+      internal_user: nil
+    ).run
+
+    Rails.logger.info(
+      "[SendWhatsappMessagesWorker] Reminder results project_code=#{project_code} result=#{result.inspect}"
+    )
+  end
+
+  def process_optin_campaign(csv_content, values)
+    project_code = values[:codigodelproyecto].to_s.strip
+    sample_number = extract_single_sample_number!(csv_content)
+
+    client = WhatsApp::Client.new
+    campaign_uuid = SecureRandom.uuid
+    campaign_sent_numbers = Set.new
+
+    Rails.logger.info(
+      "[SendWhatsappMessagesWorker] Processing optin campaign project_code=#{project_code} sample_number=#{sample_number}"
+    )
+
+    csv_content.each_slice(BATCH_SIZE) do |batch|
+      batch.each do |row|
+        process_optin_row(
+          row,
+          values,
+          campaign_uuid,
+          client,
+          campaign_sent_numbers
+        )
+      rescue StandardError => e
+        Rails.logger.error(
+          "[SendWhatsappMessagesWorker] Unexpected optin row-level error row=#{safe_row_log(row)} error=#{e.class} - #{e.message}"
+        )
+        next
+      end
+    end
+
+    Rails.logger.info(
+      "[SendWhatsappMessagesWorker] Finished optin campaign campaign_uuid=#{campaign_uuid} project_code=#{project_code} sample_number=#{sample_number}"
+    )
+  end
+
+  def process_optin_row(row, values, campaign_uuid, client, campaign_sent_numbers)
+    Rails.logger.info("[SendWhatsappMessagesWorker] optin_row=#{safe_row_log(row)}")
+
+    username = row[:username].to_s.strip
+    return if username.blank?
+
+    user = User.find_from_email(username)
+    return unless user
+
+    if user.respond_to?(:whatsapp_opt_in) && user.whatsapp_opt_in
+      Rails.logger.info(
+        "[SendWhatsappMessagesWorker] Skipping optin already opted-in user_id=#{user.id} panelist_id=#{row[:panelistid]}"
+      )
+      return
+    end
+
+    whatsapp_number = normalize_phone(user.whatsapp_number)
+
+    if campaign_sent_numbers.include?(whatsapp_number)
+      Rails.logger.info(
+        "[SendWhatsappMessagesWorker] Skipping duplicate optin whatsapp_number within same campaign whatsapp_number=#{whatsapp_number} user_id=#{user.id}"
+      )
+      return
+    end
+
+    if whatsapp_number.blank? || whatsapp_number == '9' || whatsapp_number.length < 8
+      Rails.logger.info(
+        "[SendWhatsappMessagesWorker] Skipping invalid optin whatsapp_number=#{whatsapp_number} user_id=#{user.id}"
+      )
+      return
+    end
+
+    if capacity_reached_for_number?(whatsapp_number, campaign_sent_numbers)
+      Rails.logger.warn(
+        "[SendWhatsappMessagesWorker] Capacity reached, skipping optin whatsapp_number=#{whatsapp_number} user_id=#{user.id} project_code=#{values[:codigodelproyecto]}"
+      )
+      return
+    end
+
+    language = resolve_language(whatsapp_number)
+    template_name = optin_template_name_for_language(language)
+    phone_number_id = resolve_phone_number_id(whatsapp_number)
+    from_phone_number = resolve_from_phone_number(whatsapp_number)
+    support_email = resolve_support_email(values, whatsapp_number)
+
+    template_param_values = build_optin_template_param_values(
+      user: user,
+      language: language
+    )
+
+    log_template_param_values(template_param_values)
+    validate_template_param_values!(template_param_values)
+
+    Rails.logger.info(
+      "[SendWhatsappMessagesWorker] Sending optin WhatsApp message to #{whatsapp_number} language=#{language} template=#{template_name}"
+    )
+
+    client.send_message(
+      phone_number_id: phone_number_id,
+      to_number: whatsapp_number,
+      parameters: build_whatsapp_params(template_param_values),
+      language: language,
+      template: template_name
+    )
+
+    WhatsappOutbound.create!(
+      user: user,
+      whatsapp_number: whatsapp_number,
+      panelist_email: row[:username],
+      panelist_id: row[:panelistid],
+      sample_number: row[:samplenumber],
+      support_email: support_email,
+      from_phone_number: from_phone_number,
+      from_phone_number_id: phone_number_id,
+      subject: values[:asunto].presence || 'WHATSAPP_OPTIN',
+      project_code: values[:codigodelproyecto],
+      duration: values[:duracion],
+      incentive: values[:moneda_valor],
+      sent_by: values[:envia],
+      template_name: template_name,
+      language: language,
+      status: 'sent',
+      campaign_uuid: campaign_uuid,
+      include_respondent_phone: false
+    )
+
+    campaign_sent_numbers.add(whatsapp_number)
+
+    WhatsappDeliveryResult.create!(
+      project_code: values[:codigodelproyecto],
+      sample_number: row[:samplenumber],
+      panelist_id: row[:panelistid],
+      panelist_email: row[:username],
+      whatsapp_number: whatsapp_number,
+      status: 'sent'
+    )
+  rescue StandardError => e
+    handle_failed_whatsapp(
+      user: user,
+      row: row,
+      values: values,
+      campaign_uuid: campaign_uuid,
+      include_respondent_phone: false,
+      whatsapp_number: whatsapp_number,
+      language: language,
+      phone_number_id: phone_number_id,
+      from_phone_number: from_phone_number,
+      support_email: support_email,
+      main_surveylink: nil,
+      template_name: template_name,
+      error: e
+    )
+  end
+
+  def process_row(row, values, include_respondent_phone, campaign_uuid, client, campaign_sent_numbers)
     Rails.logger.info("[SendWhatsappMessagesWorker] row=#{safe_row_log(row)}")
 
     username = row[:username].to_s.strip
@@ -73,10 +277,43 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
     user = User.find_from_email(username)
     return unless user
 
+    panelist_record = WhatsappProjectPanelist.find_by(
+      project_code: values[:codigodelproyecto],
+      panelist_id: row[:panelistid]
+    )
+
+    if postponed_recently?(panelist_record)
+      Rails.logger.info(
+        "[SendWhatsappMessagesWorker] Skipping postponed user_id=#{user.id} panelist_id=#{row[:panelistid]} project_code=#{values[:codigodelproyecto]}"
+      )
+      return
+    end
+
     whatsapp_number = normalize_phone(user.whatsapp_number)
-    return if whatsapp_number.blank?
+
+    if campaign_sent_numbers.include?(whatsapp_number)
+      Rails.logger.info(
+        "[SendWhatsappMessagesWorker] Skipping duplicate whatsapp_number within same campaign whatsapp_number=#{whatsapp_number} user_id=#{user.id} project_code=#{values[:codigodelproyecto]}"
+      )
+      return
+    end
+
+    if whatsapp_number.blank? || whatsapp_number == '9' || whatsapp_number.length < 8
+      Rails.logger.info(
+        "[SendWhatsappMessagesWorker] Skipping invalid whatsapp_number=#{whatsapp_number} user_id=#{user.id}"
+      )
+      return
+    end
+
+    if capacity_reached_for_number?(whatsapp_number, campaign_sent_numbers)
+      Rails.logger.warn(
+        "[SendWhatsappMessagesWorker] Capacity reached, skipping whatsapp_number=#{whatsapp_number} user_id=#{user.id} project_code=#{values[:codigodelproyecto]}"
+      )
+      return
+    end
 
     language = resolve_language(whatsapp_number)
+    template_name = template_name_for_language(language)
 
     original_survey_link = row[:surveylink].to_s.strip
     return if original_survey_link.blank?
@@ -127,15 +364,14 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
     template_param_values = build_template_param_values(
       user: user,
       values: values,
-      tracked_survey_link: tracked_survey_link,
-      tracked_cancel_link: tracked_cancel_link
+      language: language
     )
 
     log_template_param_values(template_param_values)
     validate_template_param_values!(template_param_values)
 
     Rails.logger.info(
-      "[SendWhatsappMessagesWorker] Sending WhatsApp message to #{whatsapp_number} language=#{language} template=#{TEMPLATE_NAME}"
+      "[SendWhatsappMessagesWorker] Sending WhatsApp message to #{whatsapp_number} language=#{language} template=#{template_name}"
     )
 
     client.send_message(
@@ -143,7 +379,7 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
       to_number: whatsapp_number,
       parameters: build_whatsapp_params(template_param_values),
       language: language,
-      template: TEMPLATE_NAME
+      template: template_name
     )
 
     WhatsappOutbound.create!(
@@ -162,12 +398,14 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
       sent_by: values[:envia],
       survey_link: original_survey_link,
       main_survey_link: tracked_survey_link,
-      template_name: TEMPLATE_NAME,
+      template_name: template_name,
       language: language,
       status: 'sent',
       campaign_uuid: campaign_uuid,
       include_respondent_phone: include_respondent_phone
     )
+
+    campaign_sent_numbers.add(whatsapp_number)
 
     WhatsappDeliveryResult.create!(
       project_code: values[:codigodelproyecto],
@@ -177,51 +415,70 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
       whatsapp_number: whatsapp_number,
       status: 'sent'
     )
-  rescue WhatsApp::InvalidNumberError => e
-    handle_invalid_whatsapp(
-      user: user,
-      row: row,
-      values: values,
-      campaign_uuid: campaign_uuid,
-      include_respondent_phone: include_respondent_phone,
-      whatsapp_number: whatsapp_number,
-      language: language,
-      phone_number_id: phone_number_id,
-      from_phone_number: from_phone_number,
-      support_email: support_email,
-      main_surveylink: tracked_survey_link,
-      error: e
-    )
-  rescue WhatsApp::ApiError => e
-    handle_failed_whatsapp(
-      user: user,
-      row: row,
-      values: values,
-      campaign_uuid: campaign_uuid,
-      include_respondent_phone: include_respondent_phone,
-      whatsapp_number: whatsapp_number,
-      language: language,
-      phone_number_id: phone_number_id,
-      from_phone_number: from_phone_number,
-      support_email: support_email,
-      main_surveylink: tracked_survey_link,
-      error: e
-    )
   rescue StandardError => e
     handle_failed_whatsapp(
       user: user,
       row: row,
       values: values,
       campaign_uuid: campaign_uuid,
-      include_respondent_phone: include_respondent_phone,      
+      include_respondent_phone: include_respondent_phone,
       whatsapp_number: whatsapp_number,
       language: language,
       phone_number_id: phone_number_id,
       from_phone_number: from_phone_number,
       support_email: support_email,
       main_surveylink: tracked_survey_link,
+      template_name: template_name,
       error: e
     )
+  end
+
+  def postponed_recently?(panelist_record)
+    return false if panelist_record.blank?
+    return false unless panelist_record.status.to_s == 'postponed'
+    return false if panelist_record.message_sent_at.blank?
+
+    panelist_record.message_sent_at > 7.days.ago
+  end
+
+  def capacity_reached_for_number?(whatsapp_number, campaign_sent_numbers)
+    return false if whatsapp_number.blank?
+    return false if recent_unique_whatsapp_sent?(whatsapp_number)
+    return false if campaign_sent_numbers.include?(whatsapp_number)
+
+    remaining_capacity <= CAPACITY_BUFFER
+  end
+
+  def recent_unique_whatsapp_sent?(whatsapp_number)
+    WhatsappOutbound.where(status: 'sent')
+                    .where('created_at >= ?', 24.hours.ago)
+                    .where(whatsapp_number: whatsapp_number)
+                    .exists?
+  end
+
+  def remaining_capacity
+    [DAILY_WHATSAPP_LIMIT - unique_whatsapp_numbers_last_24h, 0].max
+  end
+
+  def unique_whatsapp_numbers_last_24h
+    WhatsappOutbound.where(status: 'sent')
+                    .where('created_at >= ?', 24.hours.ago)
+                    .where.not(whatsapp_number: [nil, ''])
+                    .distinct
+                    .count(:whatsapp_number)
+  end
+
+  def template_name_for_language(language)
+    case language
+    when 'pt_BR'
+      'survey_invitation_reply_v1'
+    else
+      'survey_invitation_reply_v1_es'
+    end
+  end
+
+  def optin_template_name_for_language(language)
+    language == 'pt_BR' ? 'perferencia_pt' : 'preferencia_es'
   end
 
   def upsert_whatsapp_project_panelist!(
@@ -265,18 +522,42 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
     )
   end
 
-  def build_template_param_values(user:, values:, tracked_survey_link:, tracked_cancel_link:)
+  def build_template_param_values(user:, values:, language:)
     {
-      professional_title: user&.professional_title.to_s.strip,
-      last_name: user&.last_name.to_s.strip,
-      asunto: values[:asunto].to_s.strip,
-      duracion: values[:duracion].to_s.strip,
-      moneda_valor: values[:moneda_valor].to_s.strip,
-      tracked_survey_link: tracked_survey_link.to_s.strip,
-      envia: values[:envia].to_s.strip,
-      codigodelproyecto: values[:codigodelproyecto].to_s.strip,
-      tracked_cancel_link: tracked_cancel_link.to_s.strip
+      param_1_professional_title: professional_title_for_language(user, language),
+      param_2_person_name: person_name_for_language(user, language),
+      param_3_asunto: values[:asunto].to_s.strip,
+      param_4_duracion: values[:duracion].to_s.strip,
+      param_5_moneda_valor: values[:moneda_valor].to_s.strip,
+      param_6_envia: values[:envia].to_s.strip,
+      param_7_codigodelproyecto: values[:codigodelproyecto].to_s.strip
     }
+  end
+
+  def build_optin_template_param_values(user:, language:)
+    {
+      param_1_professional_title: professional_title_for_language(user, language),
+      param_2_person_name: person_name_for_language(user, language)
+    }
+  end
+
+  def professional_title_for_language(user, language)
+    raw_title = user&.professional_title.to_s.strip
+    return raw_title if raw_title.present?
+
+    language == 'pt_BR' ? 'Dr(a).' : 'Dr(a).'
+  end
+
+  def person_name_for_language(user, language)
+    if language == 'pt_BR'
+      preferred = user&.first_name.to_s.strip
+      fallback = user&.last_name.to_s.strip
+      preferred.presence || fallback
+    else
+      preferred = user&.last_name.to_s.strip
+      fallback = user&.first_name.to_s.strip
+      preferred.presence || fallback
+    end
   end
 
   def log_template_param_values(template_param_values)
@@ -358,7 +639,7 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
     user:,
     row:,
     values:,
-    include_respondent_phone:,  
+    include_respondent_phone:,
     campaign_uuid:,
     whatsapp_number:,
     language:,
@@ -366,6 +647,7 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
     from_phone_number:,
     support_email:,
     main_surveylink:,
+    template_name:,
     error:
   )
     return if user.blank? || whatsapp_number.blank?
@@ -392,7 +674,7 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
       sent_by: values[:envia],
       survey_link: row[:surveylink],
       main_survey_link: main_surveylink,
-      template_name: TEMPLATE_NAME,
+      template_name: template_name,
       language: language,
       status: 'invalid_whatsapp',
       error_message: error_message,
@@ -431,6 +713,7 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
     from_phone_number:,
     support_email:,
     main_surveylink:,
+    template_name:,
     error:
   )
     return if user.blank? || whatsapp_number.blank?
@@ -457,7 +740,7 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
       sent_by: values[:envia],
       survey_link: row[:surveylink],
       main_survey_link: main_surveylink,
-      template_name: TEMPLATE_NAME,
+      template_name: template_name,
       language: language,
       status: 'failed',
       error_message: error_message,
@@ -510,7 +793,7 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
 
   def resolve_language(phone)
     phone = normalize_phone(phone)
-    phone.start_with?('55') ? 'pt_BR' : 'es'
+    phone.start_with?('55') ? 'pt_BR' : 'es_MX'
   end
 
   def register_invalid_whatsapp!(panelist_id:, panelist_email:, whatsapp_number:, project_code:, error_message:)
@@ -546,7 +829,8 @@ Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{inclu
 
   def fetch_variables(text)
     email_information = {}
-    pattern = /^\s*(ASUNTO|CODIGO DEL PROYECTO|DURACION|MONEDA-VALOR|ENVIA|AGREGAR TEL|EMAIL SOPORTE)\s*:\s*(.*?)\s*$/i
+    pattern = /^\s*(ASUNTO|CODIGO DEL PROYECTO|DURACION|MONEDA-VALOR|ENVIA|AGREGAR TEL|EMAIL SOPORTE|TEMPLATE|TEXTO-PT|TEXTO-ES)\s*:\s*(.*?)\s*$/i
+
     text.to_s.each_line do |line|
       normalized_line = line.to_s.encode(
         'UTF-8',

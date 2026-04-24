@@ -28,6 +28,9 @@ module Api
         '34'   => 'España'
       }.freeze
 
+      OPT_IN_TEMPLATE_NAMES = %w[preferencia_es perferencia_pt].freeze
+      OPT_IN_RESPONSE_WINDOW = 7.days
+
       def handle_whatsapp_response
         if request.get?
           handle_webhook_config
@@ -77,10 +80,14 @@ module Api
         display_phone_number = value&.dig('metadata', 'display_phone_number')
 
         message_body =
-          message_information&.dig('text', 'body') ||
-          message_information&.dig('button', 'text') ||
-          message_information&.dig('interactive', 'button_reply', 'title') ||
-          message_information&.dig('interactive', 'list_reply', 'title')
+	message_information&.dig('text', 'body') ||
+  	message_information&.dig('button', 'text') ||
+  	message_information&.dig('interactive', 'button_reply', 'title') ||
+  	message_information&.dig('interactive', 'list_reply', 'title')
+
+	message_body = message_body.to_s.strip
+	message_body = "[#{message_type}]" if message_body.blank?
+
 
         inbound_number = wa_number.presence || from_number
         panelist_country = country_from_phone(inbound_number)
@@ -127,13 +134,49 @@ module Api
           "panelist_country=#{panelist_country} user_id=#{user&.id} " \
           "conversation_id=#{conversation&.id} panelist_record_id=#{panelist_record&.id} " \
           "last_project_code=#{last_outbound&.project_code} last_sample_number=#{last_outbound&.sample_number} " \
-          "last_subject=#{last_outbound&.subject} support_email=#{last_outbound&.support_email}"
+          "last_subject=#{last_outbound&.subject} last_template_name=#{last_outbound&.template_name} " \
+          "support_email=#{last_outbound&.support_email}"
         )
 
         if cancellation_request?(message_body)
-          process_text_opt_out!(
+          process_text_Bopt_out!(
             inbound_number: inbound_number,
             profile_name: profile_name,
+            phone_number_id: phone_number_id,
+            panelist_record: panelist_record,
+            last_outbound: last_outbound
+          )
+
+          return head :ok
+        end
+
+        if opt_in_request?(message_body, last_outbound)
+          process_opt_in_request!(
+            inbound_number: inbound_number,
+            phone_number_id: phone_number_id,
+            user: user,
+            panelist_record: panelist_record,
+            last_outbound: last_outbound,
+            conversation: conversation
+          )
+
+          return head :ok
+        end
+
+        if request_link_now?(message_body)
+          process_request_link_now!(
+            inbound_number: inbound_number,
+            phone_number_id: phone_number_id,
+            panelist_record: panelist_record,
+            last_outbound: last_outbound
+          )
+
+          return head :ok
+        end
+
+        if postpone_request?(message_body)
+          process_postpone_request!(
+            inbound_number: inbound_number,
             phone_number_id: phone_number_id,
             panelist_record: panelist_record,
             last_outbound: last_outbound
@@ -174,7 +217,7 @@ module Api
           respondent_phone: inbound_number,
           panelist_first_name: panelist_first_name,
           panelist_last_name: panelist_last_name,
-          panelist_email: panelist_email      
+          panelist_email: panelist_email
         ).deliver_later
 
         head :ok
@@ -198,6 +241,151 @@ module Api
         )
 
         record
+      end
+
+      def process_request_link_now!(inbound_number:, phone_number_id:, panelist_record:, last_outbound:)
+        survey_link =
+          panelist_record&.tracked_survey_link.presence ||
+          panelist_record&.original_survey_link.presence ||
+          last_outbound&.main_survey_link.presence ||
+          last_outbound&.survey_link.presence
+
+        if survey_link.blank?
+          Rails.logger.warn(
+            "[WhatsAppInbound] request_link_now but no survey_link found from=#{inbound_number} panelist_record_id=#{panelist_record&.id} last_outbound_id=#{last_outbound&.id}"
+          )
+          return
+        end
+
+        message = request_link_now_message(inbound_number, survey_link)
+
+        Rails.logger.info(
+          "[WhatsAppInbound] Sending survey link after reply=1 to=#{inbound_number} phone_number_id=#{phone_number_id}"
+        )
+
+        WhatsApp::Client.new.send_text_message(
+          phone_number_id: phone_number_id,
+          to_number: inbound_number,
+          body: message
+        )
+
+        if panelist_record.present? && panelist_record.status.to_s == 'postponed'
+          panelist_record.update!(status: 'sent_no_response')
+        end
+      rescue StandardError => e
+        Rails.logger.error(
+          "[WhatsAppInbound] request_link_now failed to=#{inbound_number} error=#{e.class} message=#{e.message}"
+        )
+      end
+
+      def process_postpone_request!(inbound_number:, phone_number_id:, panelist_record:, last_outbound:)
+        if panelist_record.present?
+          panelist_record.mark_postponed!
+        end
+
+        message = postpone_confirmation_message(inbound_number)
+
+        Rails.logger.info(
+          "[WhatsAppInbound] Sending postpone confirmation to=#{inbound_number} phone_number_id=#{phone_number_id} " \
+          "project_code=#{panelist_record&.project_code || last_outbound&.project_code} " \
+          "panelist_id=#{panelist_record&.panelist_id || last_outbound&.panelist_id}"
+        )
+
+        WhatsApp::Client.new.send_text_message(
+          phone_number_id: phone_number_id,
+          to_number: inbound_number,
+          body: message
+        )
+      rescue StandardError => e
+        Rails.logger.error(
+          "[WhatsAppInbound] postpone confirmation failed to=#{inbound_number} error=#{e.class} message=#{e.message}"
+        )
+      end
+
+      def opt_in_request?(message_body, last_outbound)
+        return false unless opt_in_context?(last_outbound)
+
+        body_contains_ok?(message_body)
+      end
+
+      def opt_in_context?(last_outbound)
+        return false if last_outbound.blank?
+        return false unless OPT_IN_TEMPLATE_NAMES.include?(last_outbound.template_name.to_s)
+
+        sent_at = last_outbound.created_at
+        return false if sent_at.blank?
+
+        sent_at >= OPT_IN_RESPONSE_WINDOW.ago
+      end
+
+      def body_contains_ok?(message_body)
+        body = message_body.to_s.strip
+        return false if body.blank?
+
+        normalized = I18n.transliterate(body).downcase
+        normalized.match?(/\bok\b/)
+      rescue StandardError
+        false
+      end
+
+def process_opt_in_request!(inbound_number:, phone_number_id:, user:, panelist_record:, last_outbound:, conversation:)
+  target_user = panelist_record&.user || user
+
+  if target_user.present?
+    target_user.update!(
+      whatsapp_opt_in: true,
+      whatsapp_opt_in_at: Time.current,
+      whatsapp_opt_in_source: 'whatsapp_template_preference'
+    )
+  end
+
+  message = opt_in_confirmation_message(inbound_number)
+
+  Rails.logger.info(
+    "[WhatsAppInbound] opt_in confirmed to=#{inbound_number} user_id=#{target_user&.id} " \
+    "project_code=#{panelist_record&.project_code || last_outbound&.project_code} " \
+    "panelist_id=#{panelist_record&.panelist_id || last_outbound&.panelist_id} " \
+    "template_name=#{last_outbound&.template_name}"
+  )
+
+  response = WhatsApp::Client.new.send_text_message(
+    phone_number_id: phone_number_id,
+    to_number: inbound_number,
+    body: message
+  )
+
+  if conversation.present?
+    conversation.whatsapp_messages.create!(
+      direction: 'outbound',
+      source: 'system',
+      message_type: 'text',
+      message_body: message,
+      status: 'sent',
+      from_phone_number: last_outbound&.from_phone_number,
+      from_phone_number_id: phone_number_id,
+      to_phone_number: inbound_number,
+      payload_json: response.to_json
+    )
+
+    conversation.touch_outbound!
+    conversation.mark_resolved!(nil)
+  end
+
+rescue StandardError => e
+  Rails.logger.error(
+    "[WhatsAppInbound] opt_in confirmation failed to=#{inbound_number} error=#{e.class} message=#{e.message}"
+  )
+end
+
+
+      def opt_in_confirmation_message(phone)
+        normalized = normalize_phone(phone)
+
+        if normalized.start_with?('55')
+          'Perfeito, muito obrigado! Vamos entrar em contato quando houver pesquisas relevantes para o seu perfil. '
+        else
+          'Perfecto, muchas gracias! Vamos a contactarle cuando haya estudios relevantes para su perfil.'
+        end
       end
 
       def process_text_opt_out!(inbound_number:, profile_name:, phone_number_id:, panelist_record:, last_outbound:)
@@ -271,7 +459,7 @@ module Api
       end
 
       def cancellation_request?(message_body)
-        normalized = message_body.to_s.strip.downcase
+        normalized = normalize_inbound_text(message_body)
 
         opt_out_keywords = %w[
           cancelar
@@ -289,6 +477,20 @@ module Api
         end
 
         match
+      end
+
+      def request_link_now?(message_body)
+        normalized = normalize_inbound_text(message_body)
+        normalized == '1'
+      end
+
+      def postpone_request?(message_body)
+        normalized = normalize_inbound_text(message_body)
+        normalized == '2'
+      end
+
+      def normalize_inbound_text(message_body)
+        message_body.to_s.strip.downcase
       end
 
       def find_user_by_whatsapp(number)
@@ -387,7 +589,27 @@ module Api
         if normalized.start_with?('55')
           'Sua solicitação de exclusão de contatos por WhatsApp foi recebida com sucesso. Obrigado.'
         else
-          'Tu solicitud de exclusión de contactos por WhatsApp fue recibida con éxito. Gracias.'
+          'Su solicitud de exclusión de contactos por WhatsApp fue recibida con éxito. Gracias.'
+        end
+      end
+
+      def postpone_confirmation_message(phone)
+        normalized = normalize_phone(phone)
+
+        if normalized.start_with?('55')
+          "Sem problema 👍\n\nEntraremos em contato em outra oportunidade com novos convites.\n\nSe mudar de ideia, é só nos avisar por aqui 😊"
+        else
+          "No hay problema 👍\n\nLe contactaremos en otra oportunidad cunado contemos con nuevas invitaciones para su especialidad.\n\nSi cambia de idea, puede avisarnos por aquí 😊"
+        end
+      end
+
+      def request_link_now_message(phone, survey_link)
+        normalized = normalize_phone(phone)
+
+        if normalized.start_with?('55')
+          "Perfeito 👍\n\nAqui está o link para participar agora:\n#{survey_link}\n\nSe tiver qualquer dúvida, pode nos avisar por aqui."
+        else
+          "Perfecto 👍\n\nAquí tiene el link para participar ahora:\n#{survey_link}\n\nSi tiene cualquier duda, puede escribirnos por aquí."
         end
       end
     end

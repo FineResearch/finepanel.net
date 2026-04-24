@@ -3,6 +3,7 @@ class ConversationPolicy
 
   ALLOWED_TEMPLATE_NAMES = %w[
     reminder_support_v1
+    reminder_support_v1_es
     reopen_conversation_v1
   ].freeze
 

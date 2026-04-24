@@ -31,7 +31,9 @@ class WhatsappMailer < ApplicationMailer
     include_respondent_phone: false,
     respondent_phone: nil,
     panelist_first_name: nil,
-    panelist_last_name: nil
+    panelist_last_name: nil,
+    panelist_email: nil, # 👈 FIX
+    **_extra             # 👈 FUTURE-PROOF
   )
     to_email = support_email.presence || default_recipient_for(from_number)
 
@@ -64,7 +66,8 @@ class WhatsappMailer < ApplicationMailer
       include_respondent_phone: include_respondent_phone,
       respondent_phone: respondent_phone,
       panelist_first_name: panelist_first_name,
-      panelist_last_name: panelist_last_name
+      panelist_last_name: panelist_last_name,
+      panelist_email: panelist_email # 👈 FIX
     }
 
     personalization.add_dynamic_template_data(
@@ -94,7 +97,8 @@ class WhatsappMailer < ApplicationMailer
       include_respondent_phone: include_respondent_phone,
       respondent_phone: respondent_phone,
       panelist_first_name: panelist_first_name,
-      panelist_last_name: panelist_last_name
+      panelist_last_name: panelist_last_name,
+      panelist_email: panelist_email # 👈 FIX
     )
 
     mail.add_personalization(personalization)
