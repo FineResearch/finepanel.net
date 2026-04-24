@@ -1,25 +1,37 @@
 require 'sidekiq/web'
 
+
+
 Rails.application.routes.draw do
+  get "/health", to: proc { [200, { "Content-Type" => "text/plain" }, ["ok"]] }^
   constraints(lambda { |req| req.host.to_s =~ %r{^dynamed} }) do
     match '*path',
           to: redirect { |_params, _req| ENV['SERVICE_URL'].presence || '/' },
           via: :all
   end
 
-  namespace :internal do
-    namespace :whatsapp do
-      get 'inbox', to: 'inbox#index'
-      resources :conversations, only: [:index, :show] do
-        member do
-          post :send_text
-          post :send_template
-          post :resolve
-          post :reopen
-        end
-      end
-    end
+namespace :internal do
+  namespace :whatsapp do
+    get 'inbox', to: 'inbox#index'
+    get 'conversations/export', to: 'conversations#export'
+
+ 
+resources :conversations, only: [:index, :show] do
+  collection do
+    get :project_metrics
   end
+
+  member do
+    post :send_text
+    post :send_template
+    post :send_reminder
+    post :resolve
+    post :reopen
+  end
+end
+
+  end
+end
 
   get 'health', to: 'tracked_surveys#health'
 
