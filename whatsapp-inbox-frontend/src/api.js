@@ -3,7 +3,16 @@ const ENV_INTERNAL_USER_EMAIL = import.meta.env.VITE_INTERNAL_USER_EMAIL || "";
 
 function currentInternalUserEmail() {
   const fromQuery = new URLSearchParams(window.location.search).get("internal_user_email");
-  return fromQuery || ENV_INTERNAL_USER_EMAIL || "";
+  return fromQuery || ENV_INTERNAL_USER_EMAIL || "dcasar@fine-research.com";
+}
+
+function appendInternalUserEmail(path) {
+  const internalUserEmail = currentInternalUserEmail();
+
+  if (!internalUserEmail) return path;
+
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}internal_user_email=${encodeURIComponent(internalUserEmail)}`;
 }
 
 function buildHeaders(extraHeaders = {}) {
@@ -32,7 +41,8 @@ async function parseJsonSafe(response) {
 }
 
 async function request(path, options = {}) {
-  const url = `${API_BASE_URL}${path}`;
+  const pathWithAuth = appendInternalUserEmail(path);
+  const url = `${API_BASE_URL}${pathWithAuth}`;
 
   const response = await fetch(url, {
     credentials: "include",
@@ -46,7 +56,7 @@ async function request(path, options = {}) {
     const message =
       data?.error ||
       data?.message ||
-      `Error HTTP ${response.status} al llamar ${path}`;
+      `Error HTTP ${response.status} al llamar ${pathWithAuth}`;
     throw new Error(message);
   }
 
@@ -62,6 +72,12 @@ export async function fetchConversations(filters = {}) {
 
   if (filters.status) params.append("status", filters.status);
   if (filters.project_code) params.append("project_code", filters.project_code);
+  if (filters.last_reply_type) params.append("last_reply_type", filters.last_reply_type);
+  if (filters.last_reply_answered) params.append("last_reply_answered", filters.last_reply_answered);
+  if (filters.last_reply_window) params.append("last_reply_window", filters.last_reply_window);
+  if (filters.limit) params.append("limit", filters.limit);
+  if (filters.country) params.append("country", filters.country);
+  if (filters.panelist_id) params.append("panelist_id", filters.panelist_id);
 
   const queryString = params.toString();
   const path = queryString
@@ -100,11 +116,24 @@ export async function sendTemplate(id, templateName) {
   });
 }
 
+export async function sendReminder(id) {
+  return request(`/internal/whatsapp/conversations/${id}/send_reminder`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export async function sendText(id, messageBody) {
   return request(`/internal/whatsapp/conversations/${id}/send_text`, {
     method: "POST",
     body: JSON.stringify({
       body: messageBody
     })
+  });
+}
+
+export async function fetchProjectMetrics() {
+  return request("/internal/whatsapp/conversations/project_metrics", {
+    method: "GET"
   });
 }
