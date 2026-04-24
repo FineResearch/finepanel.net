@@ -175,12 +175,10 @@ export default function App() {
         return;
       }
 
-      const stillExists = items.some((c) => c?.id === selectedConversationId);
-
+      // Solo seleccionar automáticamente si todavía no hay conversación seleccionada.
+      // No cambiar automáticamente una conversación ya elegida por el agente.
       if (!selectedConversationId && items.length > 0) {
         setSelectedConversationId(items[0].id);
-      } else if (selectedConversationId && !stillExists) {
-        setSelectedConversationId(items[0]?.id || null);
       }
     } catch (error) {
       if (!silent) {
@@ -270,31 +268,6 @@ export default function App() {
     loadConversationDetail(selectedConversationId);
   }, [selectedConversationId]);
 
-  useEffect(() => {
-    const intervalId = window.setInterval(async () => {
-      await loadConversations(true, { silent: true });
-      await loadProjectMetrics({ silent: true });
-
-      if (selectedConversationId) {
-        await loadConversationDetail(selectedConversationId, { silent: true });
-      }
-    }, 5000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    selectedConversationId,
-    filters.status,
-    filters.project_code,
-    filters.last_reply_type,
-    filters.last_reply_answered,
-    filters.last_reply_window,
-    filters.country,
-    filters.limit
-  ]);
-
   async function refreshAll(keepCurrentMessage = true) {
     await loadConversations(true);
     await loadProjectMetrics({ silent: true });
@@ -324,25 +297,23 @@ export default function App() {
     }
   }
 
-async function handleSendReminder() {
-  if (!selectedConversationId) return;
+  async function handleSendReminder() {
+    if (!selectedConversationId) return;
 
-  setActionLoading(true);
-  setGlobalMessage("");
-  setDetailError("");
+    setActionLoading(true);
+    setGlobalMessage("");
+    setDetailError("");
 
-  try {
-    await sendReminder(selectedConversationId);
-    setGlobalMessage("Reminder enviado");
-    await refreshAll();
-  } catch (error) {
-    setDetailError(error.message || "No se pudo enviar el reminder");
-  } finally {
-    setActionLoading(false);
+    try {
+      await sendReminder(selectedConversationId);
+      setGlobalMessage("Reminder enviado");
+      await refreshAll();
+    } catch (error) {
+      setDetailError(error.message || "No se pudo enviar el reminder");
+    } finally {
+      setActionLoading(false);
+    }
   }
-}
-
-
 
   async function handleReopen() {
     if (!selectedConversationId) return;
@@ -425,6 +396,14 @@ async function handleSendReminder() {
           <h1>WhatsApp Inbox</h1>
           <p>Gestión interna de conversaciones con panelistas</p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => refreshAll()}
+          disabled={loadingList || loadingDetail || actionLoading}
+        >
+          {loadingList || loadingDetail ? "Actualizando..." : "Actualizar"}
+        </button>
       </header>
 
       {globalMessage && <div className="success-box">{globalMessage}</div>}
@@ -473,7 +452,7 @@ async function handleSendReminder() {
             onSendText={handleSendText}
             metrics={effectiveMetrics}
             metricsScopeLabel=""
-	    onSendReminder={handleSendReminder}
+            onSendReminder={handleSendReminder}
           />
         </section>
       </div>
