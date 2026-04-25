@@ -111,20 +111,25 @@ class ConversationContextBuilder
   end
 
   def requires_human_follow_up?(inbound = nil)
-    return false if @conversation.blank?
-    return false if @conversation.status.to_s == 'resolved'
-    return false unless @conversation.respond_to?(:has_unread_messages)
-    return false unless @conversation.has_unread_messages
+  return false if @conversation.blank?
 
-    inbound ||= last_inbound_message
-    return false if inbound.blank?
+  # 🔥 NUEVO: si ya está resuelta, nunca requiere follow up
+  return false if @conversation.resolved_at.present?
 
-    text = message_text(inbound)
-    return false if text.blank?
-    return false if ['1', '2'].include?(text)
+  return false unless @conversation.respond_to?(:has_unread_messages)
+  return false unless @conversation.has_unread_messages
 
-    true
-  end
+  inbound ||= last_inbound_message
+  return false if inbound.blank?
+
+  text = message_text(inbound)
+  return false if text.blank?
+
+  # 🔥 NUEVO: tratar OK como respuesta válida (no requiere follow-up)
+  return false if ['1', '2', 'ok'].include?(text)
+
+  true
+end
 
   def last_inbound_reply_type(inbound = nil)
     inbound ||= last_inbound_message
