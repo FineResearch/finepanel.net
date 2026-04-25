@@ -1,23 +1,23 @@
 {
-  "family": "Sidekiq",
+  "family": "Api",
   "executionRoleArn": "arn:aws:iam::784064929014:role/ECS-production-Task-Execution-Role",
   "containerDefinitions": [
     {
-      "name": "sidekiq",
-      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260425-001450",
-      "cpu": 600,
+      "name": "api",
+      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260424-192558",
+      "cpu": 700,
       "memory": 3056,
       "links": [],
-      "portMappings": [],
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 0,
+          "protocol": "tcp"
+        }
+      ],
       "essential": true,
       "entryPoint": [],
-      "command": [
-        "bundle",
-        "exec",
-        "sidekiq",
-        "-C",
-        "config/sidekiq.yml"
-      ],
+      "command": [],
       "environment": [
         {
           "name": "WHATSAPP_AR_NUMBER",
@@ -68,9 +68,9 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "FP-Finepanel-Sidekiq-production-LogGroup",
+          "awslogs-group": "FP-Finepanel-production-LogGroup",
           "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "Sidekiq"
+          "awslogs-stream-prefix": "Api"
         },
         "secretOptions": []
       },

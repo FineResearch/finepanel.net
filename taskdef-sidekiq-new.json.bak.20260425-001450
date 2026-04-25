@@ -4,7 +4,7 @@
   "containerDefinitions": [
     {
       "name": "sidekiq",
-      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260425-001450",
+      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260424-235606",
       "cpu": 600,
       "memory": 3056,
       "links": [],
