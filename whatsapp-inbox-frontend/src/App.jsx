@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { sendReminder } from "./api";
 
 import {
   fetchConversations,
@@ -8,7 +7,8 @@ import {
   reopenConversation,
   sendTemplate,
   sendText,
-  fetchProjectMetrics
+  fetchProjectMetrics,
+  sendReminder
 } from "./api";
 
 import FiltersBar from "./components/FiltersBar";
@@ -99,6 +99,7 @@ export default function App() {
   const [filters, setFilters] = useState({
     status: "",
     project_code: "",
+    panelist_id: "",
     last_reply_type: "",
     last_reply_answered: "",
     last_reply_window: "",
@@ -119,6 +120,7 @@ export default function App() {
   const [globalMessage, setGlobalMessage] = useState("");
   const [metrics, setMetrics] = useState({});
   const [summary, setSummary] = useState({});
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
 
   const knownConversationFingerprintsRef = useRef(new Map());
   const pollingStartedRef = useRef(false);
@@ -172,6 +174,11 @@ export default function App() {
 
       if (!preserveSelected) {
         setSelectedConversationId(items[0]?.id || null);
+        return;
+      }
+
+      // En refresh automático/silent, no tocar nunca la selección actual.
+      if (silent) {
         return;
       }
 
@@ -259,6 +266,7 @@ export default function App() {
   }, [
     filters.status,
     filters.project_code,
+    filters.panelist_id,
     filters.last_reply_type,
     filters.last_reply_answered,
     filters.last_reply_window,
@@ -271,6 +279,10 @@ export default function App() {
   }, [selectedConversationId]);
 
   useEffect(() => {
+    if (!autoRefreshEnabled) {
+      return undefined;
+    }
+
     const intervalId = window.setInterval(async () => {
       await loadConversations(true, { silent: true });
       await loadProjectMetrics({ silent: true });
@@ -285,9 +297,11 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    autoRefreshEnabled,
     selectedConversationId,
     filters.status,
     filters.project_code,
+    filters.panelist_id,
     filters.last_reply_type,
     filters.last_reply_answered,
     filters.last_reply_window,
@@ -324,25 +338,23 @@ export default function App() {
     }
   }
 
-async function handleSendReminder() {
-  if (!selectedConversationId) return;
+  async function handleSendReminder() {
+    if (!selectedConversationId) return;
 
-  setActionLoading(true);
-  setGlobalMessage("");
-  setDetailError("");
+    setActionLoading(true);
+    setGlobalMessage("");
+    setDetailError("");
 
-  try {
-    await sendReminder(selectedConversationId);
-    setGlobalMessage("Reminder enviado");
-    await refreshAll();
-  } catch (error) {
-    setDetailError(error.message || "No se pudo enviar el reminder");
-  } finally {
-    setActionLoading(false);
+    try {
+      await sendReminder(selectedConversationId);
+      setGlobalMessage("Reminder enviado");
+      await refreshAll();
+    } catch (error) {
+      setDetailError(error.message || "No se pudo enviar el reminder");
+    } finally {
+      setActionLoading(false);
+    }
   }
-}
-
-
 
   async function handleReopen() {
     if (!selectedConversationId) return;
@@ -425,6 +437,21 @@ async function handleSendReminder() {
           <h1>WhatsApp Inbox</h1>
           <p>Gestión interna de conversaciones con panelistas</p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setAutoRefreshEnabled((prev) => !prev)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #cbd5e1",
+            background: autoRefreshEnabled ? "#dcfce7" : "#fee2e2",
+            cursor: "pointer",
+            fontWeight: "bold"
+          }}
+        >
+          Auto-refresh: {autoRefreshEnabled ? "ON" : "OFF"}
+        </button>
       </header>
 
       {globalMessage && <div className="success-box">{globalMessage}</div>}
@@ -473,7 +500,7 @@ async function handleSendReminder() {
             onSendText={handleSendText}
             metrics={effectiveMetrics}
             metricsScopeLabel=""
-	    onSendReminder={handleSendReminder}
+            onSendReminder={handleSendReminder}
           />
         </section>
       </div>
