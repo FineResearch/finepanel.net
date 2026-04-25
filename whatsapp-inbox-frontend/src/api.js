@@ -130,3 +130,24 @@ export async function fetchProjectMetrics() {
     method: "GET"
   });
 }
+
+
+export function exportConversations(filters = {}) {
+  const params = new URLSearchParams();
+
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v) params.append(k, v);
+  });
+
+  const internalUserEmail = currentInternalUserEmail();
+  if (internalUserEmail) {
+    params.append("internal_user_email", internalUserEmail);
+  }
+
+  const query = params.toString();
+  const url = query
+    ? `/internal/whatsapp/conversations/export?${query}`
+    : `/internal/whatsapp/conversations/export`;
+
+  window.open(url, "_blank");
+}
