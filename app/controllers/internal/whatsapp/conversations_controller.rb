@@ -18,6 +18,12 @@ class Internal::Whatsapp::ConversationsController < ApplicationController
       scope = scope.where(project_code: params[:project_code].to_s)
     end
 
+
+if params[:panelist_id].present?
+  scope = scope.where(panelist_id: params[:panelist_id].to_s.strip)
+end
+
+
     if truthy_param?(params[:unread])
       scope = scope.where(has_unread_messages: true)
     end
@@ -212,6 +218,143 @@ class Internal::Whatsapp::ConversationsController < ApplicationController
       }, status: :unprocessable_entity
     end
   end
+
+def export
+  scope = WhatsappConversation.recent_first
+
+  if operator_user?
+    scope = scope.where(project_code: allowed_project_codes)
+  end
+
+  if params[:project_code].present?
+    scope = scope.where(project_code: params[:project_code].to_s)
+  end
+
+  if params[:panelist_id].present?
+    scope = scope.where(panelist_id: params[:panelist_id].to_s.strip)
+  end
+
+  if params[:status].present?
+    case params[:status]
+    when 'open'
+      scope = scope.where(resolved_at: nil)
+    when 'resolved'
+      scope = scope.where.not(resolved_at: nil)
+    end
+  end
+
+  # 🔹 PAGINACIÓN + LÍMITE
+  max_limit = 10_000
+  requested_limit = params[:limit].to_i
+
+  export_limit =
+    if requested_limit <= 0
+      max_limit
+    elsif requested_limit > max_limit
+      max_limit
+    else
+      requested_limit
+    end
+
+  page = params[:page].to_i
+  page = 1 if page <= 0
+
+  offset = (page - 1) * export_limit
+
+  conversations = scope.limit(export_limit).offset(offset)
+
+  csv = CSV.generate(headers: true) do |csv|
+    csv << [
+      "estado",
+      "project_code",
+      "panelist_id",
+      "pais",
+      "ultima_respuesta_respondida",
+      "momento_ultima_respuesta",
+      "primera_respuesta_optin",
+      "primera_respuesta_template",
+      "ultima_respuesta_panelista",
+      "ultima_respuesta_operador",
+      "extracto_conversacion",
+      "nombre",
+      "apellido",
+      "survey_subject",
+      "duration",
+      "incentive",
+      "sent_by",
+      "sample_number",
+      "template_name",
+      "template_language",
+      "window_status"
+    ]
+
+    conversations.each do |c|
+      context = serialize_conversation_context(c)
+
+      messages = c.whatsapp_messages.chronological
+
+      inbound = messages.select(&:inbound?)
+      outbound = messages.select(&:outbound?)
+
+      # 🔹 OPTIN (OK)
+      optin = inbound.find { |m| m.message_body.to_s.strip.downcase == "ok" }
+
+      # 🔹 primera respuesta proyecto
+      first_project = inbound.first
+
+      # 🔹 últimas
+      last_inbound = inbound.last
+      last_outbound = outbound.select { |m| m.source == 'agent' }.last
+
+      # 🔹 extracto últimas 10
+      last_10 = messages.last(10).map do |m|
+        text = m.message_body.to_s.gsub("\n", " ")
+        m.source == 'agent' ? "**#{text}**" : text
+      end.join(" | ")
+
+      # 🔹 COUNTRY FALLBACK (clave para OPTIN)
+      export_country =
+        context[:panelist_country].presence ||
+        (c.respond_to?(:panelist_country) ? c.panelist_country : nil).presence ||
+        (c.respond_to?(:user) && c.user&.country).presence
+
+      csv << [
+        c.status,
+        c.project_code,
+        c.panelist_id,
+        export_country,
+        context[:last_inbound_requires_reply] ? "no" : "yes",
+        context[:last_inbound_within_24h] ? "24h" : "older",
+        optin&.message_body,
+        first_project&.message_body,
+        last_inbound&.message_body,
+        last_outbound&.message_body,
+        last_10,
+        context[:panelist_first_name],
+        context[:panelist_last_name],
+        context[:survey_subject],
+        context[:duration],
+        context[:incentive],
+        context[:sent_by],
+        context[:sample_number],
+        context[:template_name],
+        context[:template_language],
+        context[:conversation_window_status]
+      ]
+    end
+  end
+
+  send_data csv,
+            filename: "whatsapp_export_p#{page}_#{Time.now.to_i}.csv",
+            type: "text/csv"
+end
+  send_data csv,
+            filename: "whatsapp_inbox_export_#{Time.now.to_i}.csv",
+            type: "text/csv"
+end
+
+
+
 
   def resolve
     @conversation.mark_resolved!(@internal_user)

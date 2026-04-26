@@ -71,7 +71,6 @@ export default function ConversationList({
 
   return (
     <div className="conversation-list">
-      <SelectionSummary conversations={safeConversations} />
 
       {sortedConversations.map((c) => {
         const needsFollowUp = !!(c?.requires_human_follow_up && c?.status === "open");

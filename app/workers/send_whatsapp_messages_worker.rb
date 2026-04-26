@@ -227,6 +227,7 @@ class SendWhatsappMessagesWorker
       sample_number: row[:samplenumber],
       support_email: support_email,
       from_phone_number: from_phone_number,
+      country: phone_country(whatsapp_number),
       from_phone_number_id: phone_number_id,
       subject: values[:asunto].presence || 'WHATSAPP_OPTIN',
       project_code: values[:codigodelproyecto],

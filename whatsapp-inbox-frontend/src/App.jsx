@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+
 import {
   fetchConversations,
   fetchConversationDetail,
@@ -14,6 +15,8 @@ import {
 import FiltersBar from "./components/FiltersBar";
 import ConversationList from "./components/ConversationList";
 import ConversationDetail from "./components/ConversationDetail";
+
+import { exportConversations } from "./api";
 
 function playNotificationSound() {
   try {
@@ -437,6 +440,20 @@ export default function App() {
           <h1>WhatsApp Inbox</h1>
           <p>Gestión interna de conversaciones con panelistas</p>
         </div>
+<button
+  onClick={() => exportConversations(filters)}
+  style={{
+    padding: "8px 12px",
+    borderRadius: 8,
+    border: "1px solid #cbd5e1",
+    background: "#e0f2fe",
+    cursor: "pointer",
+    fontWeight: "bold",
+    marginLeft: 10
+  }}
+>
+  Export CSV
+</button>
 
         <button
           type="button"

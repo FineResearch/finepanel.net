@@ -11,6 +11,7 @@ export default function FiltersBar({ filters, onChange }) {
       status: "",
       project_code: "",
       last_reply_type: "",
+      panelist_id: "",
       last_reply_answered: "",
       last_reply_window: "",
       country: "",

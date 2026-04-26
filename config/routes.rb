@@ -16,6 +16,7 @@ namespace :internal do
 resources :conversations, only: [:index, :show] do
   collection do
     get :project_metrics
+    get :export
   end
 
   member do
