@@ -324,7 +324,7 @@ export default function ConversationDetail({
     const trimmed = textBody.trim();
     if (!trimmed || actionLoading || windowStatus !== "open") return;
 
-    onSendText(trimmed);
+    onSendText(safeConversation.id, trimmed);
     setTextBody("");
   }
 
