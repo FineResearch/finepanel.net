@@ -28,7 +28,7 @@ module Api
         '34'   => 'España'
       }.freeze
 
-      OPT_IN_TEMPLATE_NAMES = %w[preferencia_es perferencia_pt].freeze
+      OPT_IN_TEMPLATE_NAMES = %w[preferencia_es preferencia_pt].freeze
       OPT_IN_RESPONSE_WINDOW = 7.days
 
       def handle_whatsapp_response
@@ -80,14 +80,13 @@ module Api
         display_phone_number = value&.dig('metadata', 'display_phone_number')
 
         message_body =
-	message_information&.dig('text', 'body') ||
-  	message_information&.dig('button', 'text') ||
-  	message_information&.dig('interactive', 'button_reply', 'title') ||
-  	message_information&.dig('interactive', 'list_reply', 'title')
+          message_information&.dig('text', 'body') ||
+          message_information&.dig('button', 'text') ||
+          message_information&.dig('interactive', 'button_reply', 'title') ||
+          message_information&.dig('interactive', 'list_reply', 'title')
 
-	message_body = message_body.to_s.strip
-	message_body = "[#{message_type}]" if message_body.blank?
-
+        message_body = message_body.to_s.strip
+        message_body = "[#{message_type}]" if message_body.blank?
 
         inbound_number = wa_number.presence || from_number
         panelist_country = country_from_phone(inbound_number)
@@ -139,7 +138,7 @@ module Api
         )
 
         if cancellation_request?(message_body)
-          process_text_Bopt_out!(
+          process_text_opt_out!(
             inbound_number: inbound_number,
             profile_name: profile_name,
             phone_number_id: phone_number_id,
@@ -159,6 +158,17 @@ module Api
             last_outbound: last_outbound,
             conversation: conversation
           )
+
+          return head :ok
+        end
+
+        if opt_in_courtesy_after_confirmation?(message_body, message_type, last_outbound, conversation)
+          Rails.logger.info(
+            "[WhatsAppInbound] opt_in_courtesy_auto_resolved conversation_id=#{conversation&.id} " \
+            "body=#{message_body.inspect} type=#{message_type}"
+          )
+
+          conversation.mark_resolved!(nil) if conversation.present?
 
           return head :ok
         end
@@ -190,6 +200,17 @@ module Api
         panelist_last_name = panelist_user&.last_name
         panelist_email = last_outbound&.panelist_email
 
+support_email = last_outbound&.support_email.to_s.strip.presence
+
+unless support_email.present?
+  Rails.logger.info(
+    "[WhatsAppInbound] inbound_alert_skipped_no_support_email conversation_id=#{conversation&.id} " \
+    "project_code=#{last_outbound&.project_code} panelist_id=#{last_outbound&.panelist_id}"
+  )
+
+  return head :ok
+end
+
         WhatsappMailer.inbound_message_alert(
           profile_name: profile_name,
           from_number: inbound_number,
@@ -203,7 +224,7 @@ module Api
           panelist_country: panelist_country,
           project_code: last_outbound&.project_code,
           sample_number: last_outbound&.sample_number,
-          support_email: last_outbound&.support_email,
+          support_email: support_email,
           survey_subject: last_outbound&.subject,
           duration: last_outbound&.duration,
           incentive: last_outbound&.incentive,
@@ -328,55 +349,95 @@ module Api
         false
       end
 
-def process_opt_in_request!(inbound_number:, phone_number_id:, user:, panelist_record:, last_outbound:, conversation:)
-  target_user = panelist_record&.user || user
+      def opt_in_courtesy_after_confirmation?(message_body, message_type, last_outbound, conversation)
+        return false if conversation.blank?
+        return false unless opt_in_context?(last_outbound)
 
-  if target_user.present?
-    target_user.update!(
-      whatsapp_opt_in: true,
-      whatsapp_opt_in_at: Time.current,
-      whatsapp_opt_in_source: 'whatsapp_template_preference'
-    )
-  end
+        normalized = normalize_courtesy_text(message_body)
+        return false if normalized.blank? && message_type.to_s != 'reaction'
 
-  message = opt_in_confirmation_message(inbound_number)
+        return false if word_count(normalized) >= 6
 
-  Rails.logger.info(
-    "[WhatsAppInbound] opt_in confirmed to=#{inbound_number} user_id=#{target_user&.id} " \
-    "project_code=#{panelist_record&.project_code || last_outbound&.project_code} " \
-    "panelist_id=#{panelist_record&.panelist_id || last_outbound&.panelist_id} " \
-    "template_name=#{last_outbound&.template_name}"
-  )
+        return true if message_type.to_s == 'reaction'
 
-  response = WhatsApp::Client.new.send_text_message(
-    phone_number_id: phone_number_id,
-    to_number: inbound_number,
-    body: message
-  )
+        courtesy_keywords = %w[
+          gracias
+          obrigado
+          obrigada
+          ok
+          perfecto
+          perfeito
+          vale
+          listo
+          entendido
+          👍
+          🙏
+          👌
+        ]
 
-  if conversation.present?
-    conversation.whatsapp_messages.create!(
-      direction: 'outbound',
-      source: 'system',
-      message_type: 'text',
-      message_body: message,
-      status: 'sent',
-      from_phone_number: last_outbound&.from_phone_number,
-      from_phone_number_id: phone_number_id,
-      to_phone_number: inbound_number,
-      payload_json: response.to_json
-    )
+        courtesy_keywords.any? { |keyword| normalized.include?(keyword) }
+      end
 
-    conversation.touch_outbound!
-    conversation.mark_resolved!(nil)
-  end
+      def normalize_courtesy_text(message_body)
+        I18n.transliterate(message_body.to_s.strip.downcase)
+      rescue StandardError
+        message_body.to_s.strip.downcase
+      end
 
-rescue StandardError => e
-  Rails.logger.error(
-    "[WhatsAppInbound] opt_in confirmation failed to=#{inbound_number} error=#{e.class} message=#{e.message}"
-  )
-end
+      def word_count(text)
+        text.to_s
+            .gsub(/[^\p{L}\p{N}\s]/u, '')
+            .scan(/\S+/)
+            .size
+      end
 
+      def process_opt_in_request!(inbound_number:, phone_number_id:, user:, panelist_record:, last_outbound:, conversation:)
+        target_user = panelist_record&.user || user
+
+        if target_user.present?
+          target_user.update!(
+            whatsapp_opt_in: true,
+            whatsapp_opt_in_at: Time.current,
+            whatsapp_opt_in_source: 'whatsapp_template_preference'
+          )
+        end
+
+        message = opt_in_confirmation_message(inbound_number)
+
+        Rails.logger.info(
+          "[WhatsAppInbound] opt_in confirmed to=#{inbound_number} user_id=#{target_user&.id} " \
+          "project_code=#{panelist_record&.project_code || last_outbound&.project_code} " \
+          "panelist_id=#{panelist_record&.panelist_id || last_outbound&.panelist_id} " \
+          "template_name=#{last_outbound&.template_name}"
+        )
+
+        response = WhatsApp::Client.new.send_text_message(
+          phone_number_id: phone_number_id,
+          to_number: inbound_number,
+          body: message
+        )
+
+        if conversation.present?
+          conversation.whatsapp_messages.create!(
+            direction: 'outbound',
+            source: 'system',
+            message_type: 'text',
+            message_body: message,
+            status: 'sent',
+            from_phone_number: last_outbound&.from_phone_number,
+            from_phone_number_id: phone_number_id,
+            to_phone_number: inbound_number,
+            payload_json: response.to_json
+          )
+
+          conversation.touch_outbound!
+          conversation.mark_resolved!(nil)
+        end
+      rescue StandardError => e
+        Rails.logger.error(
+          "[WhatsAppInbound] opt_in confirmation failed to=#{inbound_number} error=#{e.class} message=#{e.message}"
+        )
+      end
 
       def opt_in_confirmation_message(phone)
         normalized = normalize_phone(phone)

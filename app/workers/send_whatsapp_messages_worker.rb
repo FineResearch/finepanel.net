@@ -13,7 +13,7 @@ class SendWhatsappMessagesWorker
   BATCH_SIZE = 500
   DAILY_WHATSAPP_LIMIT = 2000
   CAPACITY_BUFFER = 25
-  OPT_IN_TEMPLATE_NAMES = %w[preferencia_es perferencia_pt].freeze
+  OPT_IN_TEMPLATE_NAMES = %w[preferencia_es preferencia_pt].freeze
 
   def perform(file_path, text)
     Rails.logger.info(
@@ -227,7 +227,6 @@ class SendWhatsappMessagesWorker
       sample_number: row[:samplenumber],
       support_email: support_email,
       from_phone_number: from_phone_number,
-      country: phone_country(whatsapp_number),
       from_phone_number_id: phone_number_id,
       subject: values[:asunto].presence || 'WHATSAPP_OPTIN',
       project_code: values[:codigodelproyecto],
@@ -479,7 +478,7 @@ class SendWhatsappMessagesWorker
   end
 
   def optin_template_name_for_language(language)
-    language == 'pt_BR' ? 'perferencia_pt' : 'preferencia_es'
+    language == 'pt_BR' ? 'preferencia_pt' : 'preferencia_es'
   end
 
   def upsert_whatsapp_project_panelist!(
@@ -506,7 +505,6 @@ class SendWhatsappMessagesWorker
       panelist_email: row[:username],
       sample_number: row[:samplenumber],
       whatsapp_number: whatsapp_number,
-      country: phone_country(whatsapp_number),
       support_email: support_email,
       original_survey_link: original_survey_link,
       original_cancel_link: original_cancel_link,
@@ -780,17 +778,9 @@ class SendWhatsappMessagesWorker
     end
   end
 
-  def resolve_support_email(values, phone)
-    return values[:emailsoporte] if values[:emailsoporte].present?
-
-    phone = normalize_phone(phone)
-
-    if phone.start_with?('55')
-      'suporte@finepanel.net'
-    else
-      'soporte@finepanel.net'
-    end
-  end
+  def resolve_support_email(values, _phone)
+  values[:emailsoporte].to_s.strip.presence
+end
 
   def resolve_language(phone)
     phone = normalize_phone(phone)
