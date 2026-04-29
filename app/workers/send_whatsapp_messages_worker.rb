@@ -24,10 +24,7 @@ class SendWhatsappMessagesWorker
 
     csv_content = tab_separated_to_hash(file_path)
     values = fetch_variables(text)
-Rails.logger.warn(
-  "[SendWhatsappMessagesWorker] DEBUG csv_rows=#{csv_content.size} first_row=#{csv_content.first.inspect} parsed_values=#{values.inspect}"
-)    
-include_respondent_phone = values.key?(:agregartel)
+    include_respondent_phone = values.key?(:agregartel)
 
     Rails.logger.info("[SendWhatsappMessagesWorker] parsed_values=#{values.inspect}")
     Rails.logger.info("[SendWhatsappMessagesWorker] include_respondent_phone=#{include_respondent_phone}")
@@ -164,11 +161,7 @@ include_respondent_phone = values.key?(:agregartel)
     return if username.blank?
 
     user = User.find_from_email(username)
-    if user.blank?
-  puts "[SendWhatsappMessagesWorker] DEBUG optin user_not_found username=#{username.inspect} row=#{safe_row_log(row).inspect}"
-  STDOUT.flush
-  return
-end
+    return unless user
 
     if user.respond_to?(:whatsapp_opt_in) && user.whatsapp_opt_in
       Rails.logger.info(
@@ -177,14 +170,7 @@ end
       return
     end
 
-    raw_whatsapp =
-  user.whatsapp_number.presence ||
-  row[:wapp_wapp].presence ||
-  row[:whatsapp_number].presence ||
-  row[:telefono].presence ||
-  row[:phone].presence
-
-whatsapp_number = normalize_phone(raw_whatsapp)
+    whatsapp_number = resolve_row_whatsapp_number(user, row)
 
     if campaign_sent_numbers.include?(whatsapp_number)
       Rails.logger.info(
@@ -194,10 +180,11 @@ whatsapp_number = normalize_phone(raw_whatsapp)
     end
 
     if whatsapp_number.blank? || whatsapp_number == '9' || whatsapp_number.length < 8
-  puts "[SendWhatsappMessagesWorker] DEBUG optin invalid_phone user_id=#{user.id} username=#{username.inspect} raw_whatsapp=#{user.whatsapp_number.inspect}"
-  STDOUT.flush
-  return
-end
+      Rails.logger.info(
+        "[SendWhatsappMessagesWorker] Skipping invalid optin whatsapp_number=#{whatsapp_number} user_id=#{user.id}"
+      )
+      return
+    end
 
     if capacity_reached_for_number?(whatsapp_number, campaign_sent_numbers)
       Rails.logger.warn(
@@ -302,7 +289,7 @@ end
       return
     end
 
-    whatsapp_number = normalize_phone(user.whatsapp_number)
+    whatsapp_number = resolve_row_whatsapp_number(user, row)
 
     if campaign_sent_numbers.include?(whatsapp_number)
       Rails.logger.info(
@@ -518,6 +505,7 @@ end
       panelist_email: row[:username],
       sample_number: row[:samplenumber],
       whatsapp_number: whatsapp_number,
+      country: phone_country(whatsapp_number),
       support_email: support_email,
       original_survey_link: original_survey_link,
       original_cancel_link: original_cancel_link,
@@ -761,69 +749,52 @@ end
     )
   end
 
+  def resolve_phone_number_id(phone)
+    phone = normalize_phone(phone)
 
-
-
-
-
-
-
-def resolve_phone_number_id(phone)
-  phone = normalize_phone(phone)
-
-  case
-  when phone.start_with?('55') # Brasil
-    ENV['WHATSAPP_BR_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
-
-  when phone.start_with?('57') # Colombia
-    ENV['WHATSAPP_CO_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
-
-  when phone.start_with?('52') # México
-    ENV['WHATSAPP_CO_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
-
-  when phone.start_with?('507', '502', '506') # Panamá, Guatemala, Costa Rica
-    ENV['WHATSAPP_CO_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
-
-  when phone.start_with?('1809', '1829', '1849') # Dominicana
-    ENV['WHATSAPP_CO_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
-
-  else
-    ENV['WHATSAPP_CO_NUMBER_ID'] || ENV['WHATSAPP_AR_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
+    case
+    when phone.start_with?('55')
+      ENV['WHATSAPP_BR_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
+    when phone.start_with?('52')
+      ENV['WHATSAPP_MX_NUMBER_ID'] || ENV['WHATSAPP_AR_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
+    when phone.start_with?('57')
+      ENV['WHATSAPP_CO_NUMBER_ID'] || ENV['WHATSAPP_AR_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
+    else
+      ENV['WHATSAPP_AR_NUMBER_ID'] || ENV['WHATSAPP_ID_NUMBER']
+    end
   end
-end
 
+  def resolve_from_phone_number(phone)
+    phone = normalize_phone(phone)
 
-
-def resolve_from_phone_number(phone)
-  phone = normalize_phone(phone)
-
-  case
-  when phone.start_with?('55') # Brasil
-    ENV['WHATSAPP_BR_NUMBER'] || 'whatsapp-br'
-
-  when phone.start_with?('57') # Colombia
-    ENV['WHATSAPP_CO_NUMBER'] || 'whatsapp-co'
-
-  when phone.start_with?('52') # México
-    ENV['WHATSAPP_CO_NUMBER'] || 'whatsapp-co'
-
-  when phone.start_with?('507', '502', '506') # Panamá, Guatemala, Costa Rica
-    ENV['WHATSAPP_CO_NUMBER'] || 'whatsapp-co'
-
-  when phone.start_with?('1809', '1829', '1849') # Dominicana
-    ENV['WHATSAPP_CO_NUMBER'] || 'whatsapp-co'
-
-  else
-    ENV['WHATSAPP_CO_NUMBER'] || ENV['WHATSAPP_AR_NUMBER'] || 'whatsapp-default'
+    case
+    when phone.start_with?('55')
+      ENV['WHATSAPP_BR_NUMBER'] || ENV['TWILIO_DEFAULT_NUMBER'] || 'whatsapp-br'
+    when phone.start_with?('52')
+      ENV['WHATSAPP_MX_NUMBER'] || ENV['WHATSAPP_AR_NUMBER'] || ENV['TWILIO_DEFAULT_NUMBER'] || 'whatsapp-default'
+    when phone.start_with?('57')
+      ENV['WHATSAPP_CO_NUMBER'] || ENV['WHATSAPP_AR_NUMBER'] || ENV['TWILIO_DEFAULT_NUMBER'] || 'whatsapp-default'
+    else
+      ENV['WHATSAPP_AR_NUMBER'] || ENV['TWILIO_DEFAULT_NUMBER'] || 'whatsapp-default'
+    end
   end
-end
-  def resolve_support_email(values, _phone)
-  values[:emailsoporte].to_s.strip.presence
-end
 
-def resolve_support_email(values, _phone)
-  values[:emailsoporte].to_s.strip.presence
-end  
+  def resolve_support_email(values, phone)
+    return values[:emailsoporte] if values[:emailsoporte].present?
+
+    phone = normalize_phone(phone)
+
+    if phone.start_with?('55')
+      'suporte@finepanel.net'
+    else
+      'soporte@finepanel.net'
+    end
+  end
+
+  def resolve_language(phone)
+    phone = normalize_phone(phone)
+    phone.start_with?('55') ? 'pt_BR' : 'es_MX'
+  end
 
   def register_invalid_whatsapp!(panelist_id:, panelist_email:, whatsapp_number:, project_code:, error_message:)
     normalized_number = normalize_phone(whatsapp_number)
@@ -902,24 +873,41 @@ end
     )
   end
 
+
+  def resolve_row_whatsapp_number(user, row)
+    raw_whatsapp =
+      user&.whatsapp_number.presence ||
+      row[:wapp_wapp].presence ||
+      row[:whatsapp_number].presence ||
+      row[:telefono].presence ||
+      row[:phone].presence ||
+      WhatsappProjectPanelist.where(panelist_id: row[:panelistid])
+                             .order(updated_at: :desc)
+                             .limit(1)
+                             .pluck(:whatsapp_number)
+                             .first ||
+      WhatsappOutbound.where(panelist_id: row[:panelistid])
+                      .order(created_at: :desc)
+                      .limit(1)
+                      .pluck(:whatsapp_number)
+                      .first
+
+    normalize_phone(raw_whatsapp)
+  end
+
   def normalize_phone(phone)
     phone.to_s.gsub(/\D/, '')
   end
 
   def safe_row_log(row)
-  return {} if row.blank?
+    return {} if row.blank?
 
-  {
-    keys: row.keys,
-    username: row[:username],
-    panelistid: row[:panelistid],
-    samplenumber: row[:samplenumber],
-    wapp_wapp: row[:wapp_wapp],
-    whatsapp_number: row[:whatsapp_number],
-    telefono: row[:telefono],
-    phone: row[:phone]
-  }
-end
+    {
+      username: row[:username],
+      panelistid: row[:panelistid],
+      samplenumber: row[:samplenumber]
+    }
+  end
 
   def cleanup_file(file_path)
     return if file_path.blank?
