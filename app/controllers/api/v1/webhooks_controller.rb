@@ -41,6 +41,98 @@ module Api
 
       private
 
+
+def register_invalid_whatsapp!(panelist_id:, panelist_email:, whatsapp_number:, project_code:, error_message:)
+  return if whatsapp_number.blank?
+
+  normalized_number = normalize_phone(whatsapp_number)
+
+  record = InvalidWhatsappNumber.find_by(whatsapp_number: normalized_number)
+
+  if record
+    record.update!(
+      panelist_id: record.panelist_id.presence || panelist_id,
+      panelist_email: panelist_email,
+      last_detected_project_code: project_code,
+      last_detected_at: Time.current,
+      times_detected: record.times_detected.to_i + 1,
+      last_error_message: error_message,
+      active: true
+    )
+  else
+    InvalidWhatsappNumber.create!(
+      panelist_id: panelist_id,
+      panelist_email: panelist_email,
+      whatsapp_number: normalized_number,
+      first_detected_project_code: project_code,
+      last_detected_project_code: project_code,
+      first_detected_at: Time.current,
+      last_detected_at: Time.current,
+      times_detected: 1,
+      last_error_message: error_message,
+      active: true
+    )
+  end
+end
+
+def process_whatsapp_statuses!(statuses, payload)
+  Array(statuses).each do |status_payload|
+    Rails.logger.info(
+      "[WhatsAppStatus] payload=#{status_payload.inspect}"
+    )
+
+    status_value = status_payload['status'].to_s
+    recipient_id = normalize_phone(status_payload['recipient_id'])
+    message_id = status_payload['id'].to_s
+    timestamp = parse_timestamp(status_payload['timestamp'])
+
+    error = Array(status_payload['errors']).first
+    error_code = error&.dig('code').to_s
+    error_title = error&.dig('title').to_s
+    error_message = error&.dig('message').to_s
+    error_details = error&.dig('error_data', 'details').to_s
+
+    outbound = WhatsappOutbound.where(whatsapp_number: recipient_id)
+                               .order(created_at: :desc)
+                               .first
+
+    WhatsappDeliveryResult.create!(
+      project_code: outbound&.project_code,
+      sample_number: outbound&.sample_number,
+      panelist_id: outbound&.panelist_id,
+      panelist_email: outbound&.panelist_email,
+      whatsapp_number: recipient_id,
+      status: status_value,
+      error_message: [
+        error_code,
+        error_title,
+        error_message,
+        error_details
+      ].reject(&:blank?).join(' - ')
+    )
+
+    if status_value == 'failed' && error_code == '131026'
+      register_invalid_whatsapp!(
+        panelist_id: outbound&.panelist_id,
+        panelist_email: outbound&.panelist_email,
+        whatsapp_number: recipient_id,
+        project_code: outbound&.project_code,
+        error_message: [
+          error_code,
+          error_title,
+          error_message,
+          error_details
+        ].reject(&:blank?).join(' - ')
+      )
+    end
+  end
+rescue StandardError => e
+  Rails.logger.error("[WhatsAppStatus] Error: #{e.class} - #{e.message}")
+  Rails.logger.error(e.backtrace.join("\n")) if e.backtrace.present?
+end
+
+
+
       def handle_webhook_config
         mode = params['hub.mode']
         token = params['hub.verify_token']
@@ -64,6 +156,14 @@ module Api
         value = payload.dig('entry', 0, 'changes', 0, 'value')
         contact_information = value&.dig('contacts', 0)
         message_information = value&.dig('messages', 0)
+
+statuses = value&.dig('statuses')
+
+if statuses.present?
+  process_whatsapp_statuses!(statuses, payload)
+  return head :ok
+end
+
 
         unless message_information.present?
           Rails.logger.info("[WhatsAppInbound] No inbound message found. Payload: #{payload}")
@@ -143,7 +243,8 @@ module Api
             profile_name: profile_name,
             phone_number_id: phone_number_id,
             panelist_record: panelist_record,
-            last_outbound: last_outbound
+            last_outbound: last_outbound,
+            conversation: conversation
           )
 
           return head :ok
@@ -449,7 +550,7 @@ end
         end
       end
 
-      def process_text_opt_out!(inbound_number:, profile_name:, phone_number_id:, panelist_record:, last_outbound:)
+      def process_text_opt_out!(inbound_number:, profile_name:, phone_number_id:, panelist_record:, last_outbound:, conversation:)
         Rails.logger.info(
           "[WhatsAppInbound] Opt-out request detected from=#{inbound_number} profile_name=#{profile_name}"
         )
@@ -476,18 +577,20 @@ end
           "[WhatsAppInbound] Queueing opt-out email to=#{support_email} exclusion_link=#{exclusion_link}"
         )
 
-        WhatsappMailer.whatsapp_opt_out_alert(
-          support_email: support_email,
-          exclusion_link: exclusion_link.to_s,
-          from_number: inbound_number,
-          profile_name: profile_name,
-          project_code: panelist_record&.project_code || last_outbound&.project_code,
-          panelist_id: panelist_record&.panelist_id || last_outbound&.panelist_id,
-          panelist_first_name: panelist_record&.first_name || last_outbound&.first_name,
-          panelist_last_name: panelist_record&.last_name || last_outbound&.last_name,
-          panelist_email: last_outbound&.panelist_email,
-          panelist_country: panelist_record&.country || last_outbound&.country
-        ).deliver_later
+	panelist_user = panelist_record&.user || last_outbound&.user        
+
+WhatsappMailer.whatsapp_opt_out_alert(
+  support_email: support_email,
+  exclusion_link: exclusion_link.to_s,
+  from_number: inbound_number,
+  profile_name: profile_name,
+  project_code: panelist_record&.project_code || last_outbound&.project_code,
+  panelist_id: panelist_record&.panelist_id || last_outbound&.panelist_id,
+  panelist_first_name: panelist_user&.first_name,
+  panelist_last_name: panelist_user&.last_name,
+  panelist_email: last_outbound&.panelist_email,
+  panelist_country: panelist_record&.country || panelist_user&.country
+).deliver_later
 
         begin
           message = opt_out_confirmation_message(inbound_number)
@@ -500,7 +603,26 @@ end
             phone_number_id: phone_number_id,
             to_number: inbound_number,
             body: message
+
+
           )
+
+if conversation.present?
+  conversation.whatsapp_messages.create!(
+    direction: 'outbound',
+    source: 'system',
+    message_type: 'text',
+    message_body: message,
+    status: 'sent',
+    from_phone_number: last_outbound&.from_phone_number,
+    from_phone_number_id: phone_number_id,
+    to_phone_number: inbound_number,
+    payload_json: response.to_json
+  )
+
+  conversation.touch_outbound!
+  conversation.mark_resolved!(nil)
+end
 
           Rails.logger.info(
             "[WhatsAppInbound] Opt-out confirmation sent successfully to=#{inbound_number} response=#{response.inspect}"
