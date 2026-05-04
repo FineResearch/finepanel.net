@@ -27,13 +27,29 @@ class UpdateUsersWorker
 
         Rails.logger.info("Updating user #{email}")
 
-        user.update!(
+        # 🔹 Base attributes (como estaba)
+        attributes = {
           first_name: row[:name_poderia_confirmar_os_seus_nomes],
           last_name: row[:apellido_sobrenomes],
           professional_title: row[:titulo_titulo],
           formal_title: row[:titulo_titulo],
           whatsapp_number: whatsapp_number
-        )
+        }
+
+        # 🔹 NUEVA LOGICA: habilitawapp → opt-in
+        habilita_wapp = row[:habilitawapp].to_s.strip
+
+        if row.key?(:habilitawapp) && habilita_wapp == '1'
+          attributes[:whatsapp_opt_in] = true
+          attributes[:whatsapp_opt_in_at] ||= Time.current
+          attributes[:whatsapp_opt_in_source] = 'forsta_habilitawapp'
+
+          Rails.logger.info(
+            "Setting WhatsApp opt-in from Forsta for user #{email}"
+          )
+        end
+
+        user.update!(attributes)
       end
     end
 
