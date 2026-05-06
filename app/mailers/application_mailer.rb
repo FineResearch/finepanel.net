@@ -40,8 +40,8 @@ def self.send_plain_email(to:, from:, subject:, text_body:)
   mail.add_personalization(personalization)
   mail.add_content(SendGrid::Content.new(type: 'text/plain', value: text_body.to_s))
 
-  send_email(mail)
-end  
+  new.send_email(mail)
+end
 
   def send_email(mail)
     response = @client.mail._('send').post(request_body: mail.to_json)
