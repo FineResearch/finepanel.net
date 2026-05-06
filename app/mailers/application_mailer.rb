@@ -27,7 +27,7 @@ def generate_personalization(recipient_email)
   personalization
 end
 
-def send_plain_email(to:, from:, subject:, text_body:)
+def self.send_plain_email(to:, from:, subject:, text_body:)
   mail = SendGrid::Mail.new
   mail.from = Email.new(email: from)
 
