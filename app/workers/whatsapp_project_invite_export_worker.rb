@@ -1,4 +1,3 @@
-require "csv"
 require "fileutils"
 
 class WhatsappProjectInviteExportWorker
@@ -8,13 +7,9 @@ class WhatsappProjectInviteExportWorker
   HEADERS = [
     "project_code",
     "panelist_id",
-    "user_id",
     "whatsapp_number",
-    "template_name",
-    "template_language",
     "invite_status",
     "invite_sent_at",
-    "delivery_status",
     "delivery_error",
     "response_status",
     "first_response_body",
@@ -83,13 +78,9 @@ class WhatsappProjectInviteExportWorker
     [
       outbound.project_code,
       outbound.panelist_id,
-      outbound.user_id,
       outbound.whatsapp_number,
-      outbound.template_name,
-      outbound.template_language,
       outbound.status,
       outbound.created_at,
-      delivery_result&.status,
       delivery_result&.error_message,
       classify_response(first_response&.message_body),
       first_response&.message_body,
