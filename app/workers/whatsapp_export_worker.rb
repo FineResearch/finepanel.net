@@ -57,9 +57,9 @@ class WhatsappExportWorker
       end
     end
 
-    Rails.logger.info(
-      "[WhatsappExportWorker] before email to=#{email} file_path=#{file_path} file_exists=#{File.exist?(file_path)} file_size=#{File.exist?(file_path) ? File.size(file_path) : 0}"
-    )
+    before_message = "[WhatsappExportWorker] before email to=#{email} file_path=#{file_path} file_exists=#{File.exist?(file_path)} file_size=#{File.exist?(file_path) ? File.size(file_path) : 0}"
+    puts before_message
+    Rails.logger.info(before_message)
 
     ApplicationMailer.send_plain_email(
       to: email,
@@ -69,7 +69,9 @@ class WhatsappExportWorker
       attachment_path: file_path.to_s
     )
 
-    Rails.logger.info("[WhatsappExportWorker] after email to=#{email}")
+    after_message = "[WhatsappExportWorker] after email to=#{email}"
+    puts after_message
+    Rails.logger.info(after_message)
   rescue => e
     Rails.logger.error("[WhatsappExportWorker] Failed: #{e.class} - #{e.message}")
     Rails.logger.error(e.backtrace.join("\n")) if e.backtrace.present?
