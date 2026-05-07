@@ -17,6 +17,8 @@ resources :conversations, only: [:index, :show] do
   collection do
     get :project_metrics
     get :export
+    post :export_async
+    post :export_project_invites_async
   end
 
   member do

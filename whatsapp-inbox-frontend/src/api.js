@@ -79,6 +79,17 @@ export async function fetchConversations(filters = {}) {
   return request(path, { method: "GET" });
 }
 
+export async function exportProjectInvitesAsync(filters = {}, email) {
+  return request("/internal/whatsapp/conversations/export_project_invites_async", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      project_code: filters.project_code
+    })
+  });
+}
+
+
 export async function fetchConversationDetail(id) {
   return request(`/internal/whatsapp/conversations/${id}`, {
     method: "GET"
@@ -151,3 +162,15 @@ export function exportConversations(filters = {}) {
 
   window.open(url, "_blank");
 }
+export async function exportConversationsAsync(filters = {}, email) {
+  const body = {
+    ...filters,
+    email
+  };
+
+  return request("/internal/whatsapp/conversations/export_async", {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+

@@ -9,14 +9,14 @@ import {
   sendTemplate,
   sendText,
   fetchProjectMetrics,
-  sendReminder
+  sendReminder,
+  exportConversationsAsync
+  exportProjectInvitesAsync
 } from "./api";
 
 import FiltersBar from "./components/FiltersBar";
 import ConversationList from "./components/ConversationList";
 import ConversationDetail from "./components/ConversationDetail";
-
-import { exportConversations } from "./api";
 
 function playNotificationSound() {
   try {
@@ -393,24 +393,26 @@ export default function App() {
     }
   }
 
-  async function handleSendText(messageBody) {
-    if (!selectedConversationId) return;
+  async function handleSendText(conversationId, messageBody) {
+  const targetConversationId = conversationId || selectedConversationId;
+  if (!targetConversationId) return;
 
-    setActionLoading(true);
-    setGlobalMessage("");
-    setDetailError("");
+  setActionLoading(true);
+  setGlobalMessage("");
+  setDetailError("");
 
-    try {
-      await sendText(selectedConversationId, messageBody);
-      setGlobalMessage("Mensaje enviado");
-      await refreshAll();
-    } catch (error) {
-      setDetailError(error.message || "No se pudo enviar el mensaje");
-    } finally {
-      setActionLoading(false);
-    }
+  try {
+    await sendText(targetConversationId, messageBody);
+    setGlobalMessage("Mensaje enviado");
+    await refreshAll();
+    await loadConversationDetail(targetConversationId);
+    setSelectedConversationId(targetConversationId);
+  } catch (error) {
+    setDetailError(error.message || "No se pudo enviar el mensaje");
+  } finally {
+    setActionLoading(false);
   }
-
+}
   const selectedConversationSummary = useMemo(() => {
     const safeConversations = Array.isArray(conversations) ? conversations : [];
     return safeConversations.find((c) => c?.id === selectedConversationId) || null;
@@ -433,6 +435,44 @@ export default function App() {
     return summary && typeof summary === "object" ? summary : {};
   }, [metrics, summary, filteredProjectCode]);
 
+async function handleProjectInvitesExport() {
+  if (!filters.project_code) {
+    setDetailError("Selecciona un project_code antes de exportar invitados.");
+    return;
+  }
+
+  const email = window.prompt("Email para recibir el export de invitados:");
+
+  if (!email) return;
+
+  setGlobalMessage("");
+  setDetailError("");
+
+  try {
+    await exportProjectInvitesAsync(filters, email);
+    setGlobalMessage("Export de invitados iniciado. Recibirás un email con el archivo.");
+  } catch (error) {
+    setDetailError(error.message || "No se pudo iniciar el export de invitados");
+  }
+}
+
+async function handleAsyncExport() {
+  const email = window.prompt("Email para recibir el link del export:");
+
+  if (!email) return;
+
+  setGlobalMessage("");
+  setDetailError("");
+
+  try {
+    await exportConversationsAsync(filters, email);
+    setGlobalMessage("Export iniciado. Recibirás un email con el link de descarga.");
+  } catch (error) {
+    setDetailError(error.message || "No se pudo iniciar el export");
+  }
+}
+
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -440,8 +480,24 @@ export default function App() {
           <h1>WhatsApp Inbox</h1>
           <p>Gestión interna de conversaciones con panelistas</p>
         </div>
+
 <button
-  onClick={() => exportConversations(filters)}
+  onClick={handleProjectInvitesExport}
+  style={{
+    padding: "8px 12px",
+    borderRadius: 8,
+    border: "1px solid #cbd5e1",
+    background: "#fef3c7",
+    cursor: "pointer",
+    fontWeight: "bold",
+    marginLeft: 10
+  }}
+>
+  Export Invites
+</button>
+
+<button
+  onClick={handleAsyncExport}
   style={{
     padding: "8px 12px",
     borderRadius: 8,
@@ -452,7 +508,7 @@ export default function App() {
     marginLeft: 10
   }}
 >
-  Export CSV
+  Export Chats
 </button>
 
         <button

@@ -243,9 +243,8 @@ def export
     end
   end
 
-  # 🔹 PAGINACIÓN + LÍMITE
   max_limit = 10_000
-  requested_limit = params[:limit].to_i
+  requested_limit = params[:export_limit].to_i
 
   export_limit =
     if requested_limit <= 0
@@ -260,11 +259,10 @@ def export
   page = 1 if page <= 0
 
   offset = (page - 1) * export_limit
-
   conversations = scope.limit(export_limit).offset(offset)
 
-  csv = CSV.generate(headers: true) do |csv|
-    csv << [
+  csv_data = CSV.generate(headers: true) do |csv_builder|
+    csv_builder << [
       "estado",
       "project_code",
       "panelist_id",
@@ -291,34 +289,59 @@ def export
     conversations.each do |c|
       context = serialize_conversation_context(c)
 
-      messages = c.whatsapp_messages.chronological
-
-      inbound = messages.select(&:inbound?)
-      outbound = messages.select(&:outbound?)
-
-      # 🔹 OPTIN (OK)
-      optin = inbound.find { |m| m.message_body.to_s.strip.downcase == "ok" }
-
-      # 🔹 primera respuesta proyecto
-      first_project = inbound.first
-
-      # 🔹 últimas
-      last_inbound = inbound.last
-      last_outbound = outbound.select { |m| m.source == 'agent' }.last
-
-      # 🔹 extracto últimas 10
-      last_10 = messages.last(10).map do |m|
-        text = m.message_body.to_s.gsub("\n", " ")
-        m.source == 'agent' ? "**#{text}**" : text
-      end.join(" | ")
-
-      # 🔹 COUNTRY FALLBACK (clave para OPTIN)
       export_country =
         context[:panelist_country].presence ||
         (c.respond_to?(:panelist_country) ? c.panelist_country : nil).presence ||
         (c.respond_to?(:user) && c.user&.country).presence
 
-      csv << [
+      if params[:country].present?
+        next unless export_country.to_s.strip.downcase == params[:country].to_s.strip.downcase
+      end
+
+      if params[:last_reply_type].present?
+        case params[:last_reply_type].to_s
+        when 'one'
+          next unless context[:last_inbound_reply_type] == 'one'
+        when 'two'
+          next unless context[:last_inbound_reply_type] == 'two'
+        when 'other'
+          next unless context[:last_inbound_reply_type] == 'other'
+        end
+      end
+
+      if params[:last_reply_answered].present?
+        case params[:last_reply_answered].to_s
+        when 'yes'
+          next unless context[:last_inbound_requires_reply] == false
+        when 'no'
+          next unless context[:last_inbound_requires_reply] == true
+        end
+      end
+
+      if params[:last_reply_window].present?
+        case params[:last_reply_window].to_s
+        when 'within_24h'
+          next unless context[:last_inbound_within_24h] == true
+        when 'older'
+          next unless context[:last_inbound_within_24h] == false
+        end
+      end
+
+      messages = c.whatsapp_messages.chronological.to_a
+      inbound = messages.select(&:inbound?)
+      outbound = messages.select(&:outbound?)
+
+      optin = inbound.find { |m| m.message_body.to_s.strip.downcase == "ok" }
+      first_project = inbound.first
+      last_inbound = inbound.last
+      last_outbound = outbound.select { |m| m.source == 'agent' }.last
+
+      last_10 = messages.last(10).map do |m|
+        text = m.message_body.to_s.gsub("\n", " ")
+        m.source == 'agent' ? "**#{text}**" : text
+      end.join(" | ")
+
+      csv_builder << [
         c.status,
         c.project_code,
         c.panelist_id,
@@ -344,19 +367,76 @@ def export
     end
   end
 
-  send_data csv,
+  send_data csv_data,
             filename: "whatsapp_export_p#{page}_#{Time.now.to_i}.csv",
             type: "text/csv"
 end
-  send_data csv,
-            filename: "whatsapp_inbox_export_#{Time.now.to_i}.csv",
-            type: "text/csv"
+
+
+def export_project_invites_async
+  email = params[:email].to_s.strip.downcase
+  project_code = params[:project_code].to_s.strip
+
+  if email.blank?
+    render json: { success: false, message: "Email is required" }, status: :unprocessable_entity
+    return
+  end
+
+  if project_code.blank?
+    render json: { success: false, message: "Project code is required" }, status: :unprocessable_entity
+    return
+  end
+
+  WhatsappProjectInviteExportWorker.perform_async(
+    @internal_user.id,
+    email,
+    project_code
+  )
+
+  render json: {
+    success: true,
+    message: "Project invites export started. You will receive it by email."
+  }
+end
+
+
+  
+def export_async
+  email = params[:email].to_s.strip.downcase
+
+  if email.blank?
+    render json: {
+      success: false,
+      message: "Email is required"
+    }, status: :unprocessable_entity
+    return
+  end
+
+  filters = {
+    project_code: params[:project_code],
+    panelist_id: params[:panelist_id],
+    status: params[:status],
+    last_reply_type: params[:last_reply_type],
+    last_reply_answered: params[:last_reply_answered],
+    last_reply_window: params[:last_reply_window],
+    country: params[:country]
+  }.compact
+
+  WhatsappExportWorker.perform_async(
+    @internal_user.id,
+    email,
+    filters
+  )
+
+  render json: {
+    success: true,
+    message: "Export started. You will receive an email with the enclosed file."
+  }
 end
 
 
 
-
-  def resolve
+def resolve
     @conversation.mark_resolved!(@internal_user)
 
     render json: {
