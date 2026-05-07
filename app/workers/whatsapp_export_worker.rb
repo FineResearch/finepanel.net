@@ -57,25 +57,33 @@ class WhatsappExportWorker
       end
     end
 
-    base_url = ENV["SERVICE_URL"].presence || "https://inbox.finepanel.net"
-    download_url = "#{base_url}/exports/whatsapp/#{filename}"
+    Rails.logger.info(
+      "[WhatsappExportWorker] before email to=#{email} file_path=#{file_path} file_exists=#{File.exist?(file_path)} file_size=#{File.exist?(file_path) ? File.size(file_path) : 0}"
+    )
 
     ApplicationMailer.send_plain_email(
       to: email,
-      from: "aidda@fine-research.com",
+      from: "auto-export@fine-research.com",
       subject: "WhatsApp export ready",
-      text_body: "Your WhatsApp export is ready:\n\n#{download_url}\n\nThis file may be removed after a few days."
+      text_body: "Your WhatsApp export is attached to this email.",
+      attachment_path: file_path.to_s
     )
+
+    Rails.logger.info("[WhatsappExportWorker] after email to=#{email}")
   rescue => e
     Rails.logger.error("[WhatsappExportWorker] Failed: #{e.class} - #{e.message}")
     Rails.logger.error(e.backtrace.join("\n")) if e.backtrace.present?
 
-    ApplicationMailer.send_plain_email(
-      to: email,
-      from: "aidda@fine-research.com",
-      subject: "WhatsApp export failed",
-      text_body: "The WhatsApp export failed.\n\nError: #{e.class} - #{e.message}"
-    ) if email.present?
+    begin
+      ApplicationMailer.send_plain_email(
+        to: email,
+        from: "auto-export@fine-research.com",
+        subject: "WhatsApp export failed",
+        text_body: "The WhatsApp export failed.\n\nError: #{e.class} - #{e.message}"
+      ) if email.present?
+    rescue => mail_error
+      Rails.logger.error("[WhatsappExportWorker] failed to send failure email: #{mail_error.class} - #{mail_error.message}")
+    end
 
     raise e
   end
