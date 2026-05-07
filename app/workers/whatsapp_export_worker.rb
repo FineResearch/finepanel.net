@@ -61,14 +61,10 @@ class WhatsappExportWorker
     puts before_message
     Rails.logger.info(before_message)
 
-    ApplicationMailer.new.send_plain_email(
-      to: email,
-      from: "auto-export@fine-research.com",
-      subject: "WhatsApp export ready",
-      text_body: "Your WhatsApp export is attached to this email.",
-      attachment_path: file_path.to_s
-    )
-
+    WhatsappExportMailer.new.export_ready_email(
+  to: email,
+  file_path: file_path.to_s
+)
     after_message = "[WhatsappExportWorker] after email to=#{email}"
     puts after_message
     Rails.logger.info(after_message)
@@ -77,12 +73,10 @@ class WhatsappExportWorker
     Rails.logger.error(e.backtrace.join("\n")) if e.backtrace.present?
 
     begin
-      ApplicationMailer.new.send_plain_email(
-        to: email,
-        from: "auto-export@fine-research.com",
-        subject: "WhatsApp export failed",
-        text_body: "The WhatsApp export failed.\n\nError: #{e.class} - #{e.message}"
-      ) if email.present?
+WhatsappExportMailer.new.export_failed_email(
+  to: email,
+  error_message: "#{e.class} - #{e.message}"
+) if email.present?
     rescue => mail_error
       Rails.logger.error("[WhatsappExportWorker] failed to send failure email: #{mail_error.class} - #{mail_error.message}")
     end
