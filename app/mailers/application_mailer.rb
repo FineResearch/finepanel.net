@@ -7,8 +7,6 @@ class ApplicationMailer < ActionMailer::Base
     @client = SendGrid::API.new(api_key: ENV['SENDGRID_API_KEY']).client
   end
 
-  private
-
   def generate_email(template_id, from)
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: from)
@@ -17,31 +15,33 @@ class ApplicationMailer < ActionMailer::Base
     mail
   end
 
-def generate_personalization(recipient_email)
-  personalization = SendGrid::Personalization.new
+  def self.send_plain_email(to:, from:, subject:, text_body:)
+    mail = SendGrid::Mail.new
+    mail.from = Email.new(email: from)
 
-  recipient_email.to_s.split(',').map(&:strip).reject(&:blank?).each do |email|
-    personalization.add_to(Email.new(email: email))
+    personalization = SendGrid::Personalization.new
+    to.to_s.split(',').map(&:strip).reject(&:blank?).each do |email|
+      personalization.add_to(Email.new(email: email))
+    end
+    personalization.subject = subject.to_s
+
+    mail.add_personalization(personalization)
+    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: text_body.to_s))
+
+    new.send(:send_email, mail)
   end
 
-  personalization
-end
+  private
 
-def self.send_plain_email(to:, from:, subject:, text_body:)
-  mail = SendGrid::Mail.new
-  mail.from = Email.new(email: from)
+  def generate_personalization(recipient_email)
+    personalization = SendGrid::Personalization.new
 
-  personalization = SendGrid::Personalization.new
-  to.to_s.split(',').map(&:strip).reject(&:blank?).each do |email|
-    personalization.add_to(Email.new(email: email))
+    recipient_email.to_s.split(',').map(&:strip).reject(&:blank?).each do |email|
+      personalization.add_to(Email.new(email: email))
+    end
+
+    personalization
   end
-  personalization.subject = subject.to_s
-
-  mail.add_personalization(personalization)
-  mail.add_content(SendGrid::Content.new(type: 'text/plain', value: text_body.to_s))
-
-  new.send_email(mail)
-end
 
   def send_email(mail)
     response = @client.mail._('send').post(request_body: mail.to_json)
