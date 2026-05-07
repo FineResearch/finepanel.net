@@ -61,7 +61,7 @@ class WhatsappExportWorker
     puts before_message
     Rails.logger.info(before_message)
 
-    ApplicationMailer.send_plain_email(
+    ApplicationMailer.new.send_plain_email(
       to: email,
       from: "auto-export@fine-research.com",
       subject: "WhatsApp export ready",
@@ -77,7 +77,7 @@ class WhatsappExportWorker
     Rails.logger.error(e.backtrace.join("\n")) if e.backtrace.present?
 
     begin
-      ApplicationMailer.send_plain_email(
+      ApplicationMailer.new.send_plain_email(
         to: email,
         from: "auto-export@fine-research.com",
         subject: "WhatsApp export failed",
