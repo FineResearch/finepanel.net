@@ -152,6 +152,7 @@ end
 
       def handle_inbound_message
         payload = params.to_unsafe_h
+        Rails.logger.info("[WhatsAppInboundRaw] payload=#{payload.to_json}")
 
         value = payload.dig('entry', 0, 'changes', 0, 'value')
         contact_information = value&.dig('contacts', 0)
@@ -579,6 +580,19 @@ end
 
 	panelist_user = panelist_record&.user || last_outbound&.user        
 
+if panelist_user.present?
+  panelist_user.update!(
+    whatsapp_opt_in: false,
+    whatsapp_opt_in_at: nil,
+    whatsapp_opt_in_source: 'whatsapp_cancelar'
+  )
+
+  Rails.logger.info(
+    "[WhatsAppInbound] User marked as whatsapp opt-out user_id=#{panelist_user.id} phone=#{inbound_number}"
+  )
+end
+
+
 WhatsappMailer.whatsapp_opt_out_alert(
   support_email: support_email,
   exclusion_link: exclusion_link.to_s,
@@ -725,7 +739,25 @@ end
           return conversation
         end
 
-        nil
+        Rails.logger.info(
+          "[WhatsAppInbound] creating_unmatched_conversation from=#{inbound_number} country=#{panelist_country}"
+        )
+
+        conversation = WhatsappConversation.find_or_initialize_by(
+          panelist_id: inbound_number,
+          project_code: 'UNMATCHED'
+        )
+
+        conversation.user = user if user.present?
+        conversation.panelist_email = last_outbound&.panelist_email
+        conversation.whatsapp_number = inbound_number
+        conversation.sample_number = last_outbound&.sample_number
+        conversation.support_email = last_outbound&.support_email
+        conversation.panelist_country = panelist_country
+        conversation.status = 'open'
+        conversation.save!
+
+        conversation
       rescue StandardError => e
         Rails.logger.error("[WhatsAppInbound] find_or_create_conversation error: #{e.class} - #{e.message}")
         nil
@@ -742,7 +774,16 @@ end
       end
 
       def normalize_phone(phone)
-        phone.to_s.gsub(/\D/, '')
+        digits = phone.to_s.gsub(/\D/, '')
+
+        # WhatsApp Mexico normalization:
+        # Meta may send Mexican mobile numbers as 521XXXXXXXXXX,
+        # while our database stores them as 52XXXXXXXXXX.
+        if digits.start_with?('521') && digits.length == 13
+          digits = "52#{digits[3..-1]}"
+        end
+
+        digits
       end
 
       def parse_timestamp(timestamp)
