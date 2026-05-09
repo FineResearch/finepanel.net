@@ -4,7 +4,7 @@ require 'json'
 
 module WhatsApp
   class Client
-    DEFAULT_API_VERSION = 'v18.0'.freeze
+    DEFAULT_API_VERSION = 'v23.0'.freeze
 
     def send_message(phone_number_id: nil, to_number:, parameters:, language:, template:)
       resolved_phone_number_id = phone_number_id.presence || default_phone_number_id
