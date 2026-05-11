@@ -744,9 +744,11 @@ end
         )
 
         conversation = WhatsappConversation.find_or_initialize_by(
-          panelist_id: inbound_number,
-          project_code: 'UNMATCHED'
+          project_code: 'UNMATCHED',
+          whatsapp_number: inbound_number
         )
+
+        conversation.panelist_id = "unmatched-#{inbound_number.last(6)}" if conversation.panelist_id.blank?
 
         conversation.user = user if user.present?
         conversation.panelist_email = last_outbound&.panelist_email
