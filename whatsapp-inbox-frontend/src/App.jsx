@@ -10,7 +10,7 @@ import {
   sendText,
   fetchProjectMetrics,
   sendReminder,
-  exportConversationsAsync
+  exportConversationsAsync,
   exportProjectInvitesAsync
 } from "./api";
 
@@ -123,7 +123,7 @@ export default function App() {
   const [globalMessage, setGlobalMessage] = useState("");
   const [metrics, setMetrics] = useState({});
   const [summary, setSummary] = useState({});
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+// Auto-refresh eliminado para evitar desalineación de conversaciones 
 
   const knownConversationFingerprintsRef = useRef(new Map());
   const pollingStartedRef = useRef(false);
@@ -281,37 +281,7 @@ export default function App() {
     loadConversationDetail(selectedConversationId);
   }, [selectedConversationId]);
 
-  useEffect(() => {
-    if (!autoRefreshEnabled) {
-      return undefined;
-    }
-
-    const intervalId = window.setInterval(async () => {
-      await loadConversations(true, { silent: true });
-      await loadProjectMetrics({ silent: true });
-
-      if (selectedConversationId) {
-        await loadConversationDetail(selectedConversationId, { silent: true });
-      }
-    }, 5000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    autoRefreshEnabled,
-    selectedConversationId,
-    filters.status,
-    filters.project_code,
-    filters.panelist_id,
-    filters.last_reply_type,
-    filters.last_reply_answered,
-    filters.last_reply_window,
-    filters.country,
-    filters.limit
-  ]);
-
+  
   async function refreshAll(keepCurrentMessage = true) {
     await loadConversations(true);
     await loadProjectMetrics({ silent: true });
@@ -393,26 +363,34 @@ export default function App() {
     }
   }
 
-  async function handleSendText(conversationId, messageBody) {
+async function handleSendText(conversationId, messageBody) {
   const targetConversationId = conversationId || selectedConversationId;
-  if (!targetConversationId) return;
+
+  if (!targetConversationId) {
+    setDetailError("No hay conversación seleccionada");
+    return;
+  }
+
+  const lockedConversationId = targetConversationId;
 
   setActionLoading(true);
   setGlobalMessage("");
   setDetailError("");
 
   try {
-    await sendText(targetConversationId, messageBody);
+    await sendText(lockedConversationId, messageBody);
     setGlobalMessage("Mensaje enviado");
+
     await refreshAll();
-    await loadConversationDetail(targetConversationId);
-    setSelectedConversationId(targetConversationId);
+    await loadConversationDetail(lockedConversationId);
+    setSelectedConversationId(lockedConversationId);
   } catch (error) {
     setDetailError(error.message || "No se pudo enviar el mensaje");
   } finally {
     setActionLoading(false);
   }
-}
+}  
+
   const selectedConversationSummary = useMemo(() => {
     const safeConversations = Array.isArray(conversations) ? conversations : [];
     return safeConversations.find((c) => c?.id === selectedConversationId) || null;
@@ -512,18 +490,18 @@ async function handleAsyncExport() {
 </button>
 
         <button
-          type="button"
-          onClick={() => setAutoRefreshEnabled((prev) => !prev)}
+  type="button"
+  onClick={() => refreshAll()}
           style={{
             padding: "8px 12px",
             borderRadius: 8,
             border: "1px solid #cbd5e1",
-            background: autoRefreshEnabled ? "#dcfce7" : "#fee2e2",
+            background: "#dcfce7",
             cursor: "pointer",
             fontWeight: "bold"
           }}
         >
-          Auto-refresh: {autoRefreshEnabled ? "ON" : "OFF"}
+          Actualizar
         </button>
       </header>
 
