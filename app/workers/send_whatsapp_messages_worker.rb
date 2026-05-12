@@ -662,7 +662,7 @@ end
     end
 
     language = resolve_language(whatsapp_number)
-    template_name = template_name_for_language(language)
+template_name = template_name_for_language(language, values)    
 
     if invitation_template_already_sent_successfully?(
       values[:codigodelproyecto],
@@ -876,14 +876,22 @@ end
                     .count(:whatsapp_number)
   end
 
-  def template_name_for_language(language)
-    case language
-    when 'pt_BR'
-      'survey_invitation_reply_v1'
-    else
-      'survey_invitation_reply_v1_es'
-    end
+  def template_name_for_language(language, values = {})
+  template_type = values[:template].to_s.strip.upcase
+
+  if template_type == 'QUALI'
+    return language == 'pt_BR' ?
+      'invitacion_quali_pt' :
+      'invitacion_quali_es'
   end
+
+  case language
+  when 'pt_BR'
+    'survey_invitation_reply_v1'
+  else
+    'survey_invitation_reply_v1_es'
+  end
+end
 
   def optin_template_name_for_language(language)
     language == 'pt_BR' ? 'preferencia_pt' : 'preferencia_es'
