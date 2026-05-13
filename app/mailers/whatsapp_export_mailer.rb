@@ -3,7 +3,7 @@
 require 'base64'
 
 class WhatsappExportMailer < ApplicationMailer
-  FROM = 'auto-export@fine-research.com'.freeze
+  FROM = 'auto-export@finepanel.net'.freeze
 
   def export_ready_email(to:, file_path:)
     puts "[WhatsappExportMailer] export_ready_email start to=#{to} file_path=#{file_path}"
