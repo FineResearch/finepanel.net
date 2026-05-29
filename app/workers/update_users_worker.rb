@@ -36,10 +36,13 @@ class UpdateUsersWorker
           whatsapp_number: whatsapp_number
         }
 
-        # 🔹 NUEVA LOGICA: habilitawapp → opt-in
-        habilita_wapp = row[:habilitawapp].to_s.strip
+habilita_wapp =
+  row[:habilitawapp].presence ||
+  row[:habilitawapp_habilitawapp].presence
 
-        if row.key?(:habilitawapp) && habilita_wapp == '1'
+habilita_wapp = habilita_wapp.to_s.strip.downcase
+
+if habilita_wapp.present? && %w[1 true yes sim si s y].include?(habilita_wapp)
           attributes[:whatsapp_opt_in] = true
           attributes[:whatsapp_opt_in_at] ||= Time.current
           attributes[:whatsapp_opt_in_source] = 'forsta_habilitawapp'
