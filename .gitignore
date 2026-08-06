@@ -7,6 +7,9 @@
 # Ignore bundler config.
 .bundle
 
+# Credenciales locales (nunca subir, son de tu cuenta de Google Cloud)
+config/google_translate_key.local.json
+
 # Ignore the default SQLite database.
 db/*.sqlite3
 db/*.sqlite3-journal

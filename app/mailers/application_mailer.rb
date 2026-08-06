@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ostruct'
+
 class ApplicationMailer < ActionMailer::Base
   include SendGrid
 
@@ -44,6 +46,11 @@ class ApplicationMailer < ActionMailer::Base
   end
 
   def send_email(mail)
+    if ENV['DISABLE_EMAIL_DELIVERY'] == 'true'
+      Rails.logger.info("[SendGrid] DISABLE_EMAIL_DELIVERY=true - email simulado (no enviado). payload=#{mail.to_json}")
+      return OpenStruct.new(status_code: '200', body: '{"stubbed":true}', headers: {})
+    end
+
     response = @client.mail._('send').post(request_body: mail.to_json)
 
     Rails.logger.info("[SendGrid] status=#{response.status_code} body=#{response.body}\nheaders=#{response.headers}")

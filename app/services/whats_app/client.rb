@@ -63,6 +63,18 @@ module WhatsApp
     private
 
     def post_message(phone_number_id:, payload:)
+      if ENV['DISABLE_WHATSAPP_SEND'] == 'true'
+        Rails.logger.info(
+          "[WhatsApp::Client] DISABLE_WHATSAPP_SEND=true - envio simulado. " \
+          "phone_number_id=#{phone_number_id} payload=#{payload.to_json}"
+        )
+        return {
+          'messaging_product' => 'whatsapp',
+          'contacts' => [{ 'input' => payload[:to], 'wa_id' => payload[:to] }],
+          'messages' => [{ 'id' => "stub-#{SecureRandom.hex(8)}" }]
+        }
+      end
+
       uri = URI.parse("#{api_base_url}/#{phone_number_id}/messages")
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true

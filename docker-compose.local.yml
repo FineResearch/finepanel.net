@@ -30,7 +30,7 @@ services:
       - .env
     volumes:
       - $PWD:/app
-      - /bundle
+      - bundle_gems:/bundle
 
   sidekiq:
     tty: true
@@ -46,4 +46,42 @@ services:
       - .env
     volumes:
       - $PWD:/app
-      - /bundle
+      - bundle_gems_sidekiq:/bundle
+
+  # Build puntual del inbox de WhatsApp (React/Vite). No es un servicio persistente:
+  # se corre a demanda con `docker compose run --rm frontend-build` y deja el resultado
+  # en whatsapp-inbox-frontend/dist, que luego se copia a public/whatsapp-inbox.
+  frontend-build:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./whatsapp-inbox-frontend:/app
+    command: sh -c "npm install && npm run build"
+
+  # Frontend real (Next.js, finepanel-frontend) recuperado desde el contenedor
+  # de staging via SSM (no estaba en ningun repo local). Corre en el puerto 3001,
+  # que ya coincide con el default de APP_FRONTEND_URL en config/initializers/cors.rb.
+  web:
+    image: node:16
+    working_dir: /app
+    volumes:
+      - ../finepanel-frontend:/app
+      - web_node_modules:/app/node_modules
+    ports:
+      - "3001:3000"
+    environment:
+      API_BACKEND_URL: http://localhost:3000/api/v1/
+      DOMAIN: localhost
+      ALLOW_CREATE_NEWS: soporte@finepanel.net
+      # Necesario en Windows: los bind mounts de Docker Desktop no siempre
+      # disparan inotify, y next dev no detecta cambios de archivos sin esto.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    command: sh -c "yarn install && yarn dev"
+    depends_on:
+      - api
+
+volumes:
+  bundle_gems:
+  bundle_gems_sidekiq:
+  web_node_modules:

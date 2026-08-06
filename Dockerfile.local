@@ -17,7 +17,14 @@ ENV AUTOMATICALLY_MIGRATE=$AUTOMATICALLY_MIGRATE
 
 # Install base packages and other software
 RUN apk add --no-cache nodejs build-base postgresql-dev libxml2-dev libxslt-dev sqlite-dev tzdata \
-  git openssh postgresql
+  git openssh postgresql gcc libtool linux-headers ca-certificates openssl
+
+# --- SSL.com root CA fix (mismo fix que Dockerfile.release, commit 89dc862) ---
+RUN mkdir -p /usr/local/share/ca-certificates
+COPY sslcom-root-ca-rsa.crt /usr/local/share/ca-certificates/sslcom-root-ca-rsa.crt
+RUN update-ca-certificates
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+# --- end SSL.com fix ---
 
 ##########################
 # Set working directory  #
