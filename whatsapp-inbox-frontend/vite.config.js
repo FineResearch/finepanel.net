@@ -9,7 +9,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/internal": {
-        target: "http://127.0.0.1:32866",
+        // Antes apuntaba a http://127.0.0.1:32866 (puerto de un entorno previo).
+        // En el compose local, el servicio "api" publica el puerto 3000 en el host.
+        target: "http://localhost:3000",
         changeOrigin: true
       }
     }

@@ -55,8 +55,8 @@ export default function ConversationList({
 
   const sortedConversations = useMemo(() => {
     return safeConversations.slice().sort((a, b) => {
-      const aNeedsFollowUp = a?.requires_human_follow_up ? 1 : 0;
-      const bNeedsFollowUp = b?.requires_human_follow_up ? 1 : 0;
+      const aNeedsFollowUp = a?.requires_human_follow_up && a?.status === "open" ? 1 : 0;
+      const bNeedsFollowUp = b?.requires_human_follow_up && b?.status === "open" ? 1 : 0;
 
       if (aNeedsFollowUp !== bNeedsFollowUp) {
         return bNeedsFollowUp - aNeedsFollowUp;

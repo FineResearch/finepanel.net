@@ -261,22 +261,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    loadConversations(true);
-    loadProjectMetrics({ silent: true });
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    filters.status,
-    filters.project_code,
-    filters.panelist_id,
-    filters.last_reply_type,
-    filters.last_reply_answered,
-    filters.last_reply_window,
-    filters.country,
-    filters.limit
-  ]);
-
+  
   useEffect(() => {
     loadConversationDetail(selectedConversationId);
   }, [selectedConversationId]);
