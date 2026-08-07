@@ -31,6 +31,12 @@ services:
     volumes:
       - $PWD:/app
       - bundle_gems:/bundle
+      # tmp/cache (bootsnap) va aparte del bind mount: escribir miles de
+      # archivos chicos de cache sobre el bind mount de Windows es
+      # extremadamente lento y hacia que el primer boot de rspec (sin cache
+      # tibio para las gemas de test) tardara 10+ minutos o directamente
+      # nunca terminara.
+      - bootsnap_cache_api:/app/tmp/cache
 
   sidekiq:
     tty: true
@@ -47,6 +53,7 @@ services:
     volumes:
       - $PWD:/app
       - bundle_gems_sidekiq:/bundle
+      - bootsnap_cache_sidekiq:/app/tmp/cache
 
   # Build puntual del inbox de WhatsApp (React/Vite). No es un servicio persistente:
   # se corre a demanda con `docker compose run --rm frontend-build` y deja el resultado
@@ -84,4 +91,6 @@ services:
 volumes:
   bundle_gems:
   bundle_gems_sidekiq:
+  bootsnap_cache_api:
+  bootsnap_cache_sidekiq:
   web_node_modules:

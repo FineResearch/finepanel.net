@@ -125,7 +125,9 @@ end
 
       resources :news_feed, only: [:index, :create, :destroy] do
         post :increment_view_count, on: :member
+        post :react, on: :member
         get :search, on: :collection
+        get :home_highlights, on: :collection
       end
 
       resources :user_information, only: [:index] do

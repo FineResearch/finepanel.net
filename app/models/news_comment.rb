@@ -22,8 +22,13 @@ class NewsComment < ApplicationRecord
 
   # -- Callbacks --
   after_create :deliver_notification_mails
+  after_create :check_conversation_reminder
 
   def deliver_notification_mails
     NewsCommentMailer.news_comment_email(self, user.user_respid(user_info['email'])).deliver_later
+  end
+
+  def check_conversation_reminder
+    NewsCommentReminderWorker.perform_async(news_feed_id)
   end
 end

@@ -726,6 +726,13 @@ pt:
       p1_1: "O seu colega %{colleague_name} respondeu o comentário:"
       p1_2: "para vê-lo pode ir para https://finepanel.net e digite seu e-mail e senha"
       signature: Comunidade FinePanel
+    news_conversation_reminder:
+      subject: "A conversa sobre esta atualização continua"
+      heading: "Outros especialistas compartilharam novas experiências"
+      intro: "Desde sua participação, outros profissionais trouxeram novos pontos de vista sobre:"
+      invite: "Volte à conversa para saber como outros colegas da América Latina estão abordando este tema."
+      countries: "Profissionais de %{countries} compartilharam novas experiências."
+      cta: "Continuar a conversa"
 
   bank_account_types:
     checking_account: Conta corrente

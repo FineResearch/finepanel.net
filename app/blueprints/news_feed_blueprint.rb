@@ -43,5 +43,27 @@ class NewsFeedBlueprint < Blueprinter::Base
     news_feed.view_count
   end
 
+  field :usefulCount do |news_feed|
+    news_feed.news_feed_reactions.where(useful: true).count
+  end
+
+  field :myReaction do |news_feed, options|
+    next nil unless options[:current_user].present?
+
+    reaction = news_feed.news_feed_reactions.find_by(user_id: options[:current_user].id)
+    reaction&.useful
+  end
+
+  field :fineNewsSummary do |news_feed, options|
+    next nil unless news_feed.fine_news_summary.present?
+
+    locale = options[:locale]
+    if locale.present? && %w{es pt}.include?(locale)
+      news_feed.fine_news_summary_translations&.dig(locale).presence || news_feed.fine_news_summary
+    else
+      news_feed.fine_news_summary
+    end
+  end
+
   association :news_comments, blueprint: NewsCommentBlueprint
 end

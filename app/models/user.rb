@@ -10,6 +10,8 @@ class User < ApplicationRecord
   has_many :posts
   has_many :comments
   has_many :news_comments
+  has_many :notifications
+  has_many :news_feed_reactions
 
   scope :with_active_app, -> { where(active_app: true) }
 

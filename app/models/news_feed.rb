@@ -23,6 +23,8 @@ class NewsFeed < ApplicationRecord
   belongs_to :article
   has_many :news_comments, dependent: :destroy
   has_many :news_feed_translations, dependent: :destroy
+  has_many :notifications, dependent: :destroy
+  has_many :news_feed_reactions, dependent: :destroy
 
   DYNAMED_HOST = "https://www.dynamed.com"
   AVAILABLE_LOCALS = %w{es pt}
