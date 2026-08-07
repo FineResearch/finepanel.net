@@ -302,7 +302,7 @@ end
 
     def resolve_whatsapp_number(conversation)
       outbound = conversation.related_outbounds.order(created_at: :desc).first
-      outbound&.whatsapp_number.to_s.gsub(/\D/, '')
+      WhatsApp::PhoneNormalizer.normalize(outbound&.whatsapp_number)
     end
 
     def resolve_survey_link(conversation)

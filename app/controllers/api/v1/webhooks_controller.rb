@@ -690,28 +690,72 @@ end
         message_body.to_s.strip.downcase
       end
 
+      # Builds a "column LIKE ? OR column LIKE ? ..." condition covering every
+      # plausible Brazilian "9"-digit variant of normalized_number, so a
+      # lookup succeeds regardless of which format the stored value happens
+      # to use. For non-Brazilian numbers this is equivalent to a single
+      # plain LIKE (unchanged behavior).
+      def phone_match_condition(column_sql, normalized_number)
+        variants = WhatsApp::PhoneNormalizer.brazil_match_variants(normalized_number)
+        sql = variants.map { "#{column_sql} LIKE ?" }.join(' OR ')
+        binds = variants.map { |variant| "%#{variant}%" }
+
+        [sql, binds]
+      end
+
       def find_user_by_whatsapp(number)
         normalized_number = normalize_phone(number)
         return nil if normalized_number.blank?
 
-        User.where(
-          "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(whatsapp_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?",
-          "%#{normalized_number}%"
-        ).first
+        sql, binds = phone_match_condition(
+          "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(whatsapp_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '')",
+          normalized_number
+        )
+
+        candidates = User.where(sql, *binds).to_a
+        return nil if candidates.empty?
+        return candidates.first if candidates.one?
+
+        # Multiple users share this whatsapp_number. In practice this is
+        # usually the same person who signed up more than once with a
+        # different email but kept the same phone -- their WhatsApp reply
+        # can arrive regardless of which account it "belongs" to. Prefer
+        # whichever account most recently received an outbound message,
+        # since that's the conversation this reply is most likely
+        # continuing, instead of an arbitrary/unordered .first (which
+        # previously could pick an account with no outbound history at
+        # all and made find_last_outbound miss real history entirely --
+        # see find_last_outbound below).
+        candidates.max_by do |candidate|
+          WhatsappOutbound.where(user_id: candidate.id).maximum(:created_at) || Time.at(0)
+        end
       rescue StandardError => e
         Rails.logger.error("[WhatsAppInbound] find_user_by_whatsapp error: #{e.class} - #{e.message}")
         nil
       end
 
       def find_last_outbound(user, number)
-        return WhatsappOutbound.where(user_id: user.id).order(created_at: :desc).first if user.present?
-
         normalized_number = normalize_phone(number)
-        return nil if normalized_number.blank?
 
-        WhatsappOutbound.where("whatsapp_number LIKE ?", "%#{normalized_number}%")
-                        .order(created_at: :desc)
-                        .first
+        by_user =
+          if user.present?
+            WhatsappOutbound.where(user_id: user.id).order(created_at: :desc).first
+          end
+
+        by_phone =
+          if normalized_number.present?
+            sql, binds = phone_match_condition('whatsapp_number', normalized_number)
+            WhatsappOutbound.where(sql, *binds).order(created_at: :desc).first
+          end
+
+        # Previously, finding a user short-circuited to a user_id-only
+        # lookup and never considered the phone number at all. When a
+        # user's whatsapp_number is duplicated across accounts (or simply
+        # isn't the account linked to the actual outbound sends), that
+        # user_id lookup can come back empty while a phone-based lookup
+        # would have found the real, more recent outbound. Consider both
+        # and keep whichever is more recent.
+        [by_user, by_phone].compact.max_by(&:created_at)
       rescue StandardError => e
         Rails.logger.error("[WhatsAppInbound] find_last_outbound error: #{e.class} - #{e.message}")
         nil
@@ -776,16 +820,7 @@ end
       end
 
       def normalize_phone(phone)
-        digits = phone.to_s.gsub(/\D/, '')
-
-        # WhatsApp Mexico normalization:
-        # Meta may send Mexican mobile numbers as 521XXXXXXXXXX,
-        # while our database stores them as 52XXXXXXXXXX.
-        if digits.start_with?('521') && digits.length == 13
-          digits = "52#{digits[3..-1]}"
-        end
-
-        digits
+        WhatsApp::PhoneNormalizer.normalize(phone)
       end
 
       def parse_timestamp(timestamp)

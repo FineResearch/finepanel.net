@@ -299,7 +299,7 @@ class ManualMessageSender
   end
 
   def normalize_phone(phone)
-    phone.to_s.gsub(/\D/, '')
+    WhatsApp::PhoneNormalizer.normalize(phone)
   end
 
   def normalized_template_parameters(parameters)

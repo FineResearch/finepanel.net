@@ -1313,7 +1313,7 @@ pattern = /^\s*(ASUNTO|CODIGO DEL PROYECTO|DURACION|MONEDA-VALOR|ENVIA|AGREGAR T
   end
 
   def normalize_phone(phone)
-    phone.to_s.gsub(/\D/, '')
+    WhatsApp::PhoneNormalizer.normalize(phone)
   end
 
   def safe_row_log(row)
