@@ -41,7 +41,8 @@ module TranslateApi
       {
         "article_metadata" => {
           "article_category" => translate_text(metadata["article_category"], locale),
-          "evidence_source" => metadata["evidence_source"]
+          "evidence_source" => metadata["evidence_source"],
+          "suggested_image" => metadata["suggested_image"]
         },
         "editorial_content" => EDITORIAL_FIELDS.each_with_object({}) do |field, hash|
           hash[field] = translate_text(editorial[field], locale)
