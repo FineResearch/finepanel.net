@@ -31,6 +31,11 @@ resources :conversations, only: [:index, :show] do
 end
 
   end
+
+  namespace :fine_panel_setup do
+    get '/', to: 'setup#index'
+    post 'duplicate', to: 'setup#duplicate'
+  end
 end
 
   get 'health', to: 'tracked_surveys#health'

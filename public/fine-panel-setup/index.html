@@ -1,0 +1,2404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Generador — Invitación a Estudio</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: #f2f4f6;
+    color: #1a1a1a;
+  }
+  header { background: #14415E; color: #fff; padding: 18px 24px; }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 4px 0 0; font-size: 13px; color: #cbd9e2; }
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 20px;
+    padding: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  label {
+    display: block; font-size: 12px; font-weight: bold; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.4px; margin: 14px 0 6px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input[type="text"], input[type="number"], textarea, select {
+    width: 100%; padding: 9px 10px; border: 1px solid #d1d5db; border-radius: 5px;
+    font-size: 14px; font-family: inherit; resize: vertical; background: #fff;
+  }
+  textarea { min-height: 56px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+  .label-row { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 6px; }
+  .label-row label { margin: 0; }
+  .btn-small {
+    text-transform: none; letter-spacing: 0; font-weight: normal; padding: 4px 10px;
+    font-size: 11px; border-radius: 4px;
+  }
+  .opener-preview {
+    font-size: 12px; color: #4b5563; background: #f7f9fb; padding: 8px 10px;
+    border-radius: 4px; border: 1px solid #e5e7eb;
+  }
+  .preview-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+  .preview-bar {
+    background: #f7f9fb; border-bottom: 1px solid #e5e7eb; padding: 10px 16px;
+    font-size: 12px; color: #6b7280; display: flex; justify-content: space-between; align-items: center;
+  }
+  iframe { width: 100%; height: 1500px; border: 0; display: block; }
+  .code-panel { margin-top: 20px; }
+  .code-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .code-header h2 { font-size: 14px; margin: 0; }
+  button {
+    background: #14415E; color: #fff; border: none; padding: 9px 18px; border-radius: 5px;
+    font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background: #0f3349; }
+  button.copied { background: #1a7f4b; }
+  textarea#output {
+    width: 100%; height: 220px; font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 11px; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px;
+    background: #0f172a; color: #d1e7dd;
+  }
+</style>
+</head>
+<body>
+
+<header style="display:flex; align-items:center; justify-content:space-between; gap:20px;">
+  <div>
+    <h1>Generador — Invitación a Estudio Médico</h1>
+    <p>Completá los campos, revisá el preview y copiá el HTML final para pegar en la plataforma de envío.</p>
+  </div>
+  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
+    <div style="display:flex; gap:6px;">
+      <button type="button" id="saveStateBtn" style="background:#03B1B2;">💾 Guardar</button>
+      <button type="button" id="saveAsBtn" style="background:#4B667C;">📄 Guardar como...</button>
+    </div>
+    <span id="saveStateNote" style="font-size:11px; color:#cbd9e2;"></span>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="panel">
+    <label for="projectCode">Código de proyecto</label>
+    <input type="text" id="projectCode" value="FP-">
+    <div class="hint">Se usa en el asunto del e-mail en todos los tipos, y en el link de Datos de Pago (Project=FP-XXXX).</div>
+
+    <label for="forstaModeloId">Modelo de Forsta a duplicar</label>
+    <input type="text" id="forstaModeloId" value="p">
+    <div class="hint">ID del proyecto Forsta/Confirmit que se va a duplicar como base (siempre arranca con "p", ej: p774756690265). Importante: el usuario de la API (api_fineresearch) necesita tener acceso otorgado a este proyecto en Confirmit antes de duplicar — eso se hace a mano en Confirmit, no desde acá.</div>
+
+    <button type="button" id="launchSetupBtn" class="btn-small" style="margin-top:6px;">🚀 Lanzar Set Up</button>
+    <div id="launchSetupStatus" class="hint" style="margin-top:6px;"></div>
+    <div class="hint" style="margin-top:2px;">Paso 1 de varios: por ahora solo duplica el modelo con el nombre de proyecto (Código + Asunto). Lanzamiento y clave vienen después.</div>
+
+    <label for="emailPm">Email del PM</label>
+    <input type="text" id="emailPm" value="@fine-research.com">
+    <div class="hint">Escribí el usuario antes de "@fine-research.com". Se usa en el Generador de Script (A8, alertas de calidad al DP).</div>
+
+    <div class="label-row">
+      <label for="scriptTopico" style="margin:0;">Tópico</label>
+      <button type="button" id="suggestAsuntoBtn" class="btn-small">🔄 Reaplicar sugerencia</button>
+    </div>
+    <select id="scriptTopico"></select>
+    <div class="hint">Se usa en el Generador de Script (A2, campo "topico"). Los que no tienen código propio en Confirmit todavía se envían como 99/Otra. Al elegir un tópico se completan automáticamente el Asunto/Tema (más abajo, ej: "Manejo de Diabetes") y el Perfil del A4 (ej: "...con experiencia en el tratamiento de diabetes" / "...tratamiento con botox"; para "Evaluación de..." no se agrega frase de experiencia). El asunto se puede editar después sin que se pierda — usá "Reaplicar sugerencia" para volver a la versión sugerida.</div>
+
+    <label for="scriptProgramacion">Programación</label>
+    <select id="scriptProgramacion">
+      <option value="fine_confirmit">Fine en Confirmit</option>
+      <option value="fine_sipe">Fine en Sipe</option>
+      <option value="fine_stg">Fine en Survey To Go</option>
+      <option value="cliente_programa">Programación del cliente</option>
+    </select>
+    <div class="hint">Define cómo se completan "cliente"/"cliente2" en el script (A9): Fine en Confirmit → f("cliente")=FINE, el Cliente elegido abajo va en cliente2. Fine en Sipe → f("cliente")=FINE-SIPE, el Cliente elegido abajo va en cliente2. Fine en Survey To Go / Programación del cliente → el Cliente elegido abajo va directo en "cliente" y "cliente2" no se toca.</div>
+
+    <label for="scriptCliente">Cliente</label>
+    <select id="scriptCliente"></select>
+    <input type="text" id="scriptClienteCustom" placeholder="Especifique el cliente" style="display:none; margin-top:8px;">
+
+    <label id="scriptIQVIAMSDGroup" style="display:none; align-items:center; gap:6px; font-weight:normal; text-transform:none; letter-spacing:0; margin-top:8px;">
+      <input type="checkbox" id="scriptIQVIAMSD" style="width:auto;">
+      Cliente IQVIA con cliente final MSD (IQVIAMSD = ON)
+    </label>
+    <div class="hint" style="margin-bottom:14px;">Se usa en el Generador de Script (A9).</div>
+
+    <label style="margin-top:14px;">Países involucrados</label>
+    <div id="scriptCountriesGroup" style="display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:6px;"></div>
+    <div class="hint" style="margin-bottom:14px;">Se usa para armar el Generador de Script, según qué idiomas están en juego en este proyecto.</div>
+
+    <div id="clienteBrasilGroup" style="display:none;">
+      <label for="clienteBrasil">Tipo de cliente (Brasil)</label>
+      <select id="clienteBrasil">
+        <option value="internacional">Cliente Internacional</option>
+        <option value="nacional">Cliente Brasileño (Nacional)</option>
+      </select>
+      <div class="hint" style="margin-bottom:14px;">Afecta el incentivo del equipo (A6) para los contactos de Brasil. Si es cliente nacional, siempre usa la tabla "Difícil e Nacionais", sin importar la especialidad.</div>
+    </div>
+
+    <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:14px 0 6px;">
+      <input type="checkbox" id="fichaProjectCheck"> Proyecto con ficha de pacientes
+    </label>
+    <div class="hint" style="margin-bottom:10px;">Si está tildado, se agrega un aviso al "Mensaje (opcional)" de la carta (en el idioma de la carta), y se habilita la opción de pago por fichas.</div>
+
+    <div id="fichaPaymentTypeGroup" style="display:none;">
+      <label for="fichaPaymentType">Tipo de pago</label>
+      <select id="fichaPaymentType">
+        <option value="encuesta">Pago por encuesta</option>
+        <option value="ficha">Pago por fichas</option>
+      </select>
+      <div class="hint" style="margin-bottom:14px;">Si es "por fichas", cambia el cálculo de incentivos (A5, A6, A8): valor fijo por ficha en vez de la tabla por duración/especialidad.</div>
+    </div>
+
+    <div id="fichaRangeGroup" style="display:none;">
+      <div class="row2">
+        <div>
+          <label for="fichaMin">Mínimo de fichas</label>
+          <input type="text" id="fichaMin" value="2">
+        </div>
+        <div>
+          <label for="fichaMax">Máximo de fichas</label>
+          <input type="text" id="fichaMax" value="4">
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:14px;">A8 genera una línea base (proyecto sin sufijo) para el mínimo, y una línea adicional por cada cantidad entre mínimo+1 y máximo (proyecto con sufijo "-N").</div>
+
+      <label style="margin-top:0;">Valor por ficha (por país)</label>
+      <div id="fichaValuesGroup" style="display:flex; flex-direction:column; gap:8px; margin-bottom:6px;"></div>
+      <div class="hint" style="margin-bottom:14px;">Se usa igual para el panel (A5) y el equipo (A6) en todos los países, incluido Brasil.</div>
+    </div>
+
+    <div id="scriptAsuntoPtGroup" style="display:none;">
+      <label for="scriptAsuntoPt">Asunto / Tema (Português)</label>
+      <textarea id="scriptAsuntoPt">manejo de pacientes com diabetes tipo 2</textarea>
+      <div class="hint">Es el tema/perfil del estudio. Se usa tanto en el Generador de Script como en la carta (tema, asunto del e-mail), cuando la carta está en portugués.</div>
+    </div>
+
+    <div id="scriptAsuntoEsGroup" style="display:none;">
+      <label for="scriptAsuntoEs">Asunto / Tema (Español)</label>
+      <textarea id="scriptAsuntoEs">manejo de pacientes con diabetes tipo 2</textarea>
+      <div class="hint">Es el tema/perfil del estudio. Se usa tanto en el Generador de Script como en la carta (tema, asunto del e-mail), cuando la carta está en español.</div>
+    </div>
+
+    <div id="especialidadeGroup">
+      <label style="margin-top:14px;">Especialidad(es)</label>
+      <div id="especialidadeCheckboxGroup" style="max-height:180px; overflow-y:auto; border:1px solid #d1d5db; border-radius:5px; padding:8px 10px; display:flex; flex-direction:column; gap:4px; margin-bottom:6px;"></div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:0;">
+        <input type="checkbox" id="especialidadeCustomCheck"> Otra (especificar)
+      </label>
+      <input type="text" id="especialidadeCustom" placeholder="Especifique la especialidad" style="display:none; margin-top:8px;">
+      <div class="hint">Si marcás más de una, se insertan en la frase de apertura separadas por coma, con "y"/"e" antes de la última: "...para especialistas en cardiología, reumatología y endocrinología...".</div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label for="duracao">Duración (minutos)</label>
+        <input type="text" id="duracao" value="20">
+        <div class="hint">Acepta texto libre, ej: "15 a 20".</div>
+      </div>
+      <div>
+        <div class="label-row">
+          <label for="valor" style="margin:0;">Honorario (valor)</label>
+          <button type="button" id="suggestValueBtn" class="btn-small">💡 Sugerir</button>
+        </div>
+        <input type="text" id="valor" value="250">
+        <div class="hint">Acepta texto libre, ej: "80 por ficha". "Sugerir" completa este campo según moneda, duración y especialidad (si hay al menos una difícil, se toma como difícil).</div>
+      </div>
+    </div>
+
+    <label for="moeda">Moneda</label>
+    <select id="moeda"></select>
+    <input type="text" id="moedaCustom" placeholder="Especifique la moneda" style="display:none; margin-top:8px;">
+
+    <div id="bonusGroup" style="display:none;">
+      <label for="bonusValor">Nuevo honorario (con bono)</label>
+      <input type="text" id="bonusValor" value="280">
+      <div class="hint">Monto total ya incrementado que se muestra en la tarjeta de honorario, combinado con la moneda de arriba. El texto del e-mail no menciona el monto, solo indica que hay un valor acrescentado.</div>
+    </div>
+
+    <label for="tipoEmail" style="margin-top:14px;">Tipo de correo</label>
+    <select id="tipoEmail">
+      <option value="invite1">1ª Invitación</option>
+      <option value="reminder1">1er Recordatorio</option>
+      <option value="lastCall">Última Invitación</option>
+      <option value="lastCallBonus">Última Invitación con Bono</option>
+      <option value="incomplete">Recordatorio de Incompletas</option>
+      <option value="incompleteBonus">Último Recordatorio de Incompletas con Bono</option>
+      <option value="filterChange">Cambio de Filtro (Nueva Invitación)</option>
+      <option value="paymentData">Datos de Pago</option>
+      <option value="refield">Preguntas Adicionales (Re-field)</option>
+      <option value="linkFixed">Link Corregido (Problema Técnico)</option>
+    </select>
+    <div class="hint" style="margin-bottom:14px;">Cambia el párrafo de apertura del e-mail. Los detalles del estudio (tema, duración, honorario) se mantienen iguales en toda la secuencia.</div>
+
+    <label for="idioma">Idioma del template</label>
+    <select id="idioma">
+      <option value="pt">Português</option>
+      <option value="es">Español</option>
+    </select>
+    <div class="hint" style="margin-bottom:14px;">
+      Las 15 preguntas de compliance y todo el texto fijo cambian de idioma automáticamente. Las variables del sistema (^Titulo^, ^surl^, etc.) nunca se modifican.
+    </div>
+
+    <div id="wellbeingGroup">
+      <div class="label-row">
+        <label for="wellbeingPreview" style="margin:0;">Frase de apertura</label>
+        <button type="button" id="rerollBtn" class="btn-small">🔀 Variar</button>
+      </div>
+      <div id="wellbeingPreview" class="opener-preview"></div>
+      <div class="hint">Sorteada entre 4 variaciones para evitar que todos los correos empiecen igual. Usá "Variar" para cambiar.</div>
+    </div>
+
+    <div class="label-row">
+      <label for="closingPreview" style="margin:0;">Frase de cierre</label>
+      <button type="button" id="rerollClosingBtn" class="btn-small">🔀 Variar</button>
+    </div>
+    <div id="closingPreview" class="opener-preview"></div>
+    <div class="hint">Sorteada entre 5 variaciones. Aparece en todos los tipos de correo. Usá "Variar" para cambiar.</div>
+
+    <label for="solidario">Mensaje (opcional)</label>
+    <textarea id="solidario" placeholder="Dejalo en blanco para omitir este bloque, o escribí un texto personalizado."></textarea>
+    <div class="hint">Aparece justo debajo del botón principal ("Iniciar Pesquisa" / "Iniciar Encuesta"). Sin texto fijo — solo se muestra si escribís algo acá.</div>
+
+    <div class="hint" style="margin-top:16px; padding-top:12px; border-top:1px solid #e5e7eb;">
+      Las variables del sistema (^Tituloest^, ^Titulo^, ^name^, ^apellido^, ^surl^, ^pais^, ^cc^, ^email^, ^password1^, ^id^) y todos los links de tracking (l=1046 para portugués, l=2058 para español, exit=portal) son fijos en el template.
+    </div>
+  </div>
+
+  <div>
+    <div class="preview-wrap">
+      <div class="preview-bar">
+        <span>Vista previa</span>
+        <span id="previewNote">Se actualiza automáticamente</span>
+      </div>
+      <iframe id="previewFrame" title="Vista previa del email"></iframe>
+    </div>
+
+    <div class="code-panel">
+      <div class="code-header">
+        <h2>Asunto del e-mail</h2>
+        <button id="copySubjectBtn">Copiar Asunto</button>
+      </div>
+      <input type="text" id="subjectOutput" readonly style="width:100%; padding:10px 12px; font-family:'SFMono-Regular', Consolas, monospace; font-size:13px; border:1px solid #d1d5db; border-radius:6px; background:#f7f9fb; color:#111827;">
+    </div>
+
+    <div class="code-panel">
+      <div class="code-header">
+        <h2>HTML final</h2>
+        <button id="copyBtn">Copiar HTML</button>
+      </div>
+      <textarea id="output" readonly></textarea>
+    </div>
+
+    <div class="code-panel">
+      <div class="code-header">
+        <h2>Generador de Script (Confirmit) — en construcción</h2>
+        <button id="copyScriptBtn">Copiar Script</button>
+      </div>
+      <div class="hint" style="margin-bottom:10px;">Cubre la FASE A completa (A1 a A10: proyecto, tópico, asunto, texto, duración, incentivos, email del PM, cliente). Las FASES B, C y D del script real (clave, supervisores, cierre, etc.) todavía se completan a mano.</div>
+
+      <textarea id="scriptOutput" readonly style="width:100%; height:180px; font-family:'SFMono-Regular', Consolas, monospace; font-size:11px; padding:12px; border:1px solid #d1d5db; border-radius:6px; background:#0f172a; color:#d1e7dd;"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+const CUSTOM_OPTION_VALUE = '__custom__';
+let currentOpenerIndex = 0;
+let currentClosingIndex = 0;
+let userSetIdioma = false;
+const fichaValuesState = {};
+let lastAutoFichaText = '';
+const BAKED_STATE = null;
+
+const SPECIALTIES = [
+  { pt: 'Cardiologia', es: 'Cardiología' },
+  { pt: 'Cirurgia Vascular', es: 'Cirugía Vascular' },
+  { pt: 'Cirurgia Geral', es: 'Cirugía General' },
+  { pt: 'Cirurgia Plástica', es: 'Cirugía Plástica' },
+  { pt: 'Dermatologia', es: 'Dermatología' },
+  { pt: 'Otorrinolaringologia', es: 'Otorrinolaringología' },
+  { pt: 'Endocrinologia', es: 'Endocrinología' },
+  { pt: 'Enfermagem', es: 'Enfermería' },
+  { pt: 'Medicina da Dor', es: 'Medicina del Dolor' },
+  { pt: 'Gastroenterologia', es: 'Gastroenterología' },
+  { pt: 'Ginecologia e Obstetrícia', es: 'Ginecología y Obstetricia' },
+  { pt: 'Medicina Geral / de Família / Clínico', es: 'Medicina General / de Familia / Clínico' },
+  { pt: 'Nefrologia', es: 'Nefrología' },
+  { pt: 'Sexologia', es: 'Sexología' },
+  { pt: 'Oftalmologia', es: 'Oftalmología' },
+  { pt: 'Oncologia', es: 'Oncología' },
+  { pt: 'Ortopedia', es: 'Ortopedia' },
+  { pt: 'Pediatria', es: 'Pediatría' },
+  { pt: 'Psiquiatria', es: 'Psiquiatría' },
+  { pt: 'Radiologia', es: 'Radiología' },
+  { pt: 'Hepatologia', es: 'Hepatología' },
+  { pt: 'Odontologia', es: 'Odontología' },
+  { pt: 'Hematologia', es: 'Hematología' },
+  { pt: 'Reumatologia', es: 'Reumatología' },
+  { pt: 'Neurologia', es: 'Neurología' },
+  { pt: 'Urologia', es: 'Urología' },
+  { pt: 'Infectologia', es: 'Infectología' },
+  { pt: 'Farmácia', es: 'Farmacia' },
+  { pt: 'Medicina Interna', es: 'Medicina Interna' },
+  { pt: 'Cardiologia Intervencionista', es: 'Cardiología Intervencionista' },
+  { pt: 'Anestesiologia', es: 'Anestesiología' },
+  { pt: 'Alergia e Imunologia', es: 'Alergia e Inmunología' },
+  { pt: 'Laboratório', es: 'Laboratorio' },
+  { pt: 'Pneumologia', es: 'Neumología' },
+  { pt: 'Veterinária', es: 'Veterinaria' },
+  { pt: 'Nutrição', es: 'Nutrición' },
+  { pt: 'Especialista em HIV', es: 'Especialista en VIH' },
+  { pt: 'Geriatria', es: 'Geriatría' },
+  { pt: 'Terapia Intensiva', es: 'Terapia Intensiva' },
+  { pt: 'Cirurgia de Transplante', es: 'Cirugía de Trasplante' },
+  { pt: 'Mastologia', es: 'Mastología' },
+  { pt: 'Administração Hospitalar', es: 'Administración Hospitalaria' },
+  { pt: 'Agente de Compras', es: 'Agente de Compras' },
+  { pt: 'Cirurgia de Tórax', es: 'Cirugía de Tórax' },
+  { pt: 'Cirurgia Maxilofacial', es: 'Cirugía Maxilofacial' },
+  { pt: 'Cirurgia Bariátrica', es: 'Cirugía Bariátrica' },
+  { pt: 'Cirurgia de Cabeça e Pescoço', es: 'Cirugía de Cabeza y Cuello' },
+  { pt: 'Cirurgia do Aparelho Gastrointestinal', es: 'Cirugía del Aparato Gastrointestinal' },
+  { pt: 'Cuidados Paliativos', es: 'Cuidados Paliativos' },
+  { pt: 'Educação em Diabetes', es: 'Educación en Diabetes' },
+  { pt: 'Eletrofisiologista', es: 'Electrofisiólogo' },
+  { pt: 'ER / Emergencista / Urgencista', es: 'ER / Emergencista / Urgencista' },
+  { pt: 'Fisioterapia / Reabilitação', es: 'Fisioterapia / Rehabilitación' },
+  { pt: 'Fonoaudiologia', es: 'Fonoaudiología' },
+  { pt: 'Genetista', es: 'Genetista' },
+  { pt: 'Homeopatia e Acupuntura', es: 'Homeopatía y Acupuntura' },
+  { pt: 'Medicina Nuclear', es: 'Medicina Nuclear' },
+  { pt: 'Microbiologista / Virologista', es: 'Microbiólogo / Virólogo' },
+  { pt: 'Neonatologista', es: 'Neonatólogo' },
+  { pt: 'Neurocirurgia', es: 'Neurocirugía' },
+  { pt: 'Óptica', es: 'Óptica' },
+  { pt: 'Patologista', es: 'Patólogo' },
+  { pt: 'Proctologista / Coloproctologista', es: 'Proctólogo / Coloproctólogo' },
+  { pt: 'Radioterapia', es: 'Radioterapia' },
+];
+
+const CURRENCIES = {
+  pt: [
+    { label: 'R$ — Real brasileiro', value: 'R$' },
+  ],
+  es: [
+    { label: 'MX$ — Pesos mexicanos', value: 'MX$' },
+    { label: 'AR$ — Pesos argentinos', value: 'AR$' },
+    { label: 'CL$ — Pesos chilenos', value: 'CL$' },
+    { label: 'COL$ — Pesos colombianos', value: 'COL$' },
+    { label: 'S/ — Soles', value: 'S/' },
+    { label: 'UY$ — Pesos uruguayos', value: 'UY$' },
+    { label: 'US$ — Dólares', value: 'US$' },
+  ],
+};
+
+const HARD_SPECIALTY_KEYWORDS = ['oncolog', 'neurolog', 'urolog', 'hematolog'];
+
+const SUGGESTED_VALUE_TABLE = {
+  hard: [
+    { maxMinutes: 10, values: { 'R$': 50, 'MX$': 300, 'AR$': 15000, 'COL$': 60000, 'US$': 30, 'S/': 80, 'CL$': 30000, 'UY$': 1200 } },
+    { maxMinutes: 15, values: { 'R$': 110, 'MX$': 400, 'AR$': 20000, 'COL$': 100000, 'US$': 30, 'S/': 80, 'CL$': 30000, 'UY$': 1200 } },
+    { maxMinutes: 25, values: { 'R$': 180, 'MX$': 700, 'AR$': 30000, 'COL$': 200000, 'US$': 70, 'S/': 120, 'CL$': 45000, 'UY$': 2800 } },
+    { maxMinutes: 40, values: { 'R$': 200, 'MX$': 900, 'AR$': 40000, 'COL$': 240000, 'US$': 100, 'S/': 140, 'CL$': 70000, 'UY$': 4000 } },
+    { maxMinutes: 60, values: { 'R$': 250, 'MX$': 1200, 'AR$': 50000, 'COL$': 300000, 'US$': 110, 'S/': 180, 'CL$': 90000, 'UY$': 4400 } },
+  ],
+  other: [
+    { maxMinutes: 10, values: { 'R$': 50, 'MX$': 300, 'AR$': 15000, 'COL$': 60000, 'US$': 30, 'S/': 80, 'CL$': 30000, 'UY$': 1200 } },
+    { maxMinutes: 15, values: { 'R$': 110, 'MX$': 400, 'AR$': 20000, 'COL$': 100000, 'US$': 30, 'S/': 80, 'CL$': 30000, 'UY$': 1200 } },
+    { maxMinutes: 25, values: { 'R$': 140, 'MX$': 600, 'AR$': 27000, 'COL$': 150000, 'US$': 50, 'S/': 100, 'CL$': 40000, 'UY$': 2000 } },
+    { maxMinutes: 40, values: { 'R$': 160, 'MX$': 700, 'AR$': 35000, 'COL$': 175000, 'US$': 70, 'S/': 120, 'CL$': 60000, 'UY$': 2800 } },
+    { maxMinutes: 60, values: { 'R$': 200, 'MX$': 1000, 'AR$': 45000, 'COL$': 240000, 'US$': 100, 'S/': 150, 'CL$': 75000, 'UY$': 4000 } },
+  ],
+};
+
+function normalizeText(str) {
+  return String(str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '');
+}
+
+function isHardSpecialty(especialidadeValue) {
+  const normalized = normalizeText(especialidadeValue);
+  return HARD_SPECIALTY_KEYWORDS.some(function (kw) { return normalized.indexOf(kw) !== -1; });
+}
+
+function findLoiBand(minutes, table) {
+  for (let i = 0; i < table.length; i++) {
+    if (minutes <= table[i].maxMinutes) return table[i];
+  }
+  return table[table.length - 1];
+}
+
+function getSuggestedAmountForCurrency(currency, minutes, anyHard) {
+  if (!Object.prototype.hasOwnProperty.call(SUGGESTED_VALUE_TABLE.hard[0].values, currency)) return null;
+  const table = anyHard ? SUGGESTED_VALUE_TABLE.hard : SUGGESTED_VALUE_TABLE.other;
+  const band = findLoiBand(minutes, table);
+  return band.values[currency];
+}
+
+function formatThousands(n) {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function getAnyHardSpecialtySelected() {
+  return getSelectedEspecialidadeItems().some(function (item) {
+    return isHardSpecialty(item.pt) || isHardSpecialty(item.es);
+  });
+}
+
+const TEAM_INCENTIVE_TABLE_BRASIL = {
+  easy: [
+    { maxMinutes: 15, value: 170 },
+    { maxMinutes: 25, value: 200 },
+    { maxMinutes: 40, value: 280 },
+    { maxMinutes: 60, value: 330 },
+  ],
+  hardOrNational: [
+    { maxMinutes: 15, value: 200 },
+    { maxMinutes: 25, value: 250 },
+    { maxMinutes: 40, value: 330 },
+    { maxMinutes: 60, value: 380 },
+  ],
+};
+
+const TEAM_CONTACTS = [
+  { name: 'LAURA', pais1RecCode: '3' },
+  { name: 'SABRINA', pais1RecCode: '3' },
+  { name: 'ELIANA', pais1RecCode: '1' },
+  { name: 'ROSE', pais1RecCode: '1' },
+  { name: 'TANIA', pais1RecCode: '1' },
+  { name: 'KELLY', pais1RecCode: '1' },
+  { name: 'GEOVANA', pais1RecCode: '1' },
+  { name: 'MAISA', pais1RecCode: '1' },
+  { name: 'TELMA', pais1RecCode: '1' },
+  { name: 'NADIA', pais1RecCode: '1' },
+  { name: 'NATALIA', pais1RecCode: '1' },
+  { name: 'MAGALY', pais1RecCode: '1' },
+  { name: 'MARIAROSA', pais1RecCode: '1' },
+  { name: 'SONIA', pais1RecCode: '5' },
+  { name: 'FLAVIA', pais1RecCode: '4' },
+  { name: 'PIVA', pais1RecCode: '2' },
+  { name: 'BRIZU', pais1RecCode: '1' },
+];
+
+const SCRIPT_COUNTRIES = [
+  { code: 'BR', label: 'Brasil', lang: 'pt', pais1Code: '1', suggestCurrency: 'R$' },
+  { code: 'MX', label: 'México', lang: 'es', pais1Code: '2', suggestCurrency: 'MX$' },
+  { code: 'AR', label: 'Argentina', lang: 'es', pais1Code: '3', suggestCurrency: 'AR$' },
+  { code: 'CL', label: 'Chile', lang: 'es', pais1Code: '4', suggestCurrency: 'CL$' },
+  { code: 'CO', label: 'Colombia', lang: 'es', pais1Code: '5', suggestCurrency: 'COL$' },
+  { code: 'VE', label: 'Venezuela', lang: 'es', pais1Code: '6', suggestCurrency: 'US$' },
+  { code: 'PE', label: 'Perú', lang: 'es', pais1Code: '8', suggestCurrency: 'S/' },
+  { code: 'UY', label: 'Uruguay', lang: 'es', pais1Code: '9', suggestCurrency: 'UY$' },
+  { code: 'PY', label: 'Paraguay', lang: 'es', pais1Code: '10', suggestCurrency: 'US$' },
+  { code: 'BO', label: 'Bolivia', lang: 'es', pais1Code: '11', suggestCurrency: 'US$' },
+  { code: 'SV', label: 'El Salvador', lang: 'es', pais1Code: '12', suggestCurrency: 'US$' },
+  { code: 'GT', label: 'Guatemala', lang: 'es', pais1Code: '13', suggestCurrency: 'US$' },
+  { code: 'HN', label: 'Honduras', lang: 'es', pais1Code: '14', suggestCurrency: 'US$' },
+  { code: 'NI', label: 'Nicaragua', lang: 'es', pais1Code: '15', suggestCurrency: 'US$' },
+  { code: 'PA', label: 'Panamá', lang: 'es', pais1Code: '16', suggestCurrency: 'US$' },
+  { code: 'DO', label: 'República Dominicana', lang: 'es', pais1Code: '17', suggestCurrency: 'US$' },
+  { code: 'PR', label: 'Puerto Rico', lang: 'es', pais1Code: '18', suggestCurrency: 'US$' },
+  { code: 'EC', label: 'Ecuador', lang: 'es', pais1Code: '21', suggestCurrency: 'US$' },
+  { code: 'CR', label: 'Costa Rica', lang: 'es', pais1Code: '22', suggestCurrency: 'US$' },
+  { code: 'OT', label: 'Otro', lang: 'es', pais1Code: '7', suggestCurrency: 'US$' },
+];
+
+// Lista oficial (códigos reales que Confirmit interpreta en f("topico").set(...)).
+// family: 'manejo' -> "Manejo de pacientes con/com ___" | 'tratamiento' -> "Tratamiento/Tratamento con/com ___"
+// temaEs/temaPt: fragmento a insertar en esas frases (puede diferir del label, para que la frase quede natural).
+const TOPIC_CODES = [
+  { code: '1', key: '1', labelEs: 'Acne', labelPt: 'Acne', family: 'manejo', temaEs: 'acné', temaPt: 'acne' },
+  { code: '2', key: '2', labelEs: 'Alergia', labelPt: 'Alergia', family: 'manejo', temaEs: 'alergia', temaPt: 'alergia' },
+  { code: '3', key: '3', labelEs: 'Artritis', labelPt: 'Artrite', family: 'manejo', temaEs: 'artritis', temaPt: 'artrite' },
+  { code: '4', key: '4', labelEs: 'Asma', labelPt: 'Asma', family: 'manejo', temaEs: 'asma', temaPt: 'asma' },
+  { code: '5', key: '5', labelEs: 'Tratamientos Biologicos', labelPt: 'Tratamentos Biológicos', family: 'tratamiento', temaEs: 'productos biológicos', temaPt: 'produtos biológicos' },
+  { code: '6', key: '6', labelEs: 'Tratamientos con Botox', labelPt: 'Tratamentos com Botox', family: 'tratamiento', temaEs: 'botox', temaPt: 'botox' },
+  { code: '7', key: '7', labelEs: 'Cancer cervical', labelPt: 'Câncer Cervical', family: 'manejo', temaEs: 'cáncer cervical', temaPt: 'câncer cervical' },
+  { code: '8', key: '8', labelEs: 'Cancer Colorectal', labelPt: 'Câncer Colorretal', family: 'manejo', temaEs: 'cáncer colorrectal', temaPt: 'câncer colorretal' },
+  { code: '9', key: '9', labelEs: 'Cancer de Mama', labelPt: 'Câncer de Mama', family: 'manejo', temaEs: 'cáncer de mama', temaPt: 'câncer de mama' },
+  { code: '10', key: '10', labelEs: 'Cancer de Prostata', labelPt: 'Câncer de Próstata', family: 'manejo', temaEs: 'cáncer de próstata', temaPt: 'câncer de próstata' },
+  { code: '11', key: '11', labelEs: 'Cancer de Pulmon', labelPt: 'Câncer de Pulmão', family: 'manejo', temaEs: 'cáncer de pulmón', temaPt: 'câncer de pulmão' },
+  { code: '12', key: '12', labelEs: 'Cancer de tiroide', labelPt: 'Câncer de Tireoide', family: 'manejo', temaEs: 'cáncer de tiroides', temaPt: 'câncer de tireoide' },
+  { code: '13', key: '13', labelEs: 'Carcinoma de celulas renales', labelPt: 'Carcinoma de Células Renais', family: 'manejo', temaEs: 'carcinoma de células renales', temaPt: 'carcinoma de células renais' },
+  { code: '14', key: '14', labelEs: 'Ceratosis actinica', labelPt: 'Ceratose Actínica', family: 'manejo', temaEs: 'ceratosis actínica', temaPt: 'ceratose actínica' },
+  { code: '15', key: '15', labelEs: 'Enfermedad de Crohn', labelPt: 'Doença de Crohn', family: 'manejo', temaEs: 'enfermedad de Crohn', temaPt: 'doença de Crohn' },
+  { code: '16', key: '16', labelEs: 'Depresion', labelPt: 'Depressão', family: 'manejo', temaEs: 'depresión', temaPt: 'depressão' },
+  { code: '17', key: '17', labelEs: 'Diabetes', labelPt: 'Diabetes', family: 'manejo', temaEs: 'diabetes', temaPt: 'diabetes' },
+  { code: '18', key: '18', labelEs: 'EPOC', labelPt: 'DPOC', family: 'manejo', temaEs: 'EPOC', temaPt: 'DPOC' },
+  { code: '19', key: '19', labelEs: 'Esclerosis multiple', labelPt: 'Esclerose Múltipla', family: 'manejo', temaEs: 'esclerosis múltiple', temaPt: 'esclerose múltipla' },
+  { code: '20', key: '20', labelEs: 'Esquizofrenia', labelPt: 'Esquizofrenia', family: 'manejo', temaEs: 'esquizofrenia', temaPt: 'esquizofrenia' },
+  { code: '21', key: '21', labelEs: 'Fibrilacion Atrial', labelPt: 'Fibrilação Atrial', family: 'manejo', temaEs: 'fibrilación atrial', temaPt: 'fibrilação atrial' },
+  { code: '22', key: '22', labelEs: 'Glaucoma', labelPt: 'Glaucoma', family: 'manejo', temaEs: 'glaucoma', temaPt: 'glaucoma' },
+  { code: '23', key: '23', labelEs: 'Hemofilia', labelPt: 'Hemofilia', family: 'manejo', temaEs: 'hemofilia', temaPt: 'hemofilia' },
+  { code: '24', key: '24', labelEs: 'HEP B', labelPt: 'HEP B', family: 'manejo', temaEs: 'hepatitis B', temaPt: 'hepatite B' },
+  { code: '25', key: '25', labelEs: 'HEP C', labelPt: 'HEP C', family: 'manejo', temaEs: 'hepatitis C', temaPt: 'hepatite C' },
+  { code: '26', key: '26', labelEs: 'Hipertension', labelPt: 'Hipertensão', family: 'manejo', temaEs: 'hipertensión', temaPt: 'hipertensão' },
+  { code: '27', key: '27', labelEs: 'Gaucher', labelPt: 'Gaucher', family: 'manejo', temaEs: 'enfermedad de Gaucher', temaPt: 'doença de Gaucher' },
+  { code: '28', key: '28', labelEs: 'Infecciones', labelPt: 'Infecções', family: 'manejo', temaEs: 'infecciones', temaPt: 'infecções' },
+  { code: '29', key: '29', labelEs: 'infertilidad', labelPt: 'infertilidade', family: 'manejo', temaEs: 'infertilidad', temaPt: 'infertilidade' },
+  { code: '30', key: '30', labelEs: 'Insomnio', labelPt: 'Insônia', family: 'manejo', temaEs: 'insomnio', temaPt: 'insônia' },
+  { code: '31', key: '31', labelEs: 'Insuficiencia Cardiaca', labelPt: 'Insuficiência Cardíaca', family: 'manejo', temaEs: 'insuficiencia cardíaca', temaPt: 'insuficiência cardíaca' },
+  { code: '32', key: '32', labelEs: 'Insuficiencia Renal Cronica', labelPt: 'Insuficiência Renal Crônica', family: 'manejo', temaEs: 'insuficiencia renal crónica', temaPt: 'insuficiência renal crônica' },
+  { code: '33', key: '33', labelEs: 'Lupus', labelPt: 'Lúpus', family: 'manejo', temaEs: 'lupus', temaPt: 'lúpus' },
+  { code: '34', key: '34', labelEs: 'Malignidades Hematiologicas', labelPt: 'Malignidades Hematológicas', family: 'manejo', temaEs: 'malignidades hematológicas', temaPt: 'malignidades hematológicas' },
+  { code: '35', key: '35', labelEs: 'MDS', labelPt: 'MDS', family: 'manejo', temaEs: 'síndrome mielodisplásico (MDS)', temaPt: 'síndrome mielodisplásica (MDS)' },
+  { code: '36', key: '36', labelEs: 'Migrania', labelPt: 'Migrania', family: 'manejo', temaEs: 'migraña', temaPt: 'enxaqueca' },
+  { code: '37', key: '37', labelEs: 'MM', labelPt: 'MM', family: 'manejo', temaEs: 'mieloma múltiple (MM)', temaPt: 'mieloma múltiplo (MM)' },
+  { code: '38', key: '38', labelEs: 'Ojo seco', labelPt: 'Olho Seco', family: 'manejo', temaEs: 'ojo seco', temaPt: 'olho seco' },
+  { code: '39', key: '39', labelEs: 'Osteoartritis', labelPt: 'Osteoartrite', family: 'manejo', temaEs: 'osteoartritis', temaPt: 'osteoartrite' },
+  { code: '40', key: '40', labelEs: 'Osteoporosis', labelPt: 'Osteoporose', family: 'manejo', temaEs: 'osteoporosis', temaPt: 'osteoporose' },
+  { code: '41', key: '41', labelEs: 'Pompe', labelPt: 'Pompe', family: 'manejo', temaEs: 'enfermedad de Pompe', temaPt: 'doença de Pompe' },
+  { code: '42', key: '42', labelEs: 'Psoriasis', labelPt: 'Psoríase', family: 'manejo', temaEs: 'psoriasis', temaPt: 'psoríase' },
+  { code: '43', key: '43', labelEs: 'Rinitis Alergica', labelPt: 'Rinite Alérgica', family: 'manejo', temaEs: 'rinitis alérgica', temaPt: 'rinite alérgica' },
+  { code: '44', key: '44', labelEs: 'Síndrome Coronario Agudo', labelPt: 'Síndrome Coronariana Aguda', family: 'manejo', temaEs: 'síndrome coronario agudo', temaPt: 'síndrome coronariana aguda' },
+  { code: '45', key: '45', labelEs: 'Trasplantes', labelPt: 'Transplantes', family: 'manejo', temaEs: 'antecedentes de trasplante', temaPt: 'antecedentes de transplante' },
+  { code: '46', key: '46', labelEs: 'VIH', labelPt: 'HIV', family: 'manejo', temaEs: 'VIH', temaPt: 'HIV' },
+];
+
+// Candidatos sin código oficial en Confirmit todavía: a efectos del script se envían como "99" (Otra),
+// pero se listan como opciones separadas acá para que el asunto se pueda sugerir igual.
+const TOPIC_CODES_CUSTOM = [
+  { code: '99', key: 'c_hipocondroplasia', labelEs: 'Hipocondroplasia', labelPt: 'Hipocondroplasia', family: 'manejo', temaEs: 'hipocondroplasia', temaPt: 'hipocondroplasia' },
+  { code: '99', key: 'c_mielofibrosis', labelEs: 'Mielofibrosis', labelPt: 'Mielofibrose', family: 'manejo', temaEs: 'mielofibrosis', temaPt: 'mielofibrose' },
+  { code: '99', key: 'c_hipertiroidismo', labelEs: 'Hipertiroidismo', labelPt: 'Hipertireoidismo', family: 'manejo', temaEs: 'hipertiroidismo', temaPt: 'hipertireoidismo' },
+  { code: '99', key: 'c_ame', labelEs: 'Atrofia Muscular Espinal (AME)', labelPt: 'Atrofia Muscular Espinhal (AME)', family: 'manejo', temaEs: 'atrofia muscular espinal (AME)', temaPt: 'atrofia muscular espinhal (AME)' },
+  { code: '99', key: 'c_encefalopatia', labelEs: 'Encefalopatía Hepática', labelPt: 'Encefalopatia Hepática', family: 'manejo', temaEs: 'encefalopatía hepática', temaPt: 'encefalopatia hepática' },
+  { code: '99', key: 'c_melanoma', labelEs: 'Melanoma', labelPt: 'Melanoma', family: 'manejo', temaEs: 'melanoma', temaPt: 'melanoma' },
+  { code: '99', key: 'c_hidradenitis', labelEs: 'Hidradenitis Supurativa', labelPt: 'Hidradenite Supurativa', family: 'manejo', temaEs: 'hidradenitis supurativa', temaPt: 'hidradenite supurativa' },
+  { code: '99', key: 'c_linfomas', labelEs: 'Linfomas (Hodgkin / Células del Manto)', labelPt: 'Linfomas (Hodgkin / Células do Manto)', family: 'manejo', temaEs: 'linfoma (Hodgkin / células del manto)', temaPt: 'linfoma (Hodgkin / células do manto)' },
+  { code: '99', key: 'c_cabezaycuello', labelEs: 'Cáncer de Cabeza y Cuello', labelPt: 'Câncer de Cabeça e Pescoço', family: 'manejo', temaEs: 'cáncer de cabeza y cuello', temaPt: 'câncer de cabeça e pescoço' },
+  { code: '99', key: 'c_higado', labelEs: 'Cáncer de Hígado / Carcinoma Hepatocelular (CHC)', labelPt: 'Câncer de Fígado / Carcinoma Hepatocelular (CHC)', family: 'manejo', temaEs: 'cáncer de hígado / carcinoma hepatocelular (CHC)', temaPt: 'câncer de fígado / carcinoma hepatocelular (CHC)' },
+  { code: '99', key: 'c_esofago', labelEs: 'Cáncer de Esófago', labelPt: 'Câncer de Esôfago', family: 'manejo', temaEs: 'cáncer de esófago', temaPt: 'câncer de esôfago' },
+  { code: '99', key: 'c_endometrio', labelEs: 'Cáncer de Endometrio', labelPt: 'Câncer de Endométrio', family: 'manejo', temaEs: 'cáncer de endometrio', temaPt: 'câncer de endométrio' },
+  { code: '99', key: 'c_espondilitis', labelEs: 'Espondilitis Anquilosante', labelPt: 'Espondilite Anquilosante', family: 'manejo', temaEs: 'espondilitis anquilosante', temaPt: 'espondilite anquilosante' },
+  { code: '99', key: 'c_obesidad', labelEs: 'Obesidad', labelPt: 'Obesidade', family: 'manejo', temaEs: 'obesidad', temaPt: 'obesidade' },
+  { code: '99', key: 'c_vejiga', labelEs: 'Cáncer de Vejiga / Carcinoma Urotelial', labelPt: 'Câncer de Bexiga / Carcinoma Urotelial', family: 'manejo', temaEs: 'cáncer de vejiga / carcinoma urotelial', temaPt: 'câncer de bexiga / carcinoma urotelial' },
+  { code: '99', key: 'c_fpi', labelEs: 'Fibrosis Pulmonar Idiopática (FPI)', labelPt: 'Fibrose Pulmonar Idiopática (FPI)', family: 'manejo', temaEs: 'fibrosis pulmonar idiopática (FPI)', temaPt: 'fibrose pulmonar idiopática (FPI)' },
+  { code: '99', key: 'c_alzheimer', labelEs: 'Alzheimer', labelPt: 'Alzheimer', family: 'manejo', temaEs: 'enfermedad de Alzheimer', temaPt: 'doença de Alzheimer' },
+  { code: '99', key: 'c_herpeszoster', labelEs: 'Herpes Zóster (Culebrilla)', labelPt: 'Herpes Zóster (Cobreiro)', family: 'manejo', temaEs: 'herpes zóster (culebrilla)', temaPt: 'herpes zóster (cobreiro)' },
+  { code: '99', key: 'c_mash', labelEs: 'MASH (ex-NASH)', labelPt: 'MASH (ex-NASH)', family: 'manejo', temaEs: 'MASH — esteatohepatitis asociada a disfunción metabólica (ex-NASH)', temaPt: 'MASH — esteato-hepatite associada à disfunção metabólica (ex-NASH)' },
+  { code: '99', key: 'c_glp1', labelEs: 'GLP-1', labelPt: 'GLP-1', family: 'tratamiento', temaEs: 'agonistas de GLP-1', temaPt: 'agonistas de GLP-1' },
+  { code: '99', key: 'c_biosimilares', labelEs: 'Biosimilares', labelPt: 'Biossimilares', family: 'tratamiento', temaEs: 'biosimilares', temaPt: 'biossimilares' },
+  { code: '99', key: 'c_cateteres', labelEs: 'Catéteres', labelPt: 'Cateteres', family: 'tratamiento', temaEs: 'catéteres', temaPt: 'cateteres' },
+  { code: '99', key: 'c_formulainfantil', labelEs: 'Fórmula Infantil', labelPt: 'Fórmula Infantil', family: 'tratamiento', temaEs: 'fórmula infantil', temaPt: 'fórmula infantil' },
+  { code: '99', key: 'c_cierrevascular', labelEs: 'Cierre Vascular', labelPt: 'Fechamento Vascular', family: 'tratamiento', temaEs: 'dispositivos de cierre vascular', temaPt: 'dispositivos de fechamento vascular' },
+  { code: '99', key: 'c_reputacioncorporativa', labelEs: 'Reputación Corporativa', labelPt: 'Reputação Corporativa', family: 'evaluacion', temaEs: 'reputación corporativa', temaPt: 'reputação corporativa' },
+];
+
+const TOPIC_OTRA = { code: '99', key: 'otra', labelEs: 'Otra', labelPt: 'Outra', family: 'other' };
+
+const PROGRAMACION_LABELS = {
+  fine_confirmit: 'Fine en Confirmit',
+  fine_sipe: 'Fine en Sipe',
+  fine_stg: 'Fine en Survey To Go',
+  cliente_programa: 'Programación del cliente',
+};
+
+const CLIENT_CODES = [
+  { code: '34', label: 'EXCEL FIELDWORK / A+A' },
+  { code: '45', label: 'IMS - IQVIA' },
+  { code: '47', label: 'IPSOS / FIELDWORK INTERNATIONAL' },
+  { code: '50', label: 'KANTAR HEALTH' },
+  { code: '53', label: 'M3' },
+  { code: '55', label: 'M360 ex MANTHAN SERVICES PVT LTD' },
+  { code: '56', label: 'MEDEFIELD/DOCTOR GUIDE/PSL' },
+  { code: '67', label: 'RECKNER / J RECKNER ASSOCIATES INC' },
+  { code: '76', label: 'THE RESEARCH PARTNERSHIP LTD' },
+  { code: '79', label: 'TRILATIONS NV' },
+  { code: '80', label: 'SERMO / ex WORLD ONE' },
+  { code: '81', label: 'ZS Associates' },
+  { code: '82', label: 'Sago / ex Schelsinger' },
+  { code: '83', label: 'Survey Healthcare Global / SHG / Apollo / In CRowd' },
+  { code: '84', label: 'ALL GLOBAL' },
+  { code: '85', label: 'P&G' },
+  { code: '96', label: 'Atlas Primary' },
+];
+
+function escapeForScript(str) {
+  return String(str || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function getSelectedScriptCountries() {
+  return SCRIPT_COUNTRIES.filter(function (country) {
+    const checkbox = document.getElementById('scriptCountry_' + country.code);
+    return checkbox && checkbox.checked;
+  });
+}
+
+const SCRIPT_TEXTO_TEMPLATES = {
+  pt: 'Neste projeto estamos procurando médicos especialistas em __ESPECIALIDADE__ com experiência sobre __TEMA__.',
+  es: 'En este proyecto buscamos médicos especialistas en __ESPECIALIDAD__ que tengan experiencia en __TEMA__.',
+};
+
+const SCRIPT_TEXTO_TEMPLATES_SHORT = {
+  pt: 'Neste projeto estamos procurando médicos especialistas em __ESPECIALIDADE__.',
+  es: 'En este proyecto buscamos médicos especialistas en __ESPECIALIDAD__.',
+};
+
+function getSelectedEspecialidadeItems() {
+  const items = SPECIALTIES.filter(function (item, index) {
+    const checkbox = document.getElementById('especialidadeCheck_' + index);
+    return checkbox && checkbox.checked;
+  });
+
+  const customChecked = document.getElementById('especialidadeCustomCheck').checked;
+  const customValue = document.getElementById('especialidadeCustom').value.trim();
+  if (customChecked && customValue) {
+    items.push({ pt: customValue, es: customValue });
+  }
+
+  return items;
+}
+
+function joinWithConjunction(names, idioma) {
+  const conjunction = idioma === 'es' ? 'y' : 'e';
+  const clean = names.filter(function (n) { return n; });
+
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  if (clean.length === 2) return clean[0] + ' ' + conjunction + ' ' + clean[1];
+
+  return clean.slice(0, -1).join(', ') + ', ' + conjunction + ' ' + clean[clean.length - 1];
+}
+
+function buildScriptTexto(lang, especialidad, tema) {
+  const template = tema ? SCRIPT_TEXTO_TEMPLATES[lang] : SCRIPT_TEXTO_TEMPLATES_SHORT[lang];
+  return template
+    .replace('__ESPECIALIDADE__', especialidad)
+    .replace('__ESPECIALIDAD__', especialidad)
+    .replace('__TEMA__', tema);
+}
+
+function buildFieldBranchLines(fieldName, hasBrasil, hasNonBrasil, ptValue, esValue) {
+  if (hasBrasil && !hasNonBrasil) {
+    return ['f("' + fieldName + '").set("' + escapeForScript(ptValue) + '");'];
+  }
+  if (!hasBrasil && hasNonBrasil) {
+    return ['f("' + fieldName + '").set("' + escapeForScript(esValue) + '");'];
+  }
+  if (hasBrasil && hasNonBrasil) {
+    return [
+      'f("' + fieldName + '").set("' + escapeForScript(ptValue) + '");',
+      '',
+      '// ESPAÑOL',
+      'if (f(\'Pais1\') != "1" && f(\'Pais1rec\') != "1")',
+      '{ f("' + fieldName + '").set("' + escapeForScript(esValue) + '"); }',
+    ];
+  }
+  return ['// Seleccioná al menos un país para generar este campo.'];
+}
+
+function isFichaPaymentActive() {
+  return document.getElementById('fichaProjectCheck').checked
+    && document.getElementById('fichaPaymentType').value === 'ficha';
+}
+
+function updateFichaValuesInputs() {
+  const group = document.getElementById('fichaValuesGroup');
+  const selected = getSelectedScriptCountries();
+  group.innerHTML = '';
+
+  selected.forEach(function (country) {
+    const wrapper = document.createElement('div');
+
+    const label = document.createElement('label');
+    label.style.cssText = 'margin:0 0 4px;';
+    label.textContent = 'Valor por ficha — ' + country.label + ' (' + country.suggestCurrency + ')';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'fichaValor_' + country.code;
+    input.value = fichaValuesState[country.code] || '';
+    input.addEventListener('input', function () {
+      fichaValuesState[country.code] = input.value;
+      render();
+    });
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    group.appendChild(wrapper);
+  });
+}
+
+function updateScriptAsuntoBoxes() {
+  const selected = getSelectedScriptCountries();
+  const hasBrasil = selected.some(function (c) { return c.code === 'BR'; });
+  const hasNonBrasil = selected.some(function (c) { return c.code !== 'BR'; });
+
+  document.getElementById('scriptAsuntoPtGroup').style.display = hasBrasil ? 'block' : 'none';
+  document.getElementById('scriptAsuntoEsGroup').style.display = hasNonBrasil ? 'block' : 'none';
+  document.getElementById('clienteBrasilGroup').style.display = hasBrasil ? 'block' : 'none';
+
+  const fichaChecked = document.getElementById('fichaProjectCheck').checked;
+  document.getElementById('fichaPaymentTypeGroup').style.display = fichaChecked ? 'block' : 'none';
+
+  const fichaPaymentActive = isFichaPaymentActive();
+  document.getElementById('fichaRangeGroup').style.display = fichaPaymentActive ? 'block' : 'none';
+  if (fichaPaymentActive) updateFichaValuesInputs();
+
+  const clienteValue = getSelectedValue('scriptCliente', 'scriptClienteCustom');
+  const isIqvia = clienteValue === 'IMS - IQVIA';
+  document.getElementById('scriptIQVIAMSDGroup').style.display = isIqvia ? 'flex' : 'none';
+  if (!isIqvia) document.getElementById('scriptIQVIAMSD').checked = false;
+
+  return { hasBrasil: hasBrasil, hasNonBrasil: hasNonBrasil };
+}
+
+function getCurrentLetterTema() {
+  const idioma = document.getElementById('idioma').value;
+  const boxId = idioma === 'pt' ? 'scriptAsuntoPt' : 'scriptAsuntoEs';
+  return document.getElementById(boxId).value.trim();
+}
+
+function buildIncentivoLines(selected) {
+  if (selected.length === 0) {
+    return ['// Seleccioná al menos un país para generar este campo.'];
+  }
+
+  const lines = ['f("incentivo").set("");'];
+
+  if (isFichaPaymentActive()) {
+    selected.forEach(function (country) {
+      const fichaValueRaw = fichaValuesState[country.code];
+      if (!fichaValueRaw) return;
+      const formatted = country.suggestCurrency + ' ' + fichaValueRaw + ' por ficha';
+      lines.push(
+        'if(f(\'Pais1\')=="' + country.pais1Code + '" || f(\'Pais1rec\') == "' + country.pais1Code + '") ' +
+        '{f("incentivo").set("' + escapeForScript(formatted) + '");}  // ' + country.label
+      );
+    });
+    return lines;
+  }
+
+  const duracaoRaw = document.getElementById('duracao').value;
+  const minutesMatch = duracaoRaw.match(/\d+/);
+  if (!minutesMatch) {
+    return ['// No se pudo interpretar la duración para sugerir el incentivo.'];
+  }
+
+  const minutes = parseInt(minutesMatch[0], 10);
+  const anyHard = getAnyHardSpecialtySelected();
+
+  selected.forEach(function (country) {
+    const amount = getSuggestedAmountForCurrency(country.suggestCurrency, minutes, anyHard);
+    if (amount == null) return;
+    const formatted = country.suggestCurrency + ' ' + formatThousands(amount);
+    lines.push(
+      'if(f(\'Pais1\')=="' + country.pais1Code + '" || f(\'Pais1rec\') == "' + country.pais1Code + '") ' +
+      '{f("incentivo").set("' + escapeForScript(formatted) + '");}  // ' + country.label
+    );
+  });
+
+  return lines;
+}
+
+function buildAsignacionIncentivosLines(selected) {
+  if (selected.length === 0) {
+    return ['// Seleccioná al menos un país para generar este campo.'];
+  }
+
+  const projectCode = document.getElementById('projectCode').value.trim();
+
+  if (isFichaPaymentActive()) {
+    const min = parseInt(document.getElementById('fichaMin').value, 10);
+    const max = parseInt(document.getElementById('fichaMax').value, 10);
+    if (!min || !max || max < min) {
+      return ['// Definí un mínimo y máximo de fichas válidos.'];
+    }
+
+    const lines = [];
+    selected.forEach(function (country) {
+      const fichaValueRaw = fichaValuesState[country.code];
+      const fichaValue = parseFloat(fichaValueRaw);
+      if (!fichaValueRaw || isNaN(fichaValue)) return;
+
+      lines.push(
+        'if(f(\'Project\')=="' + escapeForScript(projectCode) + '" && f(\'Pais1\')=="' + country.pais1Code + '")' +
+        '{f("incentivo").set("' + formatThousands(Math.round(fichaValue * min)) + '");}  // ' + country.label
+      );
+
+      for (let n = min + 1; n <= max; n++) {
+        lines.push(
+          'if(f(\'Project\')=="' + escapeForScript(projectCode) + '-' + n + '" && f(\'Pais1\')=="' + country.pais1Code + '")' +
+          '{f("incentivo").set("' + formatThousands(Math.round(fichaValue * n)) + '");}  // ' + country.label
+        );
+      }
+    });
+
+    return lines;
+  }
+
+  const duracaoRaw = document.getElementById('duracao').value;
+  const minutesMatch = duracaoRaw.match(/\d+/);
+  if (!minutesMatch) {
+    return ['// No se pudo interpretar la duración para sugerir los incentivos.'];
+  }
+
+  const minutes = parseInt(minutesMatch[0], 10);
+  const anyHard = getAnyHardSpecialtySelected();
+
+  const lines = [];
+  selected.forEach(function (country) {
+    const amount = getSuggestedAmountForCurrency(country.suggestCurrency, minutes, anyHard);
+    if (amount == null) return;
+    lines.push(
+      'if(f(\'Project\')=="' + escapeForScript(projectCode) + '" && f(\'Pais1\')=="' + country.pais1Code + '")' +
+      '{f("incentivo").set("' + formatThousands(amount) + '");}  // ' + country.label
+    );
+  });
+
+  return lines;
+}
+
+function findCountryByPais1Code(code) {
+  return SCRIPT_COUNTRIES.find(function (c) { return c.pais1Code === code; });
+}
+
+function buildIncentivoEquipoLines(selected) {
+  if (selected.length === 0) {
+    return ['// Seleccioná al menos un país para generar este campo.'];
+  }
+
+  const selectedPais1Codes = selected.map(function (c) { return c.pais1Code; });
+  const isFicha = isFichaPaymentActive();
+
+  let minutes = null;
+  let anyHard = false;
+  let clienteBrasil = 'internacional';
+
+  if (!isFicha) {
+    const duracaoRaw = document.getElementById('duracao').value;
+    const minutesMatch = duracaoRaw.match(/\d+/);
+    if (!minutesMatch) {
+      return ['// No se pudo interpretar la duración para sugerir el incentivo del equipo.'];
+    }
+    minutes = parseInt(minutesMatch[0], 10);
+    anyHard = getAnyHardSpecialtySelected();
+    clienteBrasil = document.getElementById('clienteBrasil').value;
+  }
+
+  const lines = ['f("incentivoequipovalor").set(0)', ''];
+  TEAM_CONTACTS.forEach(function (contact) {
+    if (selectedPais1Codes.indexOf(contact.pais1RecCode) === -1) return;
+
+    let value;
+    if (isFicha) {
+      const country = findCountryByPais1Code(contact.pais1RecCode);
+      const fichaValueRaw = country ? fichaValuesState[country.code] : null;
+      value = fichaValueRaw ? parseFloat(fichaValueRaw) : null;
+    } else if (contact.pais1RecCode === '1') {
+      const table = (anyHard || clienteBrasil === 'nacional')
+        ? TEAM_INCENTIVE_TABLE_BRASIL.hardOrNational
+        : TEAM_INCENTIVE_TABLE_BRASIL.easy;
+      value = findLoiBand(minutes, table).value;
+    } else {
+      const country = findCountryByPais1Code(contact.pais1RecCode);
+      value = country ? getSuggestedAmountForCurrency(country.suggestCurrency, minutes, anyHard) : null;
+    }
+    lines.push(
+      'if (f(\'contacto\') == "' + contact.name + '") ' +
+      '{ f(\'Pais1rec\').set("' + contact.pais1RecCode + '"); f("pagafine").set("ON"); ' +
+      'f("incentivoequipovalor").set(' + (value == null ? 0 : value) + '); }'
+    );
+  });
+
+  return lines;
+}
+
+function buildScriptOutput() {
+  const projectCode = document.getElementById('projectCode').value.trim();
+  const duracao = document.getElementById('duracao').value.trim();
+  const especialidadItems = getSelectedEspecialidadeItems();
+  const especialidadPtJoined = joinWithConjunction(especialidadItems.map(function (i) { return i.pt; }), 'pt');
+  const especialidadEsJoined = joinWithConjunction(especialidadItems.map(function (i) { return i.es; }), 'es');
+  const selected = getSelectedScriptCountries();
+  const hasBrasil = selected.some(function (c) { return c.code === 'BR'; });
+  const hasNonBrasil = selected.some(function (c) { return c.code !== 'BR'; });
+
+  const lines = [];
+  lines.push('// A1 PROYECTO');
+  lines.push('');
+  lines.push('f(\'Project\').set("' + escapeForScript(projectCode) + '");');
+  lines.push('');
+  lines.push('// A2. TOPICO');
+  lines.push('');
+  const topicoKey = document.getElementById('scriptTopico').value;
+  const topicoItem = findTopicByKey(topicoKey);
+  const topicoCode = topicoItem ? topicoItem.code : '99';
+  lines.push('f("topico").set("' + escapeForScript(topicoCode) + '");');
+  if (topicoItem && topicoItem.code === '99' && topicoItem.key !== 'otra') {
+    lines.push('// (' + topicoItem.labelEs + ' todavía no tiene código propio en Confirmit — se envía como 99/Otra)');
+  }
+  lines.push('');
+  TOPIC_CODES.forEach(function (t) {
+    lines.push('//\t' + t.code + '\t' + t.labelEs);
+  });
+
+  lines.push('');
+  lines.push('// A3. ASUNTO');
+  lines.push('');
+
+  if (selected.length === 0) {
+    lines.push('// Seleccioná al menos un país para generar este campo.');
+  } else {
+    const ptAsunto = document.getElementById('scriptAsuntoPt').value;
+    const esAsunto = document.getElementById('scriptAsuntoEs').value;
+    lines.push.apply(lines, buildFieldBranchLines('asunto', hasBrasil, hasNonBrasil, ptAsunto, esAsunto));
+    lines.push('');
+    lines.push('// A4. TEXTO (PERFIL) — usa el tópico elegido arriba (A2) para redactar la frase; si el tópico es "Otra", usa el asunto tipeado a mano');
+    lines.push('');
+    const perfilTemaPt = buildPerfilTemaFromTopic(topicoKey, 'pt');
+    const perfilTemaEs = buildPerfilTemaFromTopic(topicoKey, 'es');
+    const ptTexto = buildScriptTexto('pt', especialidadPtJoined, perfilTemaPt !== null ? perfilTemaPt : ptAsunto);
+    const esTexto = buildScriptTexto('es', especialidadEsJoined, perfilTemaEs !== null ? perfilTemaEs : esAsunto);
+    lines.push.apply(lines, buildFieldBranchLines('texto', hasBrasil, hasNonBrasil, ptTexto, esTexto));
+  }
+
+  lines.push('');
+  lines.push('// A5. DURACION');
+  lines.push('');
+  lines.push('f("DURA").set("' + escapeForScript(duracao) + '")');
+  lines.push('');
+  lines.push('// A6. INCENTIVO PANEL — sugerido según moneda de cada país, duración y especialidad(es)');
+  lines.push('');
+  lines.push.apply(lines, buildIncentivoLines(selected));
+
+  lines.push('');
+  lines.push('// A7. INCENTIVO EQUIPO — Brasil usa tabla propia (fácil / difícil o nacional); el resto usa el mismo valor que el panel (A6)');
+  lines.push('');
+  lines.push.apply(lines, buildIncentivoEquipoLines(selected));
+
+  const emailPm = document.getElementById('emailPm').value.trim();
+  lines.push('');
+  lines.push('// A8. EMAIL DEL PM');
+  lines.push('');
+  lines.push('f("emaildp").set("' + escapeForScript(emailPm) + '");');
+
+  const programacion = document.getElementById('scriptProgramacion').value;
+  const programacionLabel = PROGRAMACION_LABELS[programacion] || programacion;
+  const clienteFinal = getSelectedValue('scriptCliente', 'scriptClienteCustom');
+  const iqviaMsd = document.getElementById('scriptIQVIAMSD').checked;
+
+  let clienteValue = clienteFinal;
+  let cliente2Value = null;
+  if (programacion === 'fine_confirmit') {
+    clienteValue = 'FINE';
+    cliente2Value = clienteFinal;
+  } else if (programacion === 'fine_sipe') {
+    clienteValue = 'FINE-SIPE';
+    cliente2Value = clienteFinal;
+  }
+
+  lines.push('');
+  lines.push('// A9. CLIENTE');
+  lines.push('// Programación: ' + programacionLabel);
+  lines.push('');
+  lines.push('f("cliente").set("' + escapeForScript(clienteValue) + '");');
+  if (cliente2Value !== null) {
+    lines.push('f("cliente2").set("' + escapeForScript(cliente2Value) + '");');
+  } else {
+    lines.push('// (cliente2 no se modifica en este modo de programación)');
+  }
+  lines.push('');
+  lines.push('//Si el cliente es IQVIA y el cliente final es MSD entonces colocar ON, por defecto va OFF');
+  lines.push('f("IQVIAMSD").set("' + (iqviaMsd ? 'ON' : 'OFF') + '");');
+
+  lines.push('');
+  lines.push('//A10. COPIAR EN ASIGNACION DE INCENTIVOS, LO QUE ESTA ENTRE *    *');
+  lines.push('');
+  lines.push('/*');
+  lines.push('');
+  lines.push.apply(lines, buildAsignacionIncentivosLines(selected));
+  lines.push('');
+  lines.push('*/');
+
+  return lines.join('\n');
+}
+
+function getAllTopics() {
+  return TOPIC_CODES.concat(TOPIC_CODES_CUSTOM);
+}
+
+function findTopicByKey(key) {
+  if (key === 'otra') return TOPIC_OTRA;
+  return getAllTopics().find(function (t) { return t.key === key; });
+}
+
+function topicLabel(t, idioma) {
+  return idioma === 'pt' ? t.labelPt : t.labelEs;
+}
+
+function topicFamilySuffix(t, idioma) {
+  if (t.family === 'tratamiento') return idioma === 'pt' ? ' (Tratamento com...)' : ' (Tratamiento con...)';
+  if (t.family === 'evaluacion') return idioma === 'pt' ? ' (Avaliação de...)' : ' (Evaluación de...)';
+  if (t.family === 'manejo') return idioma === 'pt' ? ' (Manejo de...)' : ' (Manejo de...)';
+  return '';
+}
+
+// Asunto corto (A3 / línea de asunto del e-mail), ej: "Manejo de Diabetes", "Tratamiento con Botox".
+function capitalizeFirst(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Usa "tema" (no "label") a propósito: algunos labels ya arrancan con "Tratamiento(s)"
+// (Tratamientos Biologicos, Tratamientos con Botox) y duplicarían el prefijo de la familia.
+function buildAsuntoShortFromTopic(key, idioma) {
+  const t = findTopicByKey(key);
+  if (!t || t.family === 'other') return null;
+  const tema = capitalizeFirst(idioma === 'pt' ? t.temaPt : t.temaEs);
+  if (t.family === 'tratamiento') return (idioma === 'pt' ? 'Tratamento com ' : 'Tratamiento con ') + tema;
+  if (t.family === 'evaluacion') return (idioma === 'pt' ? 'Avaliação de ' : 'Evaluación de ') + tema;
+  return 'Manejo de ' + tema;
+}
+
+// Frase larga para el perfil/A4 (TEXTO), ej: "el tratamiento de diabetes", "tratamiento con productos biológicos".
+// Devuelve null si no hay tópico clasificado (el llamador debe usar el asunto tipeado a mano como respaldo).
+// Devuelve '' para la familia "evaluacion" a propósito, para no inventar una cláusula de experiencia clínica.
+function buildPerfilTemaFromTopic(key, idioma) {
+  const t = findTopicByKey(key);
+  if (!t || t.family === 'other') return null;
+  if (t.family === 'evaluacion') return '';
+  const tema = idioma === 'pt' ? t.temaPt : t.temaEs;
+  if (t.family === 'tratamiento') {
+    return idioma === 'pt' ? 'tratamento com ' + tema : 'tratamiento con ' + tema;
+  }
+  return idioma === 'pt' ? 'o tratamento de ' + tema : 'el tratamiento de ' + tema;
+}
+
+function populateScriptTopico() {
+  const select = document.getElementById('scriptTopico');
+  const idioma = document.getElementById('idioma').value;
+  const previousKey = select.value;
+  select.innerHTML = '';
+
+  const sorted = getAllTopics().slice().sort(function (a, b) {
+    return topicLabel(a, idioma).localeCompare(topicLabel(b, idioma), idioma === 'pt' ? 'pt' : 'es');
+  });
+  sorted.push(TOPIC_OTRA);
+
+  sorted.forEach(function (t) {
+    const option = document.createElement('option');
+    option.value = t.key;
+    option.textContent = topicLabel(t, idioma) + topicFamilySuffix(t, idioma);
+    select.appendChild(option);
+  });
+
+  if (previousKey && findTopicByKey(previousKey)) {
+    select.value = previousKey;
+  } else {
+    select.value = 'otra';
+  }
+}
+
+// silent: true -> no alert cuando el tópico es "Otra" (se usa en el auto-aplicado al cambiar el tópico).
+function applyAsuntoFromTopico(silent) {
+  const key = document.getElementById('scriptTopico').value;
+  const asuntoPt = buildAsuntoShortFromTopic(key, 'pt');
+  const asuntoEs = buildAsuntoShortFromTopic(key, 'es');
+
+  if (asuntoPt === null && asuntoEs === null) {
+    if (!silent) alert('Elegí un tópico específico (no "Otra") para poder sugerir un asunto.');
+    return;
+  }
+
+  document.getElementById('scriptAsuntoPt').value = asuntoPt;
+  document.getElementById('scriptAsuntoEs').value = asuntoEs;
+  render();
+}
+
+function suggestAsuntoFromTopico() {
+  applyAsuntoFromTopico(false);
+}
+
+function populateScriptClienteSelect() {
+  const clienteSelect = document.getElementById('scriptCliente');
+  clienteSelect.innerHTML = '';
+
+  const sorted = CLIENT_CODES.slice().sort(function (a, b) {
+    return a.label.localeCompare(b.label, 'es');
+  });
+
+  sorted.forEach(function (c) {
+    const option = document.createElement('option');
+    option.value = c.label.toUpperCase();
+    option.textContent = c.label;
+    clienteSelect.appendChild(option);
+  });
+
+  const customOptCliente = document.createElement('option');
+  customOptCliente.value = CUSTOM_OPTION_VALUE;
+  customOptCliente.textContent = 'Otra (especificar)';
+  clienteSelect.appendChild(customOptCliente);
+
+  toggleCustomField('scriptCliente', 'scriptClienteCustom');
+}
+
+function renderScript() {
+  updateScriptAsuntoBoxes();
+  document.getElementById('scriptOutput').value = buildScriptOutput();
+}
+
+function populateScriptCountries() {
+  const group = document.getElementById('scriptCountriesGroup');
+  group.innerHTML = '';
+  SCRIPT_COUNTRIES.forEach(function (country) {
+    const wrapper = document.createElement('label');
+    wrapper.style.cssText = 'display:flex; align-items:center; gap:5px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:0; color:#1a1a1a;';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'scriptCountry_' + country.code;
+    checkbox.addEventListener('change', function () {
+      if (country.code === 'BR' && checkbox.checked && !userSetIdioma) {
+        const idiomaSelect = document.getElementById('idioma');
+        idiomaSelect.value = 'pt';
+        idiomaSelect.dispatchEvent(new Event('change'));
+      }
+      render();
+    });
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(document.createTextNode(country.label));
+    group.appendChild(wrapper);
+  });
+}
+
+const OPENERS = {
+  pt: [
+    'Esperamos que esteja bem!',
+    'É um prazer entrar em contato novamente!',
+    'Desejamos que esteja tendo um excelente dia!',
+    'Esperamos que esteja tendo uma ótima semana!',
+  ],
+  es: [
+    '¡Esperamos que se encuentre bien!',
+    '¡Es un placer contactarle nuevamente!',
+    '¡Deseamos que esté teniendo un excelente día!',
+    '¡Esperamos que esté teniendo una excelente semana!',
+  ],
+};
+
+const CLOSINGS = {
+  pt: [
+    'Aguardamos sua valiosa contribuição!',
+    'Esperamos poder contar com a sua participação!',
+    'Sua experiência será muito importante para esta pesquisa!',
+    'Será um prazer contar com a sua contribuição neste estudo!',
+    'Agradecemos desde já e esperamos contar com a sua participação!',
+  ],
+  es: [
+    '¡Esperamos su valiosa contribución!',
+    '¡Esperamos poder contar con su participación!',
+    '¡Su experiencia será muy importante para este estudio!',
+    '¡Será un placer contar con su contribución en este estudio!',
+    '¡Le agradecemos desde ya y esperamos contar con su participación!',
+  ],
+};
+
+const SUBJECT_TEMPLATES = {
+  pt: {
+    invite1: 'Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da FINE PANEL',
+    reminder1: 'Ainda disponível! - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da FINE PANEL',
+    lastCall: 'Últimos dias! - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da FINE PANEL',
+    lastCallBonus: 'Últimos dias! - BONUS HONORÁRIO - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da FINE PANEL',
+    incomplete: 'Pode finalizar! - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da FINE PANEL',
+    incompleteBonus: 'Últimos dias! - BONUS HONORÁRIO - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da FINE PANEL',
+    filterChange: 'PERFIL ATUALIZADO - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da FINE PANEL',
+    paymentData: 'Pesquisa completa! Confirmação dos seus dados de pagamento - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da Fine Panel',
+    refield: 'Obrigado por completar a pesquisa - Última Pergunta - Projeto __PROJECT__ da Fine Panel',
+    linkFixed: 'Pode tentar de novo! LINK CORRIGIDO - Pesquisa sobre __TEMA__ - Projeto __PROJECT__ da Fine Panel',
+  },
+  es: {
+    invite1: 'Encuesta sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    reminder1: '¡Todavía disponible! - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    lastCall: '¡Últimos días! - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    lastCallBonus: '¡Últimos días! - BONO EN EL HONORARIO - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    incomplete: '¡Puede finalizar! - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    incompleteBonus: '¡Últimos días! - BONO EN EL HONORARIO - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    filterChange: 'PERFIL ACTUALIZADO - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    paymentData: '¡Estudio completo! Confirmación de sus datos de pago - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+    refield: 'Gracias por completar el estudio - Última Pregunta - Proyecto __PROJECT__ de FINE PANEL',
+    linkFixed: '¡Puede intentarlo de nuevo! LINK CORREGIDO - Estudio sobre __TEMA__ - Proyecto __PROJECT__ de FINE PANEL',
+  },
+};
+
+function buildSubject(tipo, idioma, tema, projectCode) {
+  const templates = SUBJECT_TEMPLATES[idioma] || SUBJECT_TEMPLATES.pt;
+  const template = templates[tipo] || templates.invite1;
+  return template.replace(/__TEMA__/g, tema).replace(/__PROJECT__/g, projectCode);
+}
+
+const STRINGS = {
+  pt: {
+    INVITE_INTRO_TEMPLATE: 'Gostaríamos de convidar você a participar de um estudo para especialistas em __ESPECIALIDADE__ e conhecer sua experiência sobre:',
+    INTRO_REMINDER1: 'Nos próximos dias estaremos finalizando esta pesquisa e gostaríamos de ter a sua valiosa participação <strong>antes que encerre</strong>.<br><br>Como mencionado anteriormente, seguem os detalhes da pesquisa:',
+    INTRO_LAST_CALL: 'Nesta semana estamos fechando este projeto e gostaríamos de que tivesse a oportunidade de completar a pesquisa <strong>antes do fechamento</strong>.<br><br>Para participar, pode clicar diretamente aqui.',
+    INTRO_LAST_CALL_BONUS_TEMPLATE: 'Nesta semana estamos fechando este projeto e gostaríamos de que tivesse a oportunidade de completar a pesquisa antes do fechamento.<br><br>Para quem completar a pesquisa <strong>dentro das próximas 24-48 horas</strong>, estamos considerando <strong>um valor acrescentado ao seu honorário</strong>.',
+    INTRO_INCOMPLETE: 'Obrigado por tentar participar nesta pesquisa da FINE PANEL!<br><br>Segundo os nossos registros, você começou mas ainda não completou toda a pesquisa.<br><br>Pode <strong>finalizar SEM PERDER O JÁ FEITO</strong> clicando abaixo:',
+    INTRO_INCOMPLETE_BONUS_TEMPLATE: 'Obrigado por tentar participar nesta pesquisa da FINE PANEL!<br><br>Segundo os nossos registros, você começou mas ainda não completou toda a pesquisa.<br><br>Este é o nosso <strong>último aviso</strong> para completar a pesquisa. Para quem completar a pesquisa <strong>dentro das próximas 24-48 horas</strong>, estamos considerando <strong>um valor acrescentado ao seu honorário</strong>.',
+    INTRO_FILTER_CHANGE: 'Obrigado por ter tentado participar da pesquisa da FINE PANEL.<br><br>Na ocasião, você recebeu uma mensagem informando que o seu perfil não atendia aos critérios definidos para o estudo. Como essa situação ocorreu com diversos médicos, os organizadores revisaram alguns desses critérios para que a pesquisa esteja mais alinhada à realidade dos especialistas no país.<br><br>Com essas mudanças, acreditamos que agora há uma boa possibilidade de você conseguir participar e, por isso, gostaríamos de convidá-lo(a) novamente.<br><br>Embora não possamos garantir a participação até que você responda novamente às perguntas iniciais de perfil — o que leva aproximadamente 1 minuto —, esperamos que, desta vez, você possa avançar normalmente na pesquisa.',
+    INTRO_PAYMENT_DATA: 'Muito obrigado por completar nossa pesquisa na FINE PANEL!<br><br>Verificamos que alguns dos dados necessários para realizar o pagamento do seu honorário não foram registrados corretamente.<br><br>Para que possamos processar o pagamento, pedimos, por gentileza, que acesse o link abaixo e confirme ou complete seus dados:',
+    INTRO_REFIELD: 'Muito obrigado por completar nossa pesquisa e fazer parte da comunidade FINE PANEL!<br><br>Precisamos apenas de algumas informações adicionais para finalizar o estudo e gostaríamos de pedir, por gentileza, que responda a algumas poucas perguntas. Levará aproximadamente 1 minuto.<br><br>Para responder, basta clicar no link abaixo:',
+    INTRO_LINK_FIXED: 'Muito obrigado por tentar participar da nossa pesquisa.<br><br>Infelizmente, tivemos um problema técnico que impediu a continuidade da sua participação. Pedimos desculpas pelo inconveniente.<br><br>O problema já foi corrigido e você pode acessar novamente a pesquisa normalmente.<br><br>Para continuar, basta clicar no link abaixo:',
+    CTA_REINICIAR: 'REINICIAR PESQUISA',
+    CTA_PAYMENT_DATA: 'DADOS DE PAGAMENTO',
+    CTA_REFIELD: 'COMPLETAR ÚLTIMAS PERGUNTAS',
+    DURATION_LABEL: 'Duração estimada',
+    MINUTES_WORD: 'minutos',
+    HONORARIO_LABEL: 'Honorário',
+    LANG_CODE: '1046',
+    CTA_TEXT: 'INICIAR PESQUISA',
+    ELIGIBILITY_TITLE: 'Sobre a participação',
+    ELIGIBILITY_TEXT: 'Antes de iniciar a pesquisa, algumas perguntas breves confirmarão se seu perfil atende aos critérios específicos deste estudo. O honorário indicado será concedido aos participantes elegíveis que concluírem a pesquisa.',
+    BULLET_1: 'A pesquisa <strong>estará disponível até atingirmos o número necessário de participantes.</strong>',
+    BULLET_2: 'Você pode interromper e continuar mais tarde sem perder seu progresso.',
+    ACCESS_TEXT: 'Você pode revisar seu histórico de créditos e pagamentos, e se atualizar sobre novidades da sua especialidade',
+    ACCESS_LINK_TEXT: 'clicando aqui',
+    SIGNOFF_LABEL: 'Atenciosamente,',
+    SIGNOFF_NAME: 'Diego',
+    SIGNOFF_ROLE: 'Gerente de Projetos On-line',
+    WEBSITE_LABEL: 'Portal Médico:',
+    QA_TITLE: 'Perguntas e Respostas',
+    CANCEL_LINK_TEXT: 'CANCELAR',
+    QA: [
+      {
+        q: 'Quais são as vantagens de participar das pesquisas do Fine-Panel?',
+        a: 'Ao participar de nossas pesquisas, você contribui ativamente para discussões sobre futuras abordagens terapêuticas e tem acesso a inovações em sua área. Além disso, pode responder no horário que for mais conveniente e receber seu honorário diretamente em sua conta bancária.',
+      },
+      {
+        q: 'Como serão tratados meus dados pessoais e minhas respostas?',
+        a: 'Garantimos total sigilo e confidencialidade. Seus dados jamais serão compartilhados com terceiros ou associados às suas respostas, seguindo as diretrizes da ESOMAR, BHBIA, EPHMRA e ABEP.',
+      },
+      {
+        q: 'Quem pode participar do painel?',
+        a: 'O painel é exclusivo para profissionais de saúde que atuam na América Latina e estão devidamente cadastrados conforme a legislação vigente. Contamos com milhares de médicos que participam regularmente de nossos estudos.',
+      },
+      {
+        q: 'Sobre quais temas poderei ser convidado a participar?',
+        a: 'Os convites são direcionados com base em sua especialidade e prática médica. Temos diversas pesquisas que podem ser do seu interesse.',
+      },
+      {
+        q: 'Como sei o valor que receberei por cada pesquisa?',
+        a: 'O valor do honorário é informado previamente no convite enviado por e-mail.',
+      },
+      {
+        q: 'O que preciso fazer para receber meu honorário?',
+        a: 'O pagamento será realizado aos participantes que atenderem ao perfil do estudo e completarem o questionário. As pesquisas variam entre 15 a 40 minutos, dependendo do projeto e do desempenho do navegador utilizado.',
+      },
+      {
+        q: 'Qual é o prazo para participar de uma pesquisa?',
+        a: 'As pesquisas possuem um tempo limitado e um número máximo de participantes. Para garantir sua participação, recomendamos responder o quanto antes. Caso o estudo já tenha sido encerrado, o sistema informará automaticamente.',
+      },
+      {
+        q: 'Por que algumas pesquisas exigem um perfil específico?',
+        a: 'Cada pesquisa é direcionada a um público-alvo com critérios previamente definidos. Isso pode incluir o tipo de paciente atendido, local de atuação (público ou privado) ou outros fatores relevantes. Não se enquadrar em um estudo específico não reflete, de forma alguma, sua qualificação profissional.',
+      },
+      {
+        q: 'Como sei se me encaixo no perfil da pesquisa?',
+        a: 'Antes do início da pesquisa, há um breve questionário de 1 a 2 minutos para verificar se seu perfil se adequa ao estudo.',
+      },
+      {
+        q: 'Posso participar regularmente de pesquisas?',
+        a: 'Sim! Realizamos mais de 100 estudos médicos por ano, contemplando diversas especialidades. Caso seu perfil corresponda a novos estudos, você poderá ser convidado regularmente.',
+      },
+      {
+        q: 'Como é feito o pagamento?',
+        a: 'O valor é depositado diretamente em sua conta corrente, e você receberá uma notificação por e-mail assim que o pagamento for processado.',
+      },
+      {
+        q: 'Qual é o prazo para o pagamento?',
+        a: 'Nosso prazo contratual é de até 4 semanas, mas, na maioria dos casos, os pagamentos são processados em até 48 horas úteis após a conclusão da pesquisa.',
+      },
+      {
+        q: 'Como acompanho meus pagamentos e participações?',
+        a: 'Você pode acessar seu histórico de pesquisas e pagamentos a qualquer momento em www.finepanel.net. Basta fazer login com seu e-mail (^email^) e senha (^password1^) para consultar suas participações, valores recebidos e status dos pagamentos.',
+      },
+      {
+        q: 'Qual é a política sobre Padrões Antissuborno e Anticorrupção?',
+        a: 'Temos políticas bastante rigorosas para assegurar a transparência e a conformidade nesse sentido. Os incentivos pagos têm exclusivamente o objetivo de compensar o tempo despendido na participação em nossas pesquisas, sendo compatíveis com os valores de honorários médicos normalmente praticados na atividade, sem qualquer obrigação de prescrever, recomendar ou utilizar qualquer tipo de produto.<br><br>Tanto a Empresa quanto você, caso deseje participar deste projeto, declaram e garantem que elas e seu Pessoal cumprirão os Padrões Antissuborno e Anticorrupção (ABAC). Qualquer descumprimento desses padrões permitirá que a outra Parte rescinda o Acordo imediatamente. As Partes também asseguram que nem elas nem seu Pessoal foram condenados, considerados culpados ou acusados por crimes relacionados a fraude, corrupção ou suborno em qualquer jurisdição. As Partes se comprometem a não oferecer, prometer, autorizar, solicitar ou entregar, direta ou indiretamente, qualquer benefício ou coisa de valor com a finalidade de: (1) influenciar indevidamente decisões ou atos de agentes públicos; (2) induzir qualquer pessoa a agir em violação de seus deveres; ou (3) influenciar agentes públicos ou terceiros para obter vantagens comerciais indevidas. As Partes também se comprometem a não realizar Pagamentos de Facilitação, entendidos como pequenos pagamentos destinados a acelerar procedimentos governamentais rotineiros. As Partes cumprirão todas as leis antissuborno aplicáveis, incluindo, conforme aplicável, a FCPA dos EUA, o U.K. Bribery Act de 2010 e a legislação derivada da Convenção da OCDE. Cada Parte é responsável por conhecer e cumprir as disposições anticorrupção aplicáveis.',
+      },
+      {
+        q: 'Como posso cancelar minha inscrição?',
+        a: 'Caso queira deixar de receber convites para novas pesquisas, basta clicar em __CANCEL_LINK__.',
+      },
+    ],
+  },
+  es: {
+    INVITE_INTRO_TEMPLATE: 'Nos gustaría invitarle a participar en un estudio para especialistas en __ESPECIALIDADE__ y conocer su experiencia sobre:',
+    INTRO_REMINDER1: 'En los próximos días estaremos cerrando esta encuesta y nos gustaría contar con su valiosa participación <strong>antes de que finalice</strong>.<br><br>Como se mencionó anteriormente, a continuación los detalles del estudio:',
+    INTRO_LAST_CALL: 'Esta semana estamos cerrando este proyecto y nos gustaría que tuviera la oportunidad de completar la encuesta <strong>antes del cierre</strong>.<br><br>Para participar, puede hacer clic directamente aquí.',
+    INTRO_LAST_CALL_BONUS_TEMPLATE: 'Esta semana estamos cerrando este proyecto y nos gustaría que tuviera la oportunidad de completar la encuesta antes del cierre.<br><br>Para quienes completen la encuesta <strong>dentro de las próximas 24-48 horas</strong>, estamos considerando <strong>un valor adicional sobre su honorario</strong>.',
+    INTRO_INCOMPLETE: '¡Gracias por intentar participar en este estudio de FINE PANEL!<br><br>Según nuestros registros, usted comenzó pero aún no completó toda la encuesta.<br><br>Puede <strong>finalizar SIN PERDER LO YA COMPLETADO</strong> haciendo clic abajo:',
+    INTRO_INCOMPLETE_BONUS_TEMPLATE: '¡Gracias por intentar participar en este estudio de FINE PANEL!<br><br>Según nuestros registros, usted comenzó pero aún no completó toda la encuesta.<br><br>Este es nuestro <strong>último aviso</strong> para completar la encuesta. Para quienes completen la encuesta <strong>dentro de las próximas 24-48 horas</strong>, estamos considerando <strong>un valor adicional sobre su honorario</strong>.',
+    INTRO_FILTER_CHANGE: 'Gracias por haber intentado participar en el estudio de FINE PANEL.<br><br>En esa ocasión, usted recibió un mensaje informándole que su perfil no cumplía con los criterios definidos para el estudio. Como esta situación ocurrió con varios médicos, los organizadores revisaron algunos de estos criterios para que la encuesta esté más alineada con la realidad de los especialistas en el país.<br><br>Con estos cambios, creemos que ahora existe una buena posibilidad de que pueda participar y, por eso, nos gustaría invitarle nuevamente.<br><br>Aunque no podemos garantizar la participación hasta que responda nuevamente las preguntas iniciales de perfil —lo cual toma aproximadamente 1 minuto—, esperamos que esta vez pueda avanzar normalmente en la encuesta.',
+    INTRO_PAYMENT_DATA: '¡Muchas gracias por completar nuestro estudio en FINE PANEL!<br><br>Verificamos que algunos de los datos necesarios para procesar el pago de su honorario no quedaron registrados correctamente.<br><br>Para poder procesar el pago, le pedimos amablemente que acceda al siguiente enlace y confirme o complete sus datos:',
+    INTRO_REFIELD: '¡Muchas gracias por completar nuestro estudio y formar parte de la comunidad FINE PANEL!<br><br>Solo necesitamos algunos datos adicionales para finalizar el estudio y le pedimos amablemente que responda algunas pocas preguntas. Tomará aproximadamente 1 minuto.<br><br>Para responder, simplemente haga clic en el siguiente enlace:',
+    INTRO_LINK_FIXED: 'Muchas gracias por intentar participar en nuestro estudio.<br><br>Lamentablemente, tuvimos un problema técnico que impidió la continuidad de su participación. Pedimos disculpas por el inconveniente.<br><br>El problema ya fue corregido y puede acceder nuevamente a la encuesta con normalidad.<br><br>Para continuar, simplemente haga clic en el siguiente enlace:',
+    CTA_REINICIAR: 'REINICIAR ENCUESTA',
+    CTA_PAYMENT_DATA: 'DATOS DE PAGO',
+    CTA_REFIELD: 'COMPLETAR ÚLTIMAS PREGUNTAS',
+    DURATION_LABEL: 'Duración estimada',
+    MINUTES_WORD: 'minutos',
+    HONORARIO_LABEL: 'Honorario',
+    LANG_CODE: '2058',
+    CTA_TEXT: 'INICIAR ENCUESTA',
+    ELIGIBILITY_TITLE: 'Sobre la participación',
+    ELIGIBILITY_TEXT: 'Antes de comenzar el estudio, algunas preguntas breves confirmarán si su perfil cumple con los criterios específicos de esta encuesta. El honorario indicado será otorgado a los participantes elegibles que completen el estudio.',
+    BULLET_1: 'El estudio <strong>estará disponible hasta alcanzar el número necesario de participantes.</strong>',
+    BULLET_2: 'Puede interrumpirlo y continuar más tarde sin perder su progreso.',
+    ACCESS_TEXT: 'Puede revisar su historial de créditos y pagos, y conocer las novedades de su especialidad',
+    ACCESS_LINK_TEXT: 'haciendo clic aquí',
+    SIGNOFF_LABEL: 'Atentamente,',
+    SIGNOFF_NAME: 'Diego',
+    SIGNOFF_ROLE: 'Gerente de Proyectos en Línea',
+    WEBSITE_LABEL: 'Portal Médico:',
+    QA_TITLE: 'Preguntas y Respuestas',
+    CANCEL_LINK_TEXT: 'CANCELAR',
+    QA: [
+      {
+        q: '¿Cuáles son las ventajas de participar en los estudios de Fine Panel?',
+        a: 'Al participar en nuestros estudios, usted contribuye activamente a las discusiones sobre futuros abordajes terapéuticos y tiene acceso a innovaciones en su área. Además, puede responder en el horario que le resulte más conveniente y recibir su honorario directamente en su cuenta bancaria.',
+      },
+      {
+        q: '¿Cómo se tratarán mis datos personales y mis respuestas?',
+        a: 'Garantizamos total sigilo y confidencialidad. Sus datos nunca serán compartidos con terceros ni asociados a sus respuestas, siguiendo los lineamientos de ESOMAR, BHBIA, EPHMRA y ABEP.',
+      },
+      {
+        q: '¿Quién puede participar del panel?',
+        a: 'El panel es exclusivo para profesionales de la salud que ejercen en América Latina y están debidamente registrados conforme a la legislación vigente. Contamos con miles de médicos que participan regularmente en nuestros estudios.',
+      },
+      {
+        q: '¿Sobre qué temas podré ser invitado a participar?',
+        a: 'Las invitaciones se envían según su especialidad y práctica médica. Contamos con diversos estudios que pueden ser de su interés.',
+      },
+      {
+        q: '¿Cómo sé el valor que recibiré por cada estudio?',
+        a: 'El valor del honorario se informa previamente en la invitación enviada por correo electrónico.',
+      },
+      {
+        q: '¿Qué debo hacer para recibir mi honorario?',
+        a: 'El pago se realizará a los participantes que cumplan con el perfil del estudio y completen el cuestionario. Los estudios varían entre 15 y 40 minutos, dependiendo del proyecto y del rendimiento del navegador utilizado.',
+      },
+      {
+        q: '¿Cuál es el plazo para participar en un estudio?',
+        a: 'Los estudios tienen un tiempo limitado y un número máximo de participantes. Para garantizar su participación, recomendamos responder lo antes posible. Si el estudio ya finalizó, el sistema se lo informará automáticamente.',
+      },
+      {
+        q: '¿Por qué algunos estudios exigen un perfil específico?',
+        a: 'Cada estudio está dirigido a un público objetivo con criterios previamente definidos. Esto puede incluir el tipo de paciente atendido, el lugar de ejercicio (público o privado) u otros factores relevantes. No encajar en un estudio específico no refleja, de ninguna manera, su calificación profesional.',
+      },
+      {
+        q: '¿Cómo sé si encajo en el perfil del estudio?',
+        a: 'Antes de iniciar el estudio, hay un breve cuestionario de 1 a 2 minutos para verificar si su perfil se ajusta al estudio.',
+      },
+      {
+        q: '¿Puedo participar regularmente en estudios?',
+        a: '¡Sí! Realizamos más de 100 estudios médicos por año, abarcando diversas especialidades. Si su perfil corresponde a nuevos estudios, podrá ser invitado regularmente.',
+      },
+      {
+        q: '¿Cómo se realiza el pago?',
+        a: 'El valor se deposita directamente en su cuenta corriente, y recibirá una notificación por correo electrónico en cuanto el pago sea procesado.',
+      },
+      {
+        q: '¿Cuál es el plazo para el pago?',
+        a: 'Nuestro plazo contractual es de hasta 4 semanas, pero en la mayoría de los casos, los pagos se procesan dentro de las 48 horas hábiles posteriores a la finalización del estudio.',
+      },
+      {
+        q: '¿Cómo hago seguimiento de mis pagos y participaciones?',
+        a: 'Puede acceder a su historial de estudios y pagos en cualquier momento en www.finepanel.net. Solo debe iniciar sesión con su correo electrónico (^email^) y contraseña (^password1^) para consultar sus participaciones, valores recibidos y estado de los pagos.',
+      },
+      {
+        q: '¿Cuál es la política sobre Estándares Antisoborno y Anticorrupción (ABAC)?',
+        a: 'Contamos con políticas muy rigurosas para garantizar la transparencia y el cumplimiento en este sentido. Los incentivos pagados tienen exclusivamente el objetivo de compensar el tiempo dedicado a la participación en nuestros estudios, siendo compatibles con los valores de honorarios médicos normalmente practicados en la actividad, sin ninguna obligación de prescribir, recomendar o utilizar cualquier tipo de producto.<br><br>Tanto la Empresa como usted, en caso de desear participar en este proyecto, declaran y garantizan que ellas y su Personal cumplirán con los Estándares Antisoborno y Anticorrupción (ABAC). Cualquier incumplimiento de estos estándares permitirá que la otra Parte rescinda el Acuerdo de inmediato. Las Partes también aseguran que ni ellas ni su Personal han sido condenados, declarados culpables o acusados por delitos relacionados con fraude, corrupción o soborno en ninguna jurisdicción. Las Partes se comprometen a no ofrecer, prometer, autorizar, solicitar o entregar, directa o indirectamente, ningún beneficio o cosa de valor con el propósito de: (1) influir indebidamente en decisiones o actos de funcionarios públicos; (2) inducir a cualquier persona a actuar en violación de sus deberes; o (3) influir en funcionarios públicos o terceros para obtener ventajas comerciales indebidas. Las Partes también se comprometen a no realizar Pagos de Facilitación, entendidos como pequeños pagos destinados a acelerar procedimientos gubernamentales rutinarios. Las Partes cumplirán con todas las leyes antisoborno aplicables, incluyendo, según corresponda, la FCPA de EE. UU., la U.K. Bribery Act de 2010 y la legislación derivada de la Convención de la OCDE. Cada Parte es responsable de conocer y cumplir las disposiciones anticorrupción aplicables.',
+      },
+      {
+        q: '¿Cómo puedo cancelar mi inscripción?',
+        a: 'Si desea dejar de recibir invitaciones para nuevos estudios, simplemente haga clic en __CANCEL_LINK__.',
+      },
+    ],
+  },
+};
+
+const TEMPLATE = `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+<!--[if mso]>
+<noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+<![endif]-->
+<style type="text/css">
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+  body { margin: 0; padding: 0; width: 100% !important; height: 100% !important; background-color: #f2f4f6; }
+  a { color: #03B1B2; }
+  @media screen and (max-width: 600px) {
+    .email-container { width: 100% !important; }
+    .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
+    .stack-column { display: block !important; width: 100% !important; }
+    .stack-pad-top { padding-top: 10px !important; }
+    .topic-text { font-size: 20px !important; line-height: 27px !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#f2f4f6;">
+
+  <center style="width:100%; background-color:#f2f4f6;">
+  <!--[if mso]>
+  <table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0">
+  <tr><td>
+  <![endif]-->
+  <div style="max-width:600px; margin:0 auto;" class="email-container">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; margin:0 auto; background-color:#ffffff;">
+
+      <tr><td style="height:4px; line-height:4px; font-size:1px; background-color:#03B1B2;">&nbsp;</td></tr>
+
+      <tr><td style="height:28px; line-height:28px; font-size:1px;">&nbsp;</td></tr>
+
+      <!-- Logo -->
+      <tr>
+        <td align="center" class="mobile-padding" style="padding:0 32px;">
+          <img src="https://finepanel.net/finepanel-logo.png" width="260" alt="Fine Panel" style="display:block; border:0; max-width:260px; height:auto;">
+        </td>
+      </tr>
+
+      <tr><td style="height:32px; line-height:32px; font-size:1px;">&nbsp;</td></tr>
+
+      <!-- Greeting -->
+      <tr>
+        <td class="mobile-padding" style="padding:0 32px; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#414144;">
+          ^Tituloest^ ^Titulo^. ^name^ ^apellido^,<br><br>
+          __INTRO_BLOCK__
+        </td>
+      </tr>
+
+      <tr><td style="height:14px; line-height:14px; font-size:1px;">&nbsp;</td></tr>
+
+      __BODY_BLOCK__
+
+      __SOLIDARITY_BLOCK__
+
+      __ENGAGEMENT_BLOCK__
+
+      <!-- Closing + signature -->
+      <tr>
+        <td class="mobile-padding" style="padding:0 32px; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#414144;">
+          __CLOSING_TEXT__<br><br>
+          __SIGNOFF_LABEL__<br>
+          <strong style="color:#14415E;">__SIGNOFF_NAME__</strong><br>
+          <span style="font-style:italic; color:#6D6E72; font-size:13px;">__SIGNOFF_ROLE__</span>
+        </td>
+      </tr>
+
+      <tr><td style="height:26px; line-height:26px; font-size:1px;">&nbsp;</td></tr>
+
+      <!-- Institutional footer -->
+      <tr>
+        <td class="mobile-padding" style="padding:0 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="border-top:1px solid #e5e7eb; padding-top:18px; font-family: Arial, Helvetica, sans-serif; font-size:11px; line-height:17px; color:#AEAFB1;">
+                __FOOTER_LEGAL__<br><br>
+                <a href="mailto:diego@finepanel.net" style="color:#AEAFB1; text-decoration:underline;">diego@finepanel.net</a><br>
+                __WEBSITE_LABEL__ <a href="https://www.finepanel.net" style="color:#AEAFB1; text-decoration:underline;">www.finepanel.net</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr><td style="height:36px; line-height:36px; font-size:1px;">&nbsp;</td></tr>
+
+      <!-- Q&A / Compliance -->
+      <tr>
+        <td class="mobile-padding" style="padding:0 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="border-top:1px solid #e5e7eb; padding-top:22px; padding-bottom:10px; font-family: Arial, Helvetica, sans-serif; font-size:13px; font-weight:bold; letter-spacing:0.5px; color:#14415E; text-transform:uppercase;">
+                __QA_TITLE__
+              </td>
+            </tr>
+            __QA_ITEMS__
+          </table>
+        </td>
+      </tr>
+
+      <tr><td style="height:32px; line-height:32px; font-size:1px;">&nbsp;</td></tr>
+    </table>
+  </div>
+  <!--[if mso]>
+  </td></tr></table>
+  <![endif]-->
+  </center>
+
+</body>
+</html>`;
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function buildQaHtml(strings) {
+  const cancelLink = '<a href="^surl^&Exit=5&ID=^id^&l=' + strings.LANG_CODE + '" style="color:#03B1B2; font-weight:bold; text-decoration:underline;">' + strings.CANCEL_LINK_TEXT + '</a>';
+
+  return strings.QA.map(function (item, index) {
+    const answer = item.a.replace('__CANCEL_LINK__', cancelLink);
+    return (
+      '<tr><td style="padding-top:' + (index === 0 ? '0' : '18') + 'px; font-family: Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#14415E; line-height:20px;">' +
+      (index + 1) + '. ' + item.q +
+      '</td></tr>' +
+      '<tr><td style="padding-top:6px; font-family: Arial, Helvetica, sans-serif; font-size:13px; line-height:20px; color:#414144;">' +
+      answer +
+      '</td></tr>'
+    );
+  }).join('\n');
+}
+
+function buildSolidarityHtml(text, extraBoldHtml) {
+  const safeText = escapeHtml(text).replace(/\n/g, '<br>');
+  const combined = extraBoldHtml
+    ? (safeText ? safeText + '<br><br>' : '') + extraBoldHtml
+    : safeText;
+  return (
+    '<tr>\n' +
+    '  <td class="mobile-padding" style="padding:0 32px;">\n' +
+    '    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb;">\n' +
+    '      <tr>\n' +
+    '        <td style="padding:16px 0; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#6D6E72;">\n' +
+    '          ' + combined + '\n' +
+    '        </td>\n' +
+    '      </tr>\n' +
+    '    </table>\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:22px; line-height:22px; font-size:1px;">&nbsp;</td></tr>'
+  );
+}
+
+function getSelectedValue(selectId, customInputId) {
+  const select = document.getElementById(selectId);
+  if (select.value === CUSTOM_OPTION_VALUE) {
+    return document.getElementById(customInputId).value.trim();
+  }
+  return select.value;
+}
+
+function suggestValue() {
+  const moeda = getSelectedValue('moeda', 'moedaCustom');
+  const duracaoRaw = document.getElementById('duracao').value;
+  const minutesMatch = duracaoRaw.match(/\d+/);
+
+  if (!minutesMatch) {
+    alert('No se pudo interpretar la duración para sugerir un valor. Escribí un número de minutos, ej: "20".');
+    return;
+  }
+  if (!Object.prototype.hasOwnProperty.call(SUGGESTED_VALUE_TABLE.hard[0].values, moeda)) {
+    alert('No hay valores sugeridos para esta moneda. Elegí una de las monedas precodificadas (no "Otra").');
+    return;
+  }
+
+  const minutes = parseInt(minutesMatch[0], 10);
+  const suggested = getSuggestedAmountForCurrency(moeda, minutes, getAnyHardSpecialtySelected());
+
+  document.getElementById('valor').value = suggested;
+  render();
+}
+
+function getFooterLegal(moeda) {
+  if (moeda === 'R$') {
+    return 'Fine do Brasil Pesquisa Limitada<br>Avenida Paulista 2494, 7º andar, São Paulo';
+  }
+  if (moeda === 'AR$') {
+    return 'Fine Research SRL<br>Olazábal 1334, Ciudad Autónoma de Buenos Aires';
+  }
+  return 'Fine Panel';
+}
+
+const NO_OPENER_TYPES = ['incomplete', 'incompleteBonus', 'paymentData', 'filterChange', 'refield', 'linkFixed'];
+
+// Tipos donde el botón de CTA va inmediatamente debajo del texto de intro,
+// antes de los datos de tema/duración/honorario (no solo los NO_OPENER_TYPES).
+const CTA_FIRST_TYPES = NO_OPENER_TYPES.concat(['lastCall', 'lastCallBonus']);
+
+function buildIntroBlock(tipo, strings, especialidade, wellbeing) {
+  let body;
+
+  if (tipo === 'reminder1') {
+    body = strings.INTRO_REMINDER1;
+  } else if (tipo === 'lastCall') {
+    body = strings.INTRO_LAST_CALL;
+  } else if (tipo === 'lastCallBonus') {
+    body = strings.INTRO_LAST_CALL_BONUS_TEMPLATE;
+  } else if (tipo === 'incomplete') {
+    body = strings.INTRO_INCOMPLETE;
+  } else if (tipo === 'incompleteBonus') {
+    body = strings.INTRO_INCOMPLETE_BONUS_TEMPLATE;
+  } else if (tipo === 'filterChange') {
+    body = strings.INTRO_FILTER_CHANGE;
+  } else if (tipo === 'paymentData') {
+    body = strings.INTRO_PAYMENT_DATA;
+  } else if (tipo === 'refield') {
+    body = strings.INTRO_REFIELD;
+  } else if (tipo === 'linkFixed') {
+    body = strings.INTRO_LINK_FIXED;
+  } else {
+    body = strings.INVITE_INTRO_TEMPLATE.replace('__ESPECIALIDADE__', '<strong>' + (especialidade || '___') + '</strong>');
+  }
+
+  if (NO_OPENER_TYPES.includes(tipo)) return body;
+  return wellbeing + '<br><br>' + body;
+}
+
+function getCtaText(tipo, strings) {
+  if (tipo === 'incomplete' || tipo === 'incompleteBonus') return 'FINALIZAR';
+  if (tipo === 'filterChange' || tipo === 'linkFixed') return strings.CTA_REINICIAR;
+  if (tipo === 'paymentData') return strings.CTA_PAYMENT_DATA;
+  if (tipo === 'refield') return strings.CTA_REFIELD;
+  return strings.CTA_TEXT;
+}
+
+function getCtaHref(tipo, strings) {
+  if (tipo === 'paymentData') {
+    return '^surl^&exit=4&l=' + strings.LANG_CODE;
+  }
+  if (tipo === 'refield') {
+    return '^surl^&exit=22&l=' + strings.LANG_CODE;
+  }
+  return '^surl^&l=' + strings.LANG_CODE + '&pais=^pais^';
+}
+
+function buildBodyBlock(tipo, strings, tema, honorarioLabel, duracao, valor, moeda, ctaHref, ctaText) {
+  const topicHtml = (
+    '<!-- Topic -->\n' +
+    '<tr>\n' +
+    '  <td class="mobile-padding" style="padding:0 32px;">\n' +
+    '    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#E3F7F7; border-left:3px solid #03B1B2; border-radius:4px;">\n' +
+    '      <tr>\n' +
+    '        <td class="topic-text" style="padding:18px 22px; font-family: Arial, Helvetica, sans-serif; font-size:22px; line-height:29px; font-weight:bold; color:#14415E;">\n' +
+    '          ' + tema + '\n' +
+    '        </td>\n' +
+    '      </tr>\n' +
+    '    </table>\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:24px; line-height:24px; font-size:1px;">&nbsp;</td></tr>'
+  );
+
+  const cardsHtml = (
+    '<!-- Duration / Honorarium cards -->\n' +
+    '<tr>\n' +
+    '  <td class="mobile-padding" style="padding:0 32px;">\n' +
+    '    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">\n' +
+    '      <tr>\n' +
+    '        <td class="stack-column" width="50%" valign="top" style="padding-right:6px;">\n' +
+    '          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EAF1F5; border-radius:6px;">\n' +
+    '            <tr>\n' +
+    '              <td align="center" style="padding:18px 10px; font-family: Arial, Helvetica, sans-serif;">\n' +
+    '                <div style="font-size:11px; font-weight:bold; letter-spacing:0.5px; color:#4B667C; text-transform:uppercase; margin-bottom:6px;">' + strings.DURATION_LABEL + '</div>\n' +
+    '                <div style="font-size:26px; font-weight:bold; color:#14415E;">' + duracao + ' <span style="font-size:14px; font-weight:normal;">' + strings.MINUTES_WORD + '</span></div>\n' +
+    '              </td>\n' +
+    '            </tr>\n' +
+    '          </table>\n' +
+    '        </td>\n' +
+    '        <td class="stack-column stack-pad-top" width="50%" valign="top" style="padding-left:6px;">\n' +
+    '          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#E3F7F7; border-radius:6px;">\n' +
+    '            <tr>\n' +
+    '              <td align="center" style="padding:18px 10px; font-family: Arial, Helvetica, sans-serif;">\n' +
+    '                <div style="font-size:11px; font-weight:bold; letter-spacing:0.5px; color:#036667; text-transform:uppercase; margin-bottom:6px;">' + honorarioLabel + '</div>\n' +
+    '                <div style="font-size:26px; font-weight:bold; color:#036667;">' + moeda + ' ' + valor + '</div>\n' +
+    '              </td>\n' +
+    '            </tr>\n' +
+    '          </table>\n' +
+    '        </td>\n' +
+    '      </tr>\n' +
+    '    </table>\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:26px; line-height:26px; font-size:1px;">&nbsp;</td></tr>'
+  );
+
+  const ctaHtml = (
+    '<!-- CTA -->\n' +
+    '<tr>\n' +
+    '  <td align="center" class="mobile-padding" style="padding:0 32px;">\n' +
+    '    <table role="presentation" cellpadding="0" cellspacing="0" border="0">\n' +
+    '      <tr>\n' +
+    '        <td align="center" bgcolor="#14415E" style="border-radius:4px; background-color:#14415E;">\n' +
+    '          <a href="' + ctaHref + '" target="_blank" style="display:inline-block; padding:16px 44px; font-family: Arial, Helvetica, sans-serif; font-size:16px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:4px;">\n' +
+    '            ' + ctaText + '\n' +
+    '          </a>\n' +
+    '        </td>\n' +
+    '      </tr>\n' +
+    '    </table>\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:22px; line-height:22px; font-size:1px;">&nbsp;</td></tr>'
+  );
+
+  if (CTA_FIRST_TYPES.includes(tipo)) {
+    return ctaHtml + '\n' + topicHtml + '\n' + cardsHtml;
+  }
+  return topicHtml + '\n' + cardsHtml + '\n' + ctaHtml;
+}
+
+// Cuadradito de color en vez de un carácter "✓": Confirmit decodifica las entidades HTML al
+// procesar el mail y lo reenvía en ISO-8859-1, que no puede representar ✓ (U+2713) — llega como "?".
+// &nbsp; (U+00A0) sí es seguro en ISO-8859-1, así que esto evita el problema por completo.
+function buildBulletCellHtml() {
+  return '<td width="20" valign="top" style="padding-top:7px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="6" height="6" bgcolor="#03B1B2" style="width:6px; height:6px; background-color:#03B1B2; border-radius:50%; font-size:1px; line-height:1px;">&nbsp;</td></tr></table></td>';
+}
+
+function buildEngagementBlock(tipo, strings, accessLink) {
+  const bulletOnly = (
+    '<tr>\n' +
+    '  <td class="mobile-padding" style="padding:0 32px; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#414144;">\n' +
+    '    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">\n' +
+    '      <tr>' + buildBulletCellHtml() + '<td>' + strings.BULLET_1 + '</td></tr>\n' +
+    '    </table>\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:26px; line-height:26px; font-size:1px;">&nbsp;</td></tr>'
+  );
+
+  if (tipo !== 'invite1') return bulletOnly;
+
+  return (
+    '<!-- Eligibility -->\n' +
+    '<tr>\n' +
+    '  <td class="mobile-padding" style="padding:0 32px;">\n' +
+    '    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">\n' +
+    '      <tr>\n' +
+    '        <td style="font-family: Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; color:#414144; padding-bottom:4px;">\n' +
+    '          ' + strings.ELIGIBILITY_TITLE + '\n' +
+    '        </td>\n' +
+    '      </tr>\n' +
+    '      <tr>\n' +
+    '        <td style="font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#6D6E72;">\n' +
+    '          ' + strings.ELIGIBILITY_TEXT + '\n' +
+    '        </td>\n' +
+    '      </tr>\n' +
+    '    </table>\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:20px; line-height:20px; font-size:1px;">&nbsp;</td></tr>\n' +
+    '\n' +
+    '<!-- Bullets -->\n' +
+    '<tr>\n' +
+    '  <td class="mobile-padding" style="padding:0 32px; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#414144;">\n' +
+    '    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:6px;">\n' +
+    '      <tr>' + buildBulletCellHtml() + '<td>' + strings.BULLET_1 + '</td></tr>\n' +
+    '    </table>\n' +
+    '    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">\n' +
+    '      <tr>' + buildBulletCellHtml() + '<td>' + strings.BULLET_2 + '</td></tr>\n' +
+    '    </table>\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:30px; line-height:30px; font-size:1px;">&nbsp;</td></tr>\n' +
+    '\n' +
+    '<!-- Access to Fine Panel -->\n' +
+    '<tr>\n' +
+    '  <td class="mobile-padding" style="padding:0 32px; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#909195;">\n' +
+    '    ' + strings.ACCESS_TEXT + ' ' + accessLink + '.\n' +
+    '  </td>\n' +
+    '</tr>\n' +
+    '\n' +
+    '<tr><td style="height:26px; line-height:26px; font-size:1px;">&nbsp;</td></tr>'
+  );
+}
+
+function buildHtml() {
+  const idioma = document.getElementById('idioma').value;
+  const strings = STRINGS[idioma] || STRINGS.pt;
+  const tipo = document.getElementById('tipoEmail').value;
+
+  const especialidadItems = getSelectedEspecialidadeItems();
+  const especialidadNames = especialidadItems.map(function (item) { return item[idioma] || item.pt; });
+  const especialidade = escapeHtml(joinWithConjunction(especialidadNames, idioma));
+  const tema = escapeHtml(getCurrentLetterTema());
+  const duracao = escapeHtml(document.getElementById('duracao').value.trim());
+  const valor = escapeHtml(document.getElementById('valor').value.trim());
+  const moeda = escapeHtml(getSelectedValue('moeda', 'moedaCustom'));
+  const bonusValor = escapeHtml(document.getElementById('bonusValor').value.trim());
+  const projectCode = escapeHtml(document.getElementById('projectCode').value.trim());
+  const solidario = document.getElementById('solidario').value.trim();
+
+  const openers = OPENERS[idioma] || OPENERS.pt;
+  const wellbeing = escapeHtml(openers[currentOpenerIndex] || openers[0]);
+
+  const closings = CLOSINGS[idioma] || CLOSINGS.pt;
+  const closingText = escapeHtml(closings[currentClosingIndex] || closings[0]);
+
+  const introBlock = buildIntroBlock(tipo, strings, especialidade, wellbeing);
+
+  const qaHtml = buildQaHtml(strings);
+  const accessLink = '<a href="^surl^&l=' + strings.LANG_CODE + '&exit=portal" style="color:#03B1B2; font-weight:bold; text-decoration:underline;">' + strings.ACCESS_LINK_TEXT + '</a>';
+  const fichaRangeSentenceHtml = buildFichaRangeSentenceHtml(idioma);
+  const solidarityBlock = (solidario || fichaRangeSentenceHtml)
+    ? buildSolidarityHtml(solidario, fichaRangeSentenceHtml)
+    : '';
+  const engagementBlock = buildEngagementBlock(tipo, strings, accessLink);
+  const isBonusTipo = tipo === 'lastCallBonus' || tipo === 'incompleteBonus';
+  const honorarioLabel = isBonusTipo
+    ? strings.HONORARIO_LABEL + ' ' + (idioma === 'es' ? 'Incrementado' : 'Acrescentado')
+    : strings.HONORARIO_LABEL;
+  const honorarioValor = isBonusTipo ? bonusValor : valor;
+  const ctaText = getCtaText(tipo, strings);
+  const ctaHref = getCtaHref(tipo, strings);
+  const bodyBlock = buildBodyBlock(tipo, strings, tema, honorarioLabel, duracao, honorarioValor, moeda, ctaHref, ctaText);
+
+  const html = TEMPLATE
+    .replace('__INTRO_BLOCK__', introBlock)
+    .replace('__BODY_BLOCK__', bodyBlock)
+    .replace('__SOLIDARITY_BLOCK__', solidarityBlock)
+    .replace('__ENGAGEMENT_BLOCK__', engagementBlock)
+    .replace(/__CLOSING_TEXT__/g, closingText)
+    .replace(/__SIGNOFF_LABEL__/g, strings.SIGNOFF_LABEL)
+    .replace(/__SIGNOFF_NAME__/g, strings.SIGNOFF_NAME)
+    .replace(/__SIGNOFF_ROLE__/g, strings.SIGNOFF_ROLE)
+    .replace(/__FOOTER_LEGAL__/g, getFooterLegal(moeda))
+    .replace(/__WEBSITE_LABEL__/g, strings.WEBSITE_LABEL)
+    .replace(/__QA_TITLE__/g, strings.QA_TITLE)
+    .replace(/__QA_ITEMS__/g, qaHtml);
+
+  return html;
+}
+
+function getMatchedFichaValueForMoeda() {
+  const moeda = getSelectedValue('moeda', 'moedaCustom');
+  const selected = getSelectedScriptCountries();
+  const match = selected.find(function (c) { return c.suggestCurrency === moeda; });
+  if (!match) return null;
+
+  const raw = fichaValuesState[match.code];
+  const value = parseFloat(raw);
+  if (!raw || isNaN(value)) return null;
+
+  return { moeda: moeda, value: value };
+}
+
+function buildFichaBaseNoticeText(idioma) {
+  if (!document.getElementById('fichaProjectCheck').checked) return '';
+
+  return idioma === 'pt'
+    ? 'O estudo inclui completar fichas descritivas de tratamentos, de forma completamente anônima.'
+    : 'El estudio incluye completar fichas descriptivas de tratamentos, en forma completamente anónima.';
+}
+
+function updateFichaSolidarioText() {
+  const idioma = document.getElementById('idioma').value;
+  const newText = buildFichaBaseNoticeText(idioma);
+
+  if (!newText) {
+    lastAutoFichaText = '';
+    return;
+  }
+
+  const solidarioEl = document.getElementById('solidario');
+  if (solidarioEl.value === '' || solidarioEl.value === lastAutoFichaText) {
+    solidarioEl.value = newText;
+  }
+  lastAutoFichaText = newText;
+}
+
+function buildFichaRangeSentenceHtml(idioma) {
+  if (!isFichaPaymentActive()) return '';
+
+  const min = parseInt(document.getElementById('fichaMin').value, 10);
+  const max = parseInt(document.getElementById('fichaMax').value, 10);
+  const matched = getMatchedFichaValueForMoeda();
+  if (!min || !max || !matched) return '';
+
+  const totalMin = formatThousands(Math.round(matched.value * min));
+  const totalMax = formatThousands(Math.round(matched.value * max));
+
+  let sentence;
+  if (max > min) {
+    sentence = idioma === 'pt'
+      ? 'Pode completar um mínimo de ' + min + ' fichas por um valor de ' + matched.moeda + ' ' + totalMin + ', até um máximo de ' + max + ' fichas por um valor de ' + matched.moeda + ' ' + totalMax + '.'
+      : 'Puede completar un mínimo de ' + min + ' fichas por un valor de ' + matched.moeda + ' ' + totalMin + ', hasta un máximo de ' + max + ' fichas por un valor de ' + matched.moeda + ' ' + totalMax + '.';
+  } else {
+    sentence = idioma === 'pt'
+      ? 'Neste projeto devem ser completadas ' + min + ' fichas de pacientes.'
+      : 'En este proyecto deben completarse ' + min + ' fichas de pacientes.';
+  }
+
+  return '<strong>' + escapeHtml(sentence) + '</strong>';
+}
+
+function updateFichaValorField() {
+  if (!isFichaPaymentActive()) return;
+  const matched = getMatchedFichaValueForMoeda();
+  const min = parseInt(document.getElementById('fichaMin').value, 10);
+  if (!matched || !min) return;
+  document.getElementById('valor').value = Math.round(matched.value * min);
+}
+
+function render() {
+  updateFichaValorField();
+  updateFichaSolidarioText();
+
+  const html = buildHtml();
+  document.getElementById('output').value = html;
+
+  const idioma = document.getElementById('idioma').value;
+  const tipo = document.getElementById('tipoEmail').value;
+  const tema = getCurrentLetterTema();
+  const projectCode = document.getElementById('projectCode').value.trim();
+  document.getElementById('subjectOutput').value = buildSubject(tipo, idioma, tema, projectCode);
+
+  renderScript();
+
+  const frame = document.getElementById('previewFrame');
+  frame.srcdoc = html
+    .replace(/\^Tituloest\^/g, '')
+    .replace(/\^Titulo\^/g, 'Dr.')
+    .replace(/\^name\^/g, 'João')
+    .replace(/\^apellido\^/g, 'Silva')
+    .replace(/\^surl\^/g, '#')
+    .replace(/\^pais\^/g, 'BR')
+    .replace(/\^cc\^/g, 'XXXX')
+    .replace(/\^email\^/g, 'joao.silva@example.com')
+    .replace(/\^password1\^/g, '••••••')
+    .replace(/\^id\^/g, '12345');
+}
+
+function toggleCustomField(selectId, customInputId) {
+  const select = document.getElementById(selectId);
+  const custom = document.getElementById(customInputId);
+  custom.style.display = select.value === CUSTOM_OPTION_VALUE ? 'block' : 'none';
+}
+
+function populateEspecialidadeCheckboxes() {
+  const idioma = document.getElementById('idioma').value;
+  const group = document.getElementById('especialidadeCheckboxGroup');
+  group.innerHTML = '';
+
+  SPECIALTIES.forEach(function (item, index) {
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:0; color:#1a1a1a;';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'especialidadeCheck_' + index;
+    checkbox.addEventListener('change', render);
+
+    const textSpan = document.createElement('span');
+    textSpan.id = 'especialidadeLabelText_' + index;
+    textSpan.textContent = item[idioma] || item.pt;
+
+    label.appendChild(checkbox);
+    label.appendChild(textSpan);
+    group.appendChild(label);
+  });
+}
+
+function updateEspecialidadeLabels() {
+  const idioma = document.getElementById('idioma').value;
+  SPECIALTIES.forEach(function (item, index) {
+    const textSpan = document.getElementById('especialidadeLabelText_' + index);
+    if (textSpan) textSpan.textContent = item[idioma] || item.pt;
+  });
+}
+
+function populateCurrencies() {
+  const idioma = document.getElementById('idioma').value;
+  const select = document.getElementById('moeda');
+  const list = CURRENCIES[idioma] || CURRENCIES.pt;
+  select.innerHTML = '';
+
+  list.forEach(function (item) {
+    const opt = document.createElement('option');
+    opt.value = item.value;
+    opt.textContent = item.label;
+    select.appendChild(opt);
+  });
+
+  if (idioma === 'es') {
+    const otherOpt = document.createElement('option');
+    otherOpt.value = CUSTOM_OPTION_VALUE;
+    otherOpt.textContent = 'Otra (especificar)';
+    select.appendChild(otherOpt);
+  }
+  toggleCustomField('moeda', 'moedaCustom');
+}
+
+function updateWellbeingPreview() {
+  const idioma = document.getElementById('idioma').value;
+  const list = OPENERS[idioma] || OPENERS.pt;
+  if (currentOpenerIndex >= list.length) currentOpenerIndex = 0;
+  document.getElementById('wellbeingPreview').textContent = list[currentOpenerIndex];
+}
+
+function updateClosingPreview() {
+  const idioma = document.getElementById('idioma').value;
+  const list = CLOSINGS[idioma] || CLOSINGS.pt;
+  if (currentClosingIndex >= list.length) currentClosingIndex = 0;
+  document.getElementById('closingPreview').textContent = list[currentClosingIndex];
+}
+
+function updateFieldVisibility() {
+  const tipo = document.getElementById('tipoEmail').value;
+  document.getElementById('especialidadeGroup').style.display = tipo === 'invite1' ? 'block' : 'none';
+  document.getElementById('bonusGroup').style.display = (tipo === 'lastCallBonus' || tipo === 'incompleteBonus') ? 'block' : 'none';
+  document.getElementById('wellbeingGroup').style.display = NO_OPENER_TYPES.includes(tipo) ? 'none' : 'block';
+}
+
+document.getElementById('idioma').addEventListener('change', function (e) {
+  if (e.isTrusted) userSetIdioma = true;
+  updateEspecialidadeLabels();
+  populateCurrencies();
+  populateScriptTopico();
+  updateWellbeingPreview();
+  updateClosingPreview();
+  render();
+});
+
+document.getElementById('tipoEmail').addEventListener('change', function () {
+  updateFieldVisibility();
+  render();
+});
+
+document.getElementById('especialidadeCustomCheck').addEventListener('change', function () {
+  document.getElementById('especialidadeCustom').style.display = this.checked ? 'block' : 'none';
+  render();
+});
+
+document.getElementById('moeda').addEventListener('change', function () {
+  toggleCustomField('moeda', 'moedaCustom');
+  render();
+});
+
+document.getElementById('suggestValueBtn').addEventListener('click', suggestValue);
+
+document.getElementById('rerollBtn').addEventListener('click', function () {
+  const idioma = document.getElementById('idioma').value;
+  const list = OPENERS[idioma] || OPENERS.pt;
+  if (list.length > 1) {
+    let next = currentOpenerIndex;
+    while (next === currentOpenerIndex) {
+      next = Math.floor(Math.random() * list.length);
+    }
+    currentOpenerIndex = next;
+  }
+  updateWellbeingPreview();
+  render();
+});
+
+document.getElementById('rerollClosingBtn').addEventListener('click', function () {
+  const idioma = document.getElementById('idioma').value;
+  const list = CLOSINGS[idioma] || CLOSINGS.pt;
+  if (list.length > 1) {
+    let next = currentClosingIndex;
+    while (next === currentClosingIndex) {
+      next = Math.floor(Math.random() * list.length);
+    }
+    currentClosingIndex = next;
+  }
+  updateClosingPreview();
+  render();
+});
+
+['duracao', 'valor', 'especialidadeCustom', 'moedaCustom', 'solidario', 'bonusValor', 'projectCode', 'forstaModeloId', 'emailPm', 'fichaMin', 'fichaMax', 'scriptClienteCustom'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', render);
+  document.getElementById(id).addEventListener('change', render);
+});
+
+document.getElementById('clienteBrasil').addEventListener('change', render);
+
+document.getElementById('scriptTopico').addEventListener('change', function () {
+  applyAsuntoFromTopico(true);
+});
+
+document.getElementById('suggestAsuntoBtn').addEventListener('click', suggestAsuntoFromTopico);
+
+function setLaunchSetupStatus(text) {
+  document.getElementById('launchSetupStatus').textContent = text;
+}
+
+function launchSetup() {
+  const sourceProjectId = document.getElementById('forstaModeloId').value.trim();
+  const projectCode = document.getElementById('projectCode').value.trim();
+  const tema = getCurrentLetterTema();
+  const newProjectName = tema ? (projectCode + ' - ' + tema) : projectCode;
+
+  if (!sourceProjectId || sourceProjectId === 'p') {
+    setLaunchSetupStatus('Completá el ID del modelo a duplicar (ej: p774756690265).');
+    return;
+  }
+
+  const btn = document.getElementById('launchSetupBtn');
+  btn.disabled = true;
+  setLaunchSetupStatus('Duplicando "' + sourceProjectId + '" como "' + newProjectName + '"...');
+
+  fetch('/internal/fine_panel_setup/duplicate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source_project_id: sourceProjectId, new_project_name: newProjectName }),
+  })
+    .then(function (response) { return response.json().then(function (data) { return { status: response.status, data: data }; }); })
+    .then(function (result) {
+      if (result.data.ok) {
+        setLaunchSetupStatus('Listo — nuevo proyecto: ' + result.data.project_id);
+      } else {
+        setLaunchSetupStatus('Error: ' + result.data.error);
+      }
+    })
+    .catch(function (err) {
+      setLaunchSetupStatus('Error de red: ' + err.message);
+    })
+    .finally(function () {
+      btn.disabled = false;
+    });
+}
+
+document.getElementById('launchSetupBtn').addEventListener('click', launchSetup);
+
+document.getElementById('scriptIQVIAMSD').addEventListener('change', render);
+
+document.getElementById('scriptCliente').addEventListener('change', function () {
+  toggleCustomField('scriptCliente', 'scriptClienteCustom');
+  render();
+});
+
+document.getElementById('scriptProgramacion').addEventListener('change', render);
+
+document.getElementById('fichaPaymentType').addEventListener('change', render);
+
+document.getElementById('fichaProjectCheck').addEventListener('change', render);
+
+document.getElementById('copyBtn').addEventListener('click', function () {
+  const output = document.getElementById('output');
+  output.select();
+  navigator.clipboard.writeText(output.value).then(function () {
+    const btn = document.getElementById('copyBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Copiado!';
+    btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+  });
+});
+
+document.getElementById('copySubjectBtn').addEventListener('click', function () {
+  const output = document.getElementById('subjectOutput');
+  output.select();
+  navigator.clipboard.writeText(output.value).then(function () {
+    const btn = document.getElementById('copySubjectBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Copiado!';
+    btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+  });
+});
+
+document.getElementById('copyScriptBtn').addEventListener('click', function () {
+  const output = document.getElementById('scriptOutput');
+  output.select();
+  navigator.clipboard.writeText(output.value).then(function () {
+    const btn = document.getElementById('copyScriptBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Copiado!';
+    btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+  });
+});
+
+['scriptAsuntoPt', 'scriptAsuntoEs'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', render);
+});
+
+const SAVE_KEY = 'studyInvitationGeneratorState_v1';
+
+function collectFormState() {
+  const state = {};
+
+  const simpleFields = [
+    'projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario',
+    'moeda', 'moedaCustom', 'especialidadeCustom',
+    'tipoEmail', 'idioma', 'clienteBrasil',
+    'scriptAsuntoPt', 'scriptAsuntoEs',
+    'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion',
+    'fichaPaymentType', 'fichaMin', 'fichaMax',
+  ];
+  simpleFields.forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) state[id] = el.value;
+  });
+
+  state.especialidadeCustomCheck = document.getElementById('especialidadeCustomCheck').checked;
+  state.fichaProjectCheck = document.getElementById('fichaProjectCheck').checked;
+  state.scriptIQVIAMSD = document.getElementById('scriptIQVIAMSD').checked;
+  state.fichaValues = Object.assign({}, fichaValuesState);
+
+  state.especialidadeChecks = SPECIALTIES.map(function (item, index) {
+    const el = document.getElementById('especialidadeCheck_' + index);
+    return el ? el.checked : false;
+  });
+
+  state.countryChecks = {};
+  SCRIPT_COUNTRIES.forEach(function (c) {
+    const el = document.getElementById('scriptCountry_' + c.code);
+    state.countryChecks[c.code] = el ? el.checked : false;
+  });
+
+  state.currentOpenerIndex = currentOpenerIndex;
+  state.currentClosingIndex = currentClosingIndex;
+  state.userSetIdioma = userSetIdioma;
+
+  return state;
+}
+
+function applyFormState(state) {
+  if (!state) return;
+
+  ['projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'moedaCustom', 'especialidadeCustom', 'clienteBrasil', 'scriptAsuntoPt', 'scriptAsuntoEs', 'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion', 'fichaPaymentType', 'fichaMin', 'fichaMax'].forEach(function (id) {
+    if (state[id] === undefined) return;
+    const el = document.getElementById(id);
+    if (el) el.value = state[id];
+  });
+
+  if (state.fichaProjectCheck !== undefined) {
+    document.getElementById('fichaProjectCheck').checked = state.fichaProjectCheck;
+  }
+
+  if (state.scriptIQVIAMSD !== undefined) {
+    document.getElementById('scriptIQVIAMSD').checked = state.scriptIQVIAMSD;
+  }
+
+  if (state.fichaValues) {
+    Object.keys(fichaValuesState).forEach(function (key) { delete fichaValuesState[key]; });
+    Object.assign(fichaValuesState, state.fichaValues);
+  }
+
+  if (state.moeda !== undefined) document.getElementById('moeda').value = state.moeda;
+
+  if (state.especialidadeCustomCheck !== undefined) {
+    document.getElementById('especialidadeCustomCheck').checked = state.especialidadeCustomCheck;
+  }
+
+  if (state.especialidadeChecks) {
+    state.especialidadeChecks.forEach(function (checked, index) {
+      const el = document.getElementById('especialidadeCheck_' + index);
+      if (el) el.checked = checked;
+    });
+  }
+
+  if (state.countryChecks) {
+    SCRIPT_COUNTRIES.forEach(function (c) {
+      const el = document.getElementById('scriptCountry_' + c.code);
+      if (el && state.countryChecks[c.code] !== undefined) el.checked = state.countryChecks[c.code];
+    });
+  }
+
+  if (typeof state.currentOpenerIndex === 'number') currentOpenerIndex = state.currentOpenerIndex;
+  if (typeof state.currentClosingIndex === 'number') currentClosingIndex = state.currentClosingIndex;
+  if (typeof state.userSetIdioma === 'boolean') userSetIdioma = state.userSetIdioma;
+
+  toggleCustomField('moeda', 'moedaCustom');
+  toggleCustomField('scriptCliente', 'scriptClienteCustom');
+  document.getElementById('especialidadeCustom').style.display = document.getElementById('especialidadeCustomCheck').checked ? 'block' : 'none';
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(collectFormState()));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    // ignore, fall through to baked state
+  }
+  return BAKED_STATE || null;
+}
+
+function saveAsNamedCopy() {
+  const defaultName = (document.getElementById('projectCode').value || 'estudio')
+    .replace(/[^a-zA-Z0-9-]+/g, '_');
+  const rawName = prompt('Nombre del archivo (sin espacios, se agrega .html):', defaultName);
+  if (!rawName) return;
+
+  const safeName = rawName.trim().replace(/\.html?$/i, '').replace(/[\\/:*?"<>|]+/g, '_') || 'estudio';
+
+  const state = collectFormState();
+  let stateJson = JSON.stringify(state);
+  stateJson = stateJson.replace(/<\/script/gi, '<\\/script');
+
+  let html = document.documentElement.outerHTML;
+  html = html.replace('const BAKED_STATE = null;', 'const BAKED_STATE = ' + stateJson + ';');
+
+  const blob = new Blob(['<!DOCTYPE html>\n' + html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = safeName + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('saveStateBtn').addEventListener('click', function () {
+  const ok = saveState();
+  const note = document.getElementById('saveStateNote');
+  note.textContent = ok ? 'Guardado ✓' : 'No se pudo guardar';
+  setTimeout(function () { note.textContent = ''; }, 2500);
+});
+
+document.getElementById('saveAsBtn').addEventListener('click', saveAsNamedCopy);
+
+populateScriptCountries();
+populateScriptTopico();
+populateScriptClienteSelect();
+
+const savedState = loadSavedState();
+
+if (savedState && savedState.idioma) document.getElementById('idioma').value = savedState.idioma;
+if (savedState && savedState.tipoEmail) document.getElementById('tipoEmail').value = savedState.tipoEmail;
+
+populateEspecialidadeCheckboxes();
+populateCurrencies();
+
+if (savedState) {
+  applyFormState(savedState);
+} else {
+  (function randomizeInitialPhrases() {
+    const idioma = document.getElementById('idioma').value;
+    const openersList = OPENERS[idioma] || OPENERS.pt;
+    const closingsList = CLOSINGS[idioma] || CLOSINGS.pt;
+    currentOpenerIndex = Math.floor(Math.random() * openersList.length);
+    currentClosingIndex = Math.floor(Math.random() * closingsList.length);
+  })();
+}
+
+updateWellbeingPreview();
+updateClosingPreview();
+updateFieldVisibility();
+render();
+</script>
+
+</body>
+</html>
