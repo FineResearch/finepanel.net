@@ -739,6 +739,11 @@ es:
       invite: "Vuelva a la conversación para conocer cómo están abordando este tema otros colegas de Latinoamérica."
       countries: "Profesionales de %{countries} compartieron nuevas experiencias."
       cta: "Continuar la conversación"
+    first_comment_reply:
+      subject: "Un colega respondió a la discusión que usted inició"
+      heading: "Un colega respondió a la discusión que usted inició"
+      body: 'Otro médico compartió su experiencia sobre "%{title}". Vea lo que comentó y continúe la conversación.'
+      cta: "VER LA DISCUSIÓN"
 
   bank_account_types:
     checking_account: Cuenta Corriente

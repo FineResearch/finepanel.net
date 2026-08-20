@@ -2,10 +2,28 @@ class NewsConversationReminderMailer < ApplicationMailer
   include MailersHelper
 
   TEMPLATE_IDS = {
-    reminder: 'd-2c12dc1deb784f54ad565a3147cdab24'
+    reminder: 'd-2c12dc1deb784f54ad565a3147cdab24',
+    first_reply: 'd-e73f18ba2c3448a894766bc0329e9224'
   }.freeze
 
   FROM = "comentarios@finepanel.net"
+
+  def first_reply_email(recipient_email, locale, news_feed)
+    mail = generate_email(TEMPLATE_IDS[:first_reply], FROM)
+    personalization = generate_personalization(recipient_email)
+
+    personalization.add_dynamic_template_data({
+      subject: I18n.t('mailers.first_comment_reply.subject', locale: locale),
+      heading: I18n.t('mailers.first_comment_reply.heading', locale: locale),
+      body: I18n.t('mailers.first_comment_reply.body', locale: locale, title: title_for(news_feed, locale)),
+      cta: I18n.t('mailers.first_comment_reply.cta', locale: locale),
+      cta_url: conversation_url(news_feed),
+    })
+
+    mail.add_personalization(personalization)
+
+    send_email(mail)
+  end
 
   def reminder_email(recipient_email, locale, news_feed, countries)
     mail = generate_email(TEMPLATE_IDS[:reminder], FROM)

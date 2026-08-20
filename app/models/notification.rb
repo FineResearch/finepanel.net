@@ -20,6 +20,7 @@ class Notification < ApplicationRecord
   validates :user_id, uniqueness: { scope: [:news_feed_id, :notification_type] }
 
   TYPES = {
-    news_conversation_reminder: 'news_conversation_reminder'
+    news_conversation_reminder: 'news_conversation_reminder',
+    first_comment_reply: 'first_comment_reply'
   }.freeze
 end
