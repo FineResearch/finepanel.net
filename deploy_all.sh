@@ -79,7 +79,7 @@ fi
 
 
 echo "[2/9] Build Docker image"
-docker build -f Dockerfile.release -t "${IMAGE_URI}" .
+docker build --platform linux/amd64 -f Dockerfile.release -t "${IMAGE_URI}" .
 
 
 

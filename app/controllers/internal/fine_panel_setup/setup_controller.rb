@@ -2,7 +2,13 @@
 
 class Internal::FinePanelSetup::SetupController < ApplicationController
   skip_before_action :verify_authenticity_token
-  before_action :authenticate_internal_user!
+  # index sirve el shell estatico sin auth (login/token se resuelven del
+  # lado del cliente, ver public/fine-panel-setup/index.html) -- en
+  # produccion config.session_store esta deshabilitado (auth real es JWT,
+  # ver config/initializers/session_store.rb), asi que no hay sesion server
+  # side con la que gatear esta accion. Todo lo que efectivamente hace algo
+  # (duplicate, launch, etc.) exige Bearer token via #authenticate_via_jwt!.
+  before_action :authenticate_via_jwt!, except: [:index]
 
   def index
     render file: Rails.root.join('public', 'fine-panel-setup', 'index.html'), layout: false
@@ -205,5 +211,22 @@ class Internal::FinePanelSetup::SetupController < ApplicationController
   rescue StandardError => e
     Rails.logger.error("[FinePanelSetup::SetupController#upload_client_links] #{e.class} - #{e.message}")
     render json: { ok: false, error: e.message }, status: :internal_server_error
+  end
+
+  private
+
+  # Mismo patron que Api::V1::ApiController#resolve_jwt_token: no valida la
+  # firma del JWT, solo lee el claim "jti" y lo busca en la tabla -- el jti
+  # en si (uuid random, unico, rotado en cada login) es el secreto real
+  # siendo chequeado, no la firma del token. No se usa warden.authenticate!
+  # aca por la misma razon que en InternalUsers::SessionsController.
+  def authenticate_via_jwt!
+    return render json: { ok: false, error: 'No autorizado' }, status: :unauthorized unless request.authorization.present?
+
+    token = request.authorization.to_s.split('Bearer ').last
+    jti = JWT.decode(token, nil, false).first['jti'] rescue nil
+    @current_internal_user = InternalUser.active.find_by(jti: jti)
+
+    render json: { ok: false, error: 'No autorizado' }, status: :unauthorized unless @current_internal_user
   end
 end

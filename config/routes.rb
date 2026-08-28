@@ -58,6 +58,7 @@ end
   # Setup) -- sin :registerable, se crean a mano (ver db/seeds.rb). Path
   # propio para no mezclarse con el login de paneleros.
   devise_for :internal_users,
+             defaults: { format: :json },
              path: 'internal/auth',
              path_names: { sign_in: 'login', sign_out: 'logout' },
              controllers: { sessions: 'internal_users/sessions' }

@@ -10,15 +10,17 @@ Devise.setup do |config|
     jwt.dispatch_requests = [
       ['POST', %r{^/api/v1/login$}],
       ['POST', %r{^/api/v1/login.json$}],
+      ['POST', %r{^/internal/auth/login$}],
     ]
 
     jwt.revocation_requests = [
       ['DELETE', %r{^/api/v1/logout$}],
       ['DELETE', %r{^/api/v1/logout.json$}],
+      ['DELETE', %r{^/internal/auth/logout$}],
     ]
 
     jwt.expiration_time = 7.days.to_i
-    jwt.request_formats = { user: [:json] }
+    jwt.request_formats = { user: [:json], internal_user: [:json] }
   end
   # The secret key used by Devise. Devise uses this key to generate
   # random tokens. Changing this key will render invalid all existing

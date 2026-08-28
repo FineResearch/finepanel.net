@@ -70,6 +70,20 @@
 </head>
 <body>
 
+<div id="loginOverlay" style="display:none; position:fixed; inset:0; background:#14415E; z-index:1000; align-items:center; justify-content:center;">
+  <form id="loginForm" style="background:#fff; border-radius:8px; padding:28px; width:280px; box-shadow:0 4px 16px rgba(0,0,0,0.25);">
+    <h2 style="margin:0 0 16px; font-size:16px; color:#14415E;">Wizard de Seteo de Proyectos</h2>
+    <label for="loginEmail">Email</label>
+    <input type="text" id="loginEmail" autocomplete="username">
+    <label for="loginPassword">Contraseña</label>
+    <input type="password" id="loginPassword" autocomplete="current-password">
+    <div id="loginError" style="color:#b00020; font-size:12px; margin-top:10px; display:none;"></div>
+    <button type="submit" style="width:100%; margin-top:16px;">Ingresar</button>
+  </form>
+</div>
+
+<div id="appContent" style="display:none;">
+
 <header style="display:flex; align-items:center; justify-content:space-between; gap:20px;">
   <div>
     <h1>Wizard de Seteo de Proyectos</h1>
@@ -78,6 +92,7 @@
   <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
     <div style="display:flex; gap:6px;">
       <button type="button" id="saveStateBtn" style="background:#03B1B2;">💾 Guardar</button>
+      <button type="button" id="logoutBtn" style="background:#6b7280;">Salir</button>
     </div>
     <span id="saveStateNote" style="font-size:11px; color:#cbd9e2;"></span>
   </div>
@@ -330,6 +345,8 @@
       <textarea id="scriptOutput" readonly style="width:100%; height:180px; font-family:'SFMono-Regular', Consolas, monospace; font-size:11px; padding:12px; border:1px solid #d1d5db; border-radius:6px; background:#0f172a; color:#d1e7dd;"></textarea>
     </div>
   </div>
+</div>
+
 </div>
 
 <script>
@@ -2713,12 +2730,44 @@ function applyCartasToProject(projectId, cartas) {
   });
 }
 
+var AUTH_TOKEN_KEY = 'fpSetupAuthToken';
+
+function getAuthToken() {
+  try { return localStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch (e) { return ''; }
+}
+
+function setAuthToken(token) {
+  try { localStorage.setItem(AUTH_TOKEN_KEY, token); } catch (e) {}
+}
+
+function clearAuthToken() {
+  try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) {}
+}
+
+function showLoginOverlay() {
+  document.getElementById('appContent').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+function showAppContent() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+}
+
 function postJson(url, payload) {
+  var headers = { 'Content-Type': 'application/json' };
+  var token = getAuthToken();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+
   return fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers,
     body: JSON.stringify(payload),
   }).then(function (response) {
+    if (response.status === 401) {
+      clearAuthToken();
+      showLoginOverlay();
+    }
     return response.json().then(function (data) { return { httpStatus: response.status, data: data }; });
   });
 }
@@ -3203,6 +3252,48 @@ document.getElementById('saveStateBtn').addEventListener('click', function () {
   note.textContent = ok ? 'Guardado ✓' : 'No se pudo guardar';
   setTimeout(function () { note.textContent = ''; }, 2500);
 });
+
+document.getElementById('loginForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  errorEl.style.display = 'none';
+
+  fetch('/internal/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ internal_user: { email: email, password: password } }),
+  }).then(function (response) {
+    return response.json().then(function (data) { return { response: response, data: data }; });
+  }).then(function (result) {
+    if (result.response.ok) {
+      const token = (result.response.headers.get('Authorization') || '').replace(/^Bearer\s+/, '');
+      setAuthToken(token);
+      document.getElementById('loginPassword').value = '';
+      showAppContent();
+    } else {
+      errorEl.textContent = result.data.message || 'No se pudo iniciar sesión.';
+      errorEl.style.display = 'block';
+    }
+  }).catch(function () {
+    errorEl.textContent = 'Error de conexión.';
+    errorEl.style.display = 'block';
+  });
+});
+
+document.getElementById('logoutBtn').addEventListener('click', function () {
+  const token = getAuthToken();
+  fetch('/internal/auth/logout', {
+    method: 'DELETE',
+    headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+  }).catch(function () {}).then(function () {
+    clearAuthToken();
+    showLoginOverlay();
+  });
+});
+
+if (getAuthToken()) { showAppContent(); } else { showLoginOverlay(); }
 
 populateScriptCountries();
 populateScriptTopico();
