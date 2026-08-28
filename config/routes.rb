@@ -35,6 +35,12 @@ end
   namespace :fine_panel_setup do
     get '/', to: 'setup#index'
     post 'duplicate', to: 'setup#duplicate'
+    post 'launch', to: 'setup#launch'
+    post 'fetch_key', to: 'setup#fetch_key'
+    post 'write_definitions', to: 'setup#write_definitions'
+    post 'apply_emails', to: 'setup#apply_emails'
+    post 'add_fnp_redirect', to: 'setup#add_fnp_redirect'
+    post 'upload_client_links', to: 'setup#upload_client_links'
   end
 end
 
@@ -47,6 +53,14 @@ end
   end
 
   devise_for :users, controllers: { sessions: 'users/sessions', registrations: 'users/registrations' }
+
+  # Cuentas corporativas fijas para herramientas internas (ej. Fine Panel
+  # Setup) -- sin :registerable, se crean a mano (ver db/seeds.rb). Path
+  # propio para no mezclarse con el login de paneleros.
+  devise_for :internal_users,
+             path: 'internal/auth',
+             path_names: { sign_in: 'login', sign_out: 'logout' },
+             controllers: { sessions: 'internal_users/sessions' }
 
   authenticated :user do
     root to: 'dashboard#index'

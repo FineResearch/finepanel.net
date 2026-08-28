@@ -22,6 +22,8 @@ class ApplicationController < ActionController::Base
   protected
 
   def after_sign_in_path_for(resource)
+    return super unless resource.is_a?(User)
+
     expires_at = resource.remember_me.present? ? Devise.remember_for : nil
     cookies[:user_email] = { value: resource.email, expires: expires_at }
     cookies[:respid] = { value: resource.user_respid(resource.email), expires: expires_at }

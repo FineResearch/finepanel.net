@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Generador — Invitación a Estudio</title>
+<title>Wizard de Seteo de Proyectos</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -72,13 +72,12 @@
 
 <header style="display:flex; align-items:center; justify-content:space-between; gap:20px;">
   <div>
-    <h1>Generador — Invitación a Estudio Médico</h1>
-    <p>Completá los campos, revisá el preview y copiá el HTML final para pegar en la plataforma de envío.</p>
+    <h1>Wizard de Seteo de Proyectos</h1>
+    <p>Completá los campos y lanzá el Set Up -- duplica, lanza, escribe el script, aplica las cartas y (si aplica) el redirect y los links de cliente, todo en una sola corrida.</p>
   </div>
   <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
     <div style="display:flex; gap:6px;">
       <button type="button" id="saveStateBtn" style="background:#03B1B2;">💾 Guardar</button>
-      <button type="button" id="saveAsBtn" style="background:#4B667C;">📄 Guardar como...</button>
     </div>
     <span id="saveStateNote" style="font-size:11px; color:#cbd9e2;"></span>
   </div>
@@ -91,21 +90,14 @@
     <div class="hint">Se usa en el asunto del e-mail en todos los tipos, y en el link de Datos de Pago (Project=FP-XXXX).</div>
 
     <label for="forstaModeloId">Modelo de Forsta a duplicar</label>
-    <input type="text" id="forstaModeloId" value="p">
+    <input type="text" id="forstaModeloId" placeholder="p774756690265">
     <div class="hint">ID del proyecto Forsta/Confirmit que se va a duplicar como base (siempre arranca con "p", ej: p774756690265). Importante: el usuario de la API (api_fineresearch) necesita tener acceso otorgado a este proyecto en Confirmit antes de duplicar — eso se hace a mano en Confirmit, no desde acá.</div>
-
-    <button type="button" id="launchSetupBtn" class="btn-small" style="margin-top:6px;">🚀 Lanzar Set Up</button>
-    <div id="launchSetupStatus" class="hint" style="margin-top:6px;"></div>
-    <div class="hint" style="margin-top:2px;">Paso 1 de varios: por ahora solo duplica el modelo con el nombre de proyecto (Código + Asunto). Lanzamiento y clave vienen después.</div>
 
     <label for="emailPm">Email del PM</label>
     <input type="text" id="emailPm" value="@fine-research.com">
     <div class="hint">Escribí el usuario antes de "@fine-research.com". Se usa en el Generador de Script (A8, alertas de calidad al DP).</div>
 
-    <div class="label-row">
-      <label for="scriptTopico" style="margin:0;">Tópico</label>
-      <button type="button" id="suggestAsuntoBtn" class="btn-small">🔄 Reaplicar sugerencia</button>
-    </div>
+    <label for="scriptTopico">Tópico</label>
     <select id="scriptTopico"></select>
     <div class="hint">Se usa en el Generador de Script (A2, campo "topico"). Los que no tienen código propio en Confirmit todavía se envían como 99/Otra. Al elegir un tópico se completan automáticamente el Asunto/Tema (más abajo, ej: "Manejo de Diabetes") y el Perfil del A4 (ej: "...con experiencia en el tratamiento de diabetes" / "...tratamiento con botox"; para "Evaluación de..." no se agrega frase de experiencia). El asunto se puede editar después sin que se pierda — usá "Reaplicar sugerencia" para volver a la versión sugerida.</div>
 
@@ -195,21 +187,50 @@
       <div class="hint">Si marcás más de una, se insertan en la frase de apertura separadas por coma, con "y"/"e" antes de la última: "...para especialistas en cardiología, reumatología y endocrinología...".</div>
     </div>
 
-    <div class="row2">
-      <div>
-        <label for="duracao">Duración (minutos)</label>
-        <input type="text" id="duracao" value="20">
-        <div class="hint">Acepta texto libre, ej: "15 a 20".</div>
-      </div>
-      <div>
-        <div class="label-row">
-          <label for="valor" style="margin:0;">Honorario (valor)</label>
-          <button type="button" id="suggestValueBtn" class="btn-small">💡 Sugerir</button>
-        </div>
-        <input type="text" id="valor" value="250">
-        <div class="hint">Acepta texto libre, ej: "80 por ficha". "Sugerir" completa este campo según moneda, duración y especialidad (si hay al menos una difícil, se toma como difícil).</div>
-      </div>
+    <label for="duracao">Duración (minutos)</label>
+    <input type="text" id="duracao" value="20">
+    <div class="hint" style="margin-bottom:14px;">Acepta texto libre, ej: "15 a 20".</div>
+
+    <div id="honorarioValorGroup" style="display:none;">
+      <label for="valor">Honorario (valor)</label>
+      <input type="text" id="valor" value="250">
+      <div class="hint" style="margin-bottom:14px;">Acepta texto libre, ej: "80 por ficha". Sin sugerencia automática porque la moneda es "Otra".</div>
     </div>
+
+    <div id="honorarioDefaultsGroup" style="display:none;">
+      <label style="margin:0;">Honorarios (valores por default)</label>
+      <div id="honorarioDefaultsView" class="opener-preview" style="white-space:pre-wrap;"></div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:8px 0 0;">
+        <input type="checkbox" id="honorarioOverrideToggle" style="width:auto;"> Setear valores diferentes
+      </label>
+      <div id="honorarioOverridesView" style="display:none; flex-direction:column; gap:8px; margin-top:8px;"></div>
+      <div class="hint" style="margin-bottom:14px;">Sugeridos según moneda, duración y especialidad (si hay al menos una difícil, se toma como difícil) para cada país seleccionado en "Países del proyecto" (Generador de Script). "Setear valores diferentes" habilita un monto customizado por país/grupo, que se usa al generar sus cartas.</div>
+    </div>
+
+    <div id="externalProgrammingPanel" style="display:none; margin-top:14px; padding:10px; border:1px solid #d1d5db; border-radius:5px;">
+      <div class="hint">
+        La "Programación" elegida arriba no es "Fine en Confirmit" -- al lanzar, se agrega automáticamente el mapeo al proyecto de redirect compartido y se relanza para publicarlo (no toca su base de datos).
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        Links de cliente por país -- un .txt (Unicode) con primera fila de encabezados "ID" y "Link" (como al pegar desde Excel a Notepad, hasta 500 filas), o un link genérico por país. Lo que completes acá se sube solo al lanzar, dentro del mismo proceso.
+      </div>
+      <div id="clientLinksGroup" style="display:flex; flex-direction:column; gap:10px; margin-top:6px;"></div>
+    </div>
+
+    <button type="button" id="launchSetupBtn" class="btn-small" style="margin-top:14px;">🚀 Lanzar Set Up</button>
+    <div id="launchSetupStatus" class="hint" style="margin-top:6px; white-space:pre-wrap; font-size:14px; font-weight:bold; color:#14415E;"></div>
+    <div class="hint" style="margin-top:2px;">Duplica el modelo, lo lanza, busca la clave, escribe "definiciones", aplica las cartas y, si la programación es externa, agrega el redirect y sube los links de cliente -- todo en una sola corrida.</div>
+
+    <label for="targetProjectId" style="margin-top:10px;">ID del proyecto destino (duplicado)</label>
+    <input type="text" id="targetProjectId" placeholder="Se completa solo al Lanzar Set Up, o pegalo a mano">
+    <div class="hint" style="margin-top:2px;">Se completa solo al lanzar -- pegalo a mano acá solo si querés apuntar a un proyecto ya existente.</div>
+
+    <label for="projectKeyField" style="margin-top:10px;">Clave del proyecto</label>
+    <input type="text" id="projectKeyField" placeholder="Se completa sola al Lanzar Set Up" readonly>
+    <div class="hint" style="margin-top:2px;">La que se pisa en f("clave").set("...") del script "definiciones" -- se escribe sola como parte de "Lanzar Set Up".</div>
+
+    <div style="margin:24px 0 4px; padding-top:18px; border-top:2px solid #e5e7eb; font-size:16px; font-weight:bold; color:#14415E;">Carta Customizada</div>
+    <div class="hint" style="margin-bottom:14px;">A partir de acá se arma la carta individual de previsualización (usa el proyecto/clave de arriba solo como referencia, no los vuelve a leer).</div>
 
     <label for="moeda">Moneda</label>
     <select id="moeda"></select>
@@ -251,6 +272,10 @@
         <button type="button" id="rerollBtn" class="btn-small">🔀 Variar</button>
       </div>
       <div id="wellbeingPreview" class="opener-preview"></div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:8px 0 0;">
+        <input type="checkbox" id="wellbeingCustomCheck" style="width:auto;"> Apertura Customizada
+      </label>
+      <textarea id="wellbeingCustom" placeholder="Escribí la frase de apertura" style="display:none; margin-top:8px;"></textarea>
       <div class="hint">Sorteada entre 4 variaciones para evitar que todos los correos empiecen igual. Usá "Variar" para cambiar.</div>
     </div>
 
@@ -313,6 +338,13 @@ let currentOpenerIndex = 0;
 let currentClosingIndex = 0;
 let userSetIdioma = false;
 const fichaValuesState = {};
+
+// Honorarios "ad hoc" seteados a mano por pais/grupo (ver buildEmailCountryGroups),
+// keyed por groupCode -- vacio para un grupo significa "usar el valor sugerido",
+// no cero. Reemplaza al viejo boton "Sugerir" (una sola moneda a la vez): ahora
+// se sugiere para todos los paises seleccionados de una, y esto guarda las
+// excepciones puntuales que el usuario quiera cambiar.
+const honorarioOverridesState = {};
 let lastAutoFichaText = '';
 const BAKED_STATE = null;
 
@@ -443,6 +475,20 @@ function getSuggestedAmountForCurrency(currency, minutes, anyHard) {
   return band.values[currency];
 }
 
+// Si el usuario seteo un valor customizado para el pais/grupo de este pais
+// (ver honorarioOverridesState / "Setear valores diferentes"), ese valor
+// pisa el sugerido -- tiene que impactar en A6, A7 y A10 del script ademas
+// de las cartas, no solo en las cartas (confirmado por el usuario
+// 2026-08-27, un ajuste manual no se estaba reflejando en el script).
+// El groupCode replica la regla de buildEmailCountryGroups(): un pais con
+// moneda propia es su propio grupo, los de US$ comparten "Otros".
+function getHonorarioAmountForCountry(country, minutes, anyHard) {
+  const groupCode = country.suggestCurrency === 'US$' ? 'Otros' : country.code;
+  const override = honorarioOverridesState[groupCode];
+  if (override) return override;
+  return getSuggestedAmountForCurrency(country.suggestCurrency, minutes, anyHard);
+}
+
 function formatThousands(n) {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
@@ -487,6 +533,15 @@ const TEAM_CONTACTS = [
   { name: 'PIVA', pais1RecCode: '2' },
   { name: 'BRIZU', pais1RecCode: '1' },
 ];
+
+// Codigos de 3 letras (ISO 3166-1 alpha-3) usados solo para el modo "link
+// generico" de la carga de links de cliente: ID generado = codigo + 4 digitos
+// (ej. BRA0001..BRA0500). "OT" (Otro) no tiene ISO real, se usa "OTR".
+const COUNTRY_ISO3_CODES = {
+  BR: 'BRA', MX: 'MEX', AR: 'ARG', CL: 'CHL', CO: 'COL', VE: 'VEN', PE: 'PER',
+  UY: 'URY', PY: 'PRY', BO: 'BOL', SV: 'SLV', GT: 'GTM', HN: 'HND', NI: 'NIC',
+  PA: 'PAN', DO: 'DOM', PR: 'PRI', EC: 'ECU', CR: 'CRI', OT: 'OTR',
+};
 
 const SCRIPT_COUNTRIES = [
   { code: 'BR', label: 'Brasil', lang: 'pt', pais1Code: '1', suggestCurrency: 'R$' },
@@ -788,7 +843,7 @@ function buildIncentivoLines(selected) {
   const anyHard = getAnyHardSpecialtySelected();
 
   selected.forEach(function (country) {
-    const amount = getSuggestedAmountForCurrency(country.suggestCurrency, minutes, anyHard);
+    const amount = getHonorarioAmountForCountry(country, minutes, anyHard);
     if (amount == null) return;
     const formatted = country.suggestCurrency + ' ' + formatThousands(amount);
     lines.push(
@@ -847,7 +902,7 @@ function buildAsignacionIncentivosLines(selected) {
 
   const lines = [];
   selected.forEach(function (country) {
-    const amount = getSuggestedAmountForCurrency(country.suggestCurrency, minutes, anyHard);
+    const amount = getHonorarioAmountForCountry(country, minutes, anyHard);
     if (amount == null) return;
     lines.push(
       'if(f(\'Project\')=="' + escapeForScript(projectCode) + '" && f(\'Pais1\')=="' + country.pais1Code + '")' +
@@ -901,7 +956,7 @@ function buildIncentivoEquipoLines(selected) {
       value = findLoiBand(minutes, table).value;
     } else {
       const country = findCountryByPais1Code(contact.pais1RecCode);
-      value = country ? getSuggestedAmountForCurrency(country.suggestCurrency, minutes, anyHard) : null;
+      value = country ? getHonorarioAmountForCountry(country, minutes, anyHard) : null;
     }
     lines.push(
       'if (f(\'contacto\') == "' + contact.name + '") ' +
@@ -1114,10 +1169,6 @@ function applyAsuntoFromTopico(silent) {
   render();
 }
 
-function suggestAsuntoFromTopico() {
-  applyAsuntoFromTopico(false);
-}
-
 function populateScriptClienteSelect() {
   const clienteSelect = document.getElementById('scriptCliente');
   clienteSelect.innerHTML = '';
@@ -1144,6 +1195,224 @@ function populateScriptClienteSelect() {
 function renderScript() {
   updateScriptAsuntoBoxes();
   document.getElementById('scriptOutput').value = buildScriptOutput();
+  updateClientLinksPanel();
+}
+
+// Mismo orden/formula que buildPrimerIdLines (A11): bloques de 500 sin
+// superponer, en el orden de los países seleccionados.
+function computeCountryPrimerIds() {
+  return getSelectedScriptCountries().map(function (country, index) {
+    return { country: country, primerId: index * 500 + 1 };
+  });
+}
+
+// Arma las lineas "if(f('Pais')==...) {f('primerid').set(...);}" que hay
+// que pisar en el bloque C4 del script "definiciones" (vive DESPUES del
+// marcador FASE B, en la parte que build_definitions_script preserva tal
+// cual -- por eso esto no se genera como una seccion A1-A10 mas, se manda
+// aparte al backend para que reemplace el bloque existente ahi, ver
+// write_definitions_script/build_definitions_script). Vacio si la
+// programacion es "Fine en Confirmit" (C4 no aplica) o no hay paises.
+function buildPrimerIdLinesText() {
+  const programacion = document.getElementById('scriptProgramacion').value;
+  if (programacion === 'fine_confirmit') return '';
+
+  const entries = computeCountryPrimerIds();
+  if (entries.length === 0) return '';
+
+  return entries.map(function (entry) {
+    return 'if(f(\'Pais\')=="' + entry.country.pais1Code + '") {f("primerid").set("' + entry.primerId + '");}  // ' + entry.country.label;
+  }).join('\n');
+}
+
+function appendClientLinksLog(countryCode, line) {
+  const el = document.getElementById('clientLinksStatus_' + countryCode);
+  if (!el) return;
+  const timestamp = new Date().toLocaleTimeString();
+  const next = (el.dataset.log ? el.dataset.log + '\n' : '') + '[' + timestamp + '] ' + line;
+  el.dataset.log = next;
+  el.textContent = next;
+}
+
+// Espera un .txt con la primera fila de encabezados y una fila por
+// respondiente. Detecta el separador por la fila de encabezados (tab si
+// vino de pegar Excel->Notepad, si no prueba ";" y despues ",").
+function parseClientLinksFile(text) {
+  const lines = text.split(/\r\n|\r|\n/).filter(function (l) { return l.trim() !== ''; });
+  if (lines.length === 0) return [];
+
+  const header = lines[0];
+  const delimiter = header.indexOf('\t') !== -1 ? '\t' : (header.indexOf(';') !== -1 ? ';' : ',');
+
+  return lines.slice(1).map(function (line) {
+    const parts = line.split(delimiter);
+    return { id: (parts[0] || '').trim(), link: (parts[1] || '').trim() };
+  }).filter(function (row) { return row.id && row.link; });
+}
+
+// Nucleo compartido por los dos modos de carga (archivo .txt y link
+// generico) -- valida y manda el POST, actualiza el log del pais.
+function submitCountryLinks(country, primerId, rows) {
+  const projectId = document.getElementById('targetProjectId').value.trim();
+  if (!projectId) {
+    appendClientLinksLog(country.code, 'Completá el "ID del proyecto destino" (arriba) antes de subir.');
+    return;
+  }
+  if (rows.length === 0) {
+    appendClientLinksLog(country.code, 'No hay filas válidas para subir.');
+    return;
+  }
+  if (rows.length > 500) {
+    appendClientLinksLog(country.code, 'Hay ' + rows.length + ' filas -- el máximo es 500 por país.');
+    return;
+  }
+
+  appendClientLinksLog(country.code, 'Subiendo ' + rows.length + ' links (bloque desde ' + primerId + ')...');
+
+  postJson('/internal/fine_panel_setup/upload_client_links', {
+    project_id: projectId,
+    primer_id: primerId,
+    rows: rows,
+  }).then(function (result) {
+    if (!result.data.ok) {
+      appendClientLinksLog(country.code, 'Error: ' + result.data.error);
+      return;
+    }
+    appendClientLinksLog(country.code, 'Listo -- ' + result.data.added + ' links cargados (' + result.data.removed + ' anteriores reemplazados).');
+  }).catch(function (err) {
+    appendClientLinksLog(country.code, 'Error de red: ' + err.message);
+  });
+}
+
+function uploadCountryLinksFile(country, primerId, fileInput) {
+  const file = fileInput.files[0];
+  if (!file) {
+    appendClientLinksLog(country.code, 'Elegí un archivo .txt primero.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function () {
+    const rows = parseClientLinksFile(String(reader.result));
+    if (rows.length === 0) {
+      appendClientLinksLog(country.code, 'No se encontraron filas válidas (ID + Link) en el archivo.');
+      return;
+    }
+    submitCountryLinks(country, primerId, rows);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// Modo "link generico": el cliente da UN link que termina en "=" y el ID va
+// pegado directo despues -- generamos los 500 IDs (codigo de 3 letras +
+// 4 digitos, ej. BRA0001..BRA0500) y sus links (link generico + ID),
+// sin pedir ningun archivo. Confirmado con el usuario 2026-08-26.
+function generateGenericLinkRows(countryCode, genericLink) {
+  const iso3 = COUNTRY_ISO3_CODES[countryCode] || countryCode;
+  const rows = [];
+  for (let i = 1; i <= 500; i++) {
+    const id = iso3 + String(i).padStart(4, '0');
+    rows.push({ id: id, link: genericLink + id });
+  }
+  return rows;
+}
+
+function uploadCountryGenericLink(country, primerId, genericLinkInput) {
+  const genericLink = genericLinkInput.value.trim();
+  if (!genericLink) {
+    appendClientLinksLog(country.code, 'Escribí el link genérico primero.');
+    return;
+  }
+  submitCountryLinks(country, primerId, generateGenericLinkRows(country.code, genericLink));
+}
+
+function updateClientLinksPanel() {
+  const group = document.getElementById('clientLinksGroup');
+  const entries = computeCountryPrimerIds();
+  group.innerHTML = '';
+
+  entries.forEach(function (entry) {
+    const country = entry.country;
+    const primerId = entry.primerId;
+    const blockEnd = primerId + 499;
+    const iso3 = COUNTRY_ISO3_CODES[country.code] || country.code;
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'padding:8px 10px; border:1px solid #e5e7eb; border-radius:5px;';
+
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:13px; font-weight:bold; margin-bottom:6px;';
+    label.textContent = country.label + ' — IDs esperados ' + primerId + ' a ' + blockEnd;
+    wrapper.appendChild(label);
+
+    const genericCheckLabel = document.createElement('label');
+    genericCheckLabel.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:12px; font-weight:normal; text-transform:none; letter-spacing:0; margin:0 0 8px;';
+    const genericCheck = document.createElement('input');
+    genericCheck.type = 'checkbox';
+    genericCheck.id = 'clientLinksGenericCheck_' + country.code;
+    genericCheck.style.width = 'auto';
+    genericCheckLabel.appendChild(genericCheck);
+    genericCheckLabel.appendChild(document.createTextNode('Existe link genérico'));
+    wrapper.appendChild(genericCheckLabel);
+
+    // Modo archivo .txt (default)
+    const fileModeDiv = document.createElement('div');
+    fileModeDiv.id = 'clientLinksFileMode_' + country.code;
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.txt';
+    fileInput.id = 'clientLinksFile_' + country.code;
+    fileInput.style.cssText = 'display:inline-block; width:auto;';
+    fileModeDiv.appendChild(fileInput);
+    const fileBtn = document.createElement('button');
+    fileBtn.type = 'button';
+    fileBtn.className = 'btn-small';
+    fileBtn.style.marginLeft = '8px';
+    fileBtn.textContent = '📤 Subir ' + country.label;
+    fileBtn.addEventListener('click', function () {
+      uploadCountryLinksFile(country, primerId, fileInput);
+    });
+    fileModeDiv.appendChild(fileBtn);
+    wrapper.appendChild(fileModeDiv);
+
+    // Modo link generico (oculto por default)
+    const genericModeDiv = document.createElement('div');
+    genericModeDiv.id = 'clientLinksGenericMode_' + country.code;
+    genericModeDiv.style.display = 'none';
+    const genericHint = document.createElement('div');
+    genericHint.className = 'hint';
+    genericHint.style.marginBottom = '4px';
+    genericHint.textContent = 'Se generan 500 IDs (' + iso3 + '0001 a ' + iso3 + '0500) y sus links (link genérico + ID).';
+    genericModeDiv.appendChild(genericHint);
+    const genericInput = document.createElement('input');
+    genericInput.type = 'text';
+    genericInput.id = 'clientLinksGenericInput_' + country.code;
+    genericInput.placeholder = 'Link genérico (termina en "=")';
+    genericModeDiv.appendChild(genericInput);
+    const genericBtn = document.createElement('button');
+    genericBtn.type = 'button';
+    genericBtn.className = 'btn-small';
+    genericBtn.style.marginTop = '6px';
+    genericBtn.textContent = '📤 Generar y subir ' + country.label;
+    genericBtn.addEventListener('click', function () {
+      uploadCountryGenericLink(country, primerId, genericInput);
+    });
+    genericModeDiv.appendChild(genericBtn);
+    wrapper.appendChild(genericModeDiv);
+
+    genericCheck.addEventListener('change', function () {
+      fileModeDiv.style.display = genericCheck.checked ? 'none' : 'block';
+      genericModeDiv.style.display = genericCheck.checked ? 'block' : 'none';
+    });
+
+    const status = document.createElement('div');
+    status.id = 'clientLinksStatus_' + country.code;
+    status.className = 'hint';
+    status.style.cssText = 'margin-top:6px; white-space:pre-wrap;';
+    wrapper.appendChild(status);
+
+    group.appendChild(wrapper);
+  });
 }
 
 function populateScriptCountries() {
@@ -1595,25 +1864,118 @@ function getSelectedValue(selectId, customInputId) {
   return select.value;
 }
 
-function suggestValue() {
-  const moeda = getSelectedValue('moeda', 'moedaCustom');
+function getGroupDisplayLabel(group) {
+  if (group.groupCode === 'Otros') return 'Otros';
+  const country = SCRIPT_COUNTRIES.find(function (c) { return c.code === group.groupCode; });
+  return country ? country.label : group.groupCode;
+}
+
+function computeSuggestedHonorarioForGroup(group) {
   const duracaoRaw = document.getElementById('duracao').value;
   const minutesMatch = duracaoRaw.match(/\d+/);
+  if (!minutesMatch) return null;
+  if (!Object.prototype.hasOwnProperty.call(SUGGESTED_VALUE_TABLE.hard[0].values, group.moeda)) return null;
 
-  if (!minutesMatch) {
-    alert('No se pudo interpretar la duración para sugerir un valor. Escribí un número de minutos, ej: "20".');
+  const minutes = parseInt(minutesMatch[0], 10);
+  return getSuggestedAmountForCurrency(group.moeda, minutes, getAnyHardSpecialtySelected());
+}
+
+// Muestra, de un vistazo, el honorario sugerido para cada pais/grupo
+// seleccionado (o el valor ad hoc, si se seteo uno para ese grupo).
+function renderHonorarioDefaultsView() {
+  const container = document.getElementById('honorarioDefaultsView');
+  const groups = buildEmailCountryGroups();
+
+  if (groups.length === 0) {
+    container.textContent = 'Seleccioná al menos un país en "Países del proyecto" (Generador de Script) para ver los honorarios sugeridos.';
     return;
   }
-  if (!Object.prototype.hasOwnProperty.call(SUGGESTED_VALUE_TABLE.hard[0].values, moeda)) {
-    alert('No hay valores sugeridos para esta moneda. Elegí una de las monedas precodificadas (no "Otra").');
+
+  container.textContent = groups.map(function (group) {
+    const label = getGroupDisplayLabel(group) + ' (' + group.moeda + ')';
+    const override = honorarioOverridesState[group.groupCode];
+    if (override) return label + ': ' + group.moeda + ' ' + override + ' (customizado)';
+
+    const suggested = computeSuggestedHonorarioForGroup(group);
+    return suggested === null
+      ? label + ': no se pudo sugerir (revisá la duración)'
+      : label + ': ' + group.moeda + ' ' + suggested;
+  }).join('\n');
+}
+
+// Un input editable por pais/grupo, precargado con el sugerido -- lo que el
+// usuario escriba ahi pisa el sugerido para ese grupo (ver honorarioOverridesState).
+function renderHonorarioOverridesView() {
+  const container = document.getElementById('honorarioOverridesView');
+  container.innerHTML = '';
+
+  buildEmailCountryGroups().forEach(function (group) {
+    const wrapper = document.createElement('div');
+
+    const label = document.createElement('label');
+    label.style.cssText = 'margin:0 0 4px;';
+    label.textContent = 'Honorario — ' + getGroupDisplayLabel(group) + ' (' + group.moeda + ')';
+
+    const suggested = computeSuggestedHonorarioForGroup(group);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'honorarioOverride_' + group.groupCode;
+    input.placeholder = suggested !== null ? String(suggested) : '';
+    input.value = honorarioOverridesState[group.groupCode] || '';
+    input.addEventListener('input', function () {
+      honorarioOverridesState[group.groupCode] = input.value;
+      render();
+    });
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    container.appendChild(wrapper);
+  });
+}
+
+// Muestra el sistema de honorarios por pais (default) salvo dos excepciones,
+// donde se vuelve al campo "Honorario" de toda la vida: pago por fichas (ahi
+// todo es ad hoc via fichaValuesGroup, ver isFichaPaymentActive) y moneda
+// "Otra" (no hay tabla de sugeridos para una moneda arbitraria).
+function updateHonorarioSectionVisibility() {
+  const moeda = document.getElementById('moeda').value;
+  const showRawValor = !isFichaPaymentActive() && moeda === CUSTOM_OPTION_VALUE;
+  const showDefaultsSystem = !isFichaPaymentActive() && moeda !== CUSTOM_OPTION_VALUE;
+
+  document.getElementById('honorarioValorGroup').style.display = showRawValor ? 'block' : 'none';
+  document.getElementById('honorarioDefaultsGroup').style.display = showDefaultsSystem ? 'block' : 'none';
+
+  if (showDefaultsSystem) {
+    renderHonorarioDefaultsView();
+    const overridesActive = document.getElementById('honorarioOverrideToggle').checked;
+    document.getElementById('honorarioOverridesView').style.display = overridesActive ? 'flex' : 'none';
+    if (overridesActive) renderHonorarioOverridesView();
+  }
+}
+
+// Pisa "valor" (el campo que buildHtml/buildSubject leen de verdad) con el
+// honorario que corresponde a la moneda actualmente elegida -- sugerido, o
+// el ad hoc si se seteo uno para ese pais/grupo. No hace nada si el pago es
+// por fichas (eso lo maneja updateFichaValorField) ni si la moneda es "Otra"
+// (ahi "valor" se tipea a mano, ver honorarioValorGroup).
+function updateHonorarioValorField() {
+  if (isFichaPaymentActive()) return;
+
+  const moeda = getSelectedValue('moeda', 'moedaCustom');
+  const matchedGroup = buildEmailCountryGroups().find(function (g) { return g.moeda === moeda; });
+  const override = matchedGroup && honorarioOverridesState[matchedGroup.groupCode];
+  if (override) {
+    document.getElementById('valor').value = override;
     return;
   }
+
+  const duracaoRaw = document.getElementById('duracao').value;
+  const minutesMatch = duracaoRaw.match(/\d+/);
+  if (!minutesMatch || !Object.prototype.hasOwnProperty.call(SUGGESTED_VALUE_TABLE.hard[0].values, moeda)) return;
 
   const minutes = parseInt(minutesMatch[0], 10);
   const suggested = getSuggestedAmountForCurrency(moeda, minutes, getAnyHardSpecialtySelected());
-
-  document.getElementById('valor').value = suggested;
-  render();
+  if (suggested !== null) document.getElementById('valor').value = suggested;
 }
 
 function getFooterLegal(moeda) {
@@ -1841,7 +2203,10 @@ function buildHtml() {
   const solidario = document.getElementById('solidario').value.trim();
 
   const openers = OPENERS[idioma] || OPENERS.pt;
-  const wellbeing = escapeHtml(openers[currentOpenerIndex] || openers[0]);
+  const wellbeingCustomText = document.getElementById('wellbeingCustom').value.trim();
+  const wellbeing = document.getElementById('wellbeingCustomCheck').checked && wellbeingCustomText
+    ? escapeHtml(wellbeingCustomText)
+    : escapeHtml(openers[currentOpenerIndex] || openers[0]);
 
   const closings = CLOSINGS[idioma] || CLOSINGS.pt;
   const closingText = escapeHtml(closings[currentClosingIndex] || closings[0]);
@@ -1953,6 +2318,8 @@ function updateFichaValorField() {
 
 function render() {
   updateFichaValorField();
+  updateHonorarioValorField();
+  updateHonorarioSectionVisibility();
   updateFichaSolidarioText();
 
   const html = buildHtml();
@@ -2047,6 +2414,13 @@ function updateWellbeingPreview() {
   document.getElementById('wellbeingPreview').textContent = list[currentOpenerIndex];
 }
 
+function updateWellbeingCustomVisibility() {
+  const isCustom = document.getElementById('wellbeingCustomCheck').checked;
+  document.getElementById('wellbeingPreview').style.display = isCustom ? 'none' : 'block';
+  document.getElementById('rerollBtn').style.display = isCustom ? 'none' : 'inline-block';
+  document.getElementById('wellbeingCustom').style.display = isCustom ? 'block' : 'none';
+}
+
 function updateClosingPreview() {
   const idioma = document.getElementById('idioma').value;
   const list = CLOSINGS[idioma] || CLOSINGS.pt;
@@ -2081,12 +2455,17 @@ document.getElementById('especialidadeCustomCheck').addEventListener('change', f
   render();
 });
 
+document.getElementById('wellbeingCustomCheck').addEventListener('change', function () {
+  updateWellbeingCustomVisibility();
+  render();
+});
+
 document.getElementById('moeda').addEventListener('change', function () {
   toggleCustomField('moeda', 'moedaCustom');
   render();
 });
 
-document.getElementById('suggestValueBtn').addEventListener('click', suggestValue);
+document.getElementById('honorarioOverrideToggle').addEventListener('change', render);
 
 document.getElementById('rerollBtn').addEventListener('click', function () {
   const idioma = document.getElementById('idioma').value;
@@ -2116,7 +2495,7 @@ document.getElementById('rerollClosingBtn').addEventListener('click', function (
   render();
 });
 
-['duracao', 'valor', 'especialidadeCustom', 'moedaCustom', 'solidario', 'bonusValor', 'projectCode', 'forstaModeloId', 'emailPm', 'fichaMin', 'fichaMax', 'scriptClienteCustom'].forEach(function (id) {
+['duracao', 'valor', 'especialidadeCustom', 'moedaCustom', 'solidario', 'bonusValor', 'projectCode', 'forstaModeloId', 'emailPm', 'fichaMin', 'fichaMax', 'scriptClienteCustom', 'wellbeingCustom'].forEach(function (id) {
   document.getElementById(id).addEventListener('input', render);
   document.getElementById(id).addEventListener('change', render);
 });
@@ -2127,42 +2506,504 @@ document.getElementById('scriptTopico').addEventListener('change', function () {
   applyAsuntoFromTopico(true);
 });
 
-document.getElementById('suggestAsuntoBtn').addEventListener('click', suggestAsuntoFromTopico);
+// El status de "Lanzar Set Up" es un log que se va acumulando a medida que
+// se completa cada paso del wizard (duplicar, lanzar, clave, etc.), no un
+// texto que se pisa -- asi el usuario ve el progreso completo, no solo el
+// ultimo paso.
+var launchSetupLog = [];
 
-function setLaunchSetupStatus(text) {
-  document.getElementById('launchSetupStatus').textContent = text;
+function appendLaunchSetupLog(line) {
+  const timestamp = new Date().toLocaleTimeString();
+  launchSetupLog.push('[' + timestamp + '] ' + line);
+  document.getElementById('launchSetupStatus').textContent = launchSetupLog.join('\n');
+}
+
+function resetLaunchSetupLog() {
+  launchSetupLog = [];
+}
+
+// Nombres EXACTOS de los nodos Email que ya trae el proyecto modelo
+// (p774756690265), uno por tipo y por idioma -- son los que hay que
+// sobreescribir/renombrar para el primer pais de cada idioma. OJO: tienen
+// inconsistencias reales (typos, mayusculas distintas, "Brazil" en vez de
+// "Brasil" en un caso) -- estan copiados tal cual del proyecto real
+// (confirmado via GetProjectEmailObjects, 2026-08-24), no "corregidos", porque
+// tienen que matchear el nombre real del nodo para poder encontrarlo. Si el
+// proyecto modelo cambia alguna vez, hay que volver a confirmar esta lista.
+const EMAIL_EXISTING_NAMES = {
+  invite1: { es: 'ESP Primera 2026', pt: 'Brasil Pimera 2026' },
+  reminder1: { es: 'ESP 1er recordatorio', pt: 'Brasil 1er recordatorio' },
+  incomplete: { es: 'ESP recordatorio de incompletas', pt: 'Brasil recordatorio de incompletas' },
+  incompleteBonus: { es: 'ESP recordatorio de incompletas con Bono', pt: 'Brasil recordatorio de incompletas con Bono' },
+  lastCall: { es: 'ESP Ultima invitacion', pt: 'Brasil Ultima Invitacion' },
+  lastCallBonus: { es: 'ESP Ultima invitacion con Bono', pt: 'Brasil Ultima Invitacion con Bono' },
+  filterChange: { es: 'ESP Cambio de filtro', pt: 'Brasil cambio de filtro' },
+  paymentData: { es: 'ESP Datos de Pago', pt: 'Brasil Datos de Pago' },
+  refield: { es: 'ESP Preguntas Adicionales (refield)', pt: 'Brazil Preguntas adicionales (refield)' },
+  linkFixed: { es: 'ESP Link corregido', pt: 'Brasil Link Corrigido' },
+};
+
+// Etiqueta "linda" de cada tipo, usada para armar el nombre nuevo
+// ("SetUp"+pais+"-"+etiqueta+"-2026"). Distinta de los nombres de arriba a
+// proposito -- estos son consistentes, los de arriba no.
+const EMAIL_TYPE_LABELS = {
+  invite1: 'Primera',
+  reminder1: '1er Recordatorio',
+  incomplete: 'Recordatorio de Incompletas',
+  incompleteBonus: 'Recordatorio de Incompletas con Bono',
+  lastCall: 'Ultima Invitacion',
+  lastCallBonus: 'Ultima Invitacion con Bono',
+  filterChange: 'Cambio de Filtro',
+  paymentData: 'Datos de Pago',
+  refield: 'Preguntas Adicionales',
+  linkFixed: 'Link Corregido',
+};
+
+// Agrupa los paises seleccionados en el generador de script: Brasil (si esta)
+// es su propio grupo; cada pais en castellano con moneda propia es su propio
+// grupo; todos los que usan US$ se juntan en un solo grupo "Otros" (son
+// esencialmente iguales para la carta). El primer grupo en castellano de la
+// lista es el que se sobreescribe; el resto se duplica.
+function buildEmailCountryGroups() {
+  const selected = getSelectedScriptCountries();
+  const groups = [];
+
+  const brasil = selected.find(function (c) { return c.code === 'BR'; });
+  if (brasil) {
+    groups.push({ groupCode: 'BR', lang: 'pt', moeda: brasil.suggestCurrency, isFirstOfLanguage: true });
+  }
+
+  const esCountries = selected.filter(function (c) { return c.code !== 'BR'; });
+  const ownCurrencyCountries = esCountries.filter(function (c) { return c.suggestCurrency !== 'US$'; });
+  const usdCountries = esCountries.filter(function (c) { return c.suggestCurrency === 'US$'; });
+
+  ownCurrencyCountries.forEach(function (c, index) {
+    groups.push({ groupCode: c.code, lang: 'es', moeda: c.suggestCurrency, isFirstOfLanguage: index === 0 });
+  });
+
+  if (usdCountries.length > 0) {
+    groups.push({ groupCode: 'Otros', lang: 'es', moeda: 'US$', isFirstOfLanguage: ownCurrencyCountries.length === 0 });
+  }
+
+  return groups;
+}
+
+// Arma UNA carta (subject + bodyHtml) para un tipo+grupo, reusando exactamente
+// buildHtml()/buildSubject() (las mismas que arman la carta manual de hoy) --
+// pisa temporalmente los campos de idioma/moneda/valor/tipo del formulario,
+// genera, y los restaura al final (incluso si algo tira error, con
+// try/finally) para no dejar la pantalla en un estado raro.
+function buildCartaForGroup(tipo, group) {
+  const idiomaField = document.getElementById('idioma');
+  const moedaField = document.getElementById('moeda');
+  const moedaCustomField = document.getElementById('moedaCustom');
+  const valorField = document.getElementById('valor');
+  const bonusValorField = document.getElementById('bonusValor');
+  const tipoField = document.getElementById('tipoEmail');
+
+  const original = {
+    idioma: idiomaField.value,
+    moeda: moedaField.value,
+    moedaCustom: moedaCustomField.value,
+    valor: valorField.value,
+    bonusValor: bonusValorField.value,
+    tipo: tipoField.value,
+  };
+
+  try {
+    idiomaField.value = group.lang;
+    populateCurrencies();
+    moedaField.value = group.moeda;
+    if (moedaField.value !== group.moeda) {
+      moedaField.value = CUSTOM_OPTION_VALUE;
+      moedaCustomField.value = group.moeda;
+    }
+    tipoField.value = tipo;
+
+    const duracaoRaw = document.getElementById('duracao').value;
+    const minutesMatch = duracaoRaw.match(/\d+/);
+    const minutes = minutesMatch ? parseInt(minutesMatch[0], 10) : null;
+    const override = honorarioOverridesState[group.groupCode];
+    const canSuggest = minutes && Object.prototype.hasOwnProperty.call(SUGGESTED_VALUE_TABLE.hard[0].values, group.moeda);
+    const suggested = override || (canSuggest ? getSuggestedAmountForCurrency(group.moeda, minutes, getAnyHardSpecialtySelected()) : null);
+
+    if (suggested !== null) {
+      valorField.value = suggested;
+      // el bono no tiene tabla propia -- se escala proporcionalmente al valor
+      // base de referencia, para mantener el mismo "incremento relativo" que
+      // el usuario tipeo a mano en la moneda que tenia activa al generar.
+      const refValor = parseFloat(original.valor);
+      const refBonus = parseFloat(original.bonusValor);
+      if (original.bonusValor && !isNaN(refValor) && !isNaN(refBonus) && refValor > 0) {
+        bonusValorField.value = Math.round(suggested * (refBonus / refValor));
+      }
+    }
+
+    const html = buildHtml();
+    const tema = getCurrentLetterTema();
+    const projectCode = document.getElementById('projectCode').value.trim();
+    const subject = buildSubject(tipo, group.lang, tema, projectCode);
+
+    return { subject: subject, bodyHtml: html, valorUsed: valorField.value, suggested: suggested !== null };
+  } finally {
+    idiomaField.value = original.idioma;
+    populateCurrencies();
+    moedaField.value = original.moeda;
+    moedaCustomField.value = original.moedaCustom;
+    valorField.value = original.valor;
+    bonusValorField.value = original.bonusValor;
+    tipoField.value = original.tipo;
+  }
+}
+
+// Genera TODAS las cartas: los 9 tipos x cada grupo de pais seleccionado.
+// Devuelve la lista lista para mandar al backend (o solo para previsualizar).
+function buildAllCartas() {
+  const groups = buildEmailCountryGroups();
+  if (groups.length === 0) {
+    throw new Error('No hay paises seleccionados en "Paises del proyecto" (generador de script).');
+  }
+
+  const cartas = [];
+  Object.keys(EMAIL_TYPE_LABELS).forEach(function (tipo) {
+    groups.forEach(function (group) {
+      const result = buildCartaForGroup(tipo, group);
+      const existingName = EMAIL_EXISTING_NAMES[tipo][group.lang];
+      const newName = 'SetUp' + group.groupCode + '-' + EMAIL_TYPE_LABELS[tipo] + '-2026';
+
+      cartas.push({
+        tipo: tipo,
+        groupCode: group.groupCode,
+        lang: group.lang,
+        isFirstOfLanguage: group.isFirstOfLanguage,
+        existingName: existingName,
+        name: newName,
+        subject: result.subject,
+        bodyHtml: result.bodyHtml,
+      });
+    });
+  });
+
+  return cartas;
+}
+
+// Genera todas las cartas y las manda al backend para que las escriba de
+// verdad en Confirmit (sobreescribe/renombra la primera de cada idioma,
+// duplica el resto -- ver apply_email_cartas en ConfirmitSoapClient).
+// Unico consumidor: el paso de cartas dentro de la cadena automatica del
+// wizard (ver stepApplyCartas) -- no hay boton manual separado.
+function applyCartasToProject(projectId, cartas) {
+  return postJson('/internal/fine_panel_setup/apply_emails', {
+    project_id: projectId,
+    cartas: cartas.map(function (c) {
+      return {
+        tipo: c.tipo,
+        group_code: c.groupCode,
+        lang: c.lang,
+        is_first_of_language: c.isFirstOfLanguage,
+        existing_name: c.existingName,
+        name: c.name,
+        subject: c.subject,
+        body_html: c.bodyHtml,
+      };
+    }),
+  }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    return result.data.applied;
+  });
+}
+
+function postJson(url, payload) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then(function (response) {
+    return response.json().then(function (data) { return { httpStatus: response.status, data: data }; });
+  });
+}
+
+// Paso 1: duplica el modelo. Devuelve una Promise que resuelve con el
+// project_id nuevo, o rechaza (con el mensaje ya logueado) si falla.
+function stepDuplicate(sourceProjectId, newProjectName) {
+  appendLaunchSetupLog('Duplicando "' + sourceProjectId + '" como "' + newProjectName + '"...');
+
+  return postJson('/internal/fine_panel_setup/duplicate', {
+    source_project_id: sourceProjectId,
+    new_project_name: newProjectName,
+    generated_script: buildScriptOutput(),
+  }).then(function (result) {
+    if (!result.data.ok) {
+      appendLaunchSetupLog('Error al duplicar: ' + result.data.error);
+      throw new Error(result.data.error);
+    }
+
+    appendLaunchSetupLog('Proyecto duplicado: ' + result.data.project_id);
+    document.getElementById('targetProjectId').value = result.data.project_id;
+    return result.data.project_id;
+  });
+}
+
+// Paso 2: lanza el proyecto (crea la base de datos, pone Production). El
+// backend espera (poll) a que el TaskID de Confirmit termine antes de
+// responder, asi que esto puede tardar bastante -- se avisa en el log.
+function stepLaunch(projectId) {
+  appendLaunchSetupLog('Lanzando el proyecto ' + projectId + ' (creando base de datos)... esto puede tardar un rato.');
+
+  return postJson('/internal/fine_panel_setup/launch', {
+    project_id: projectId,
+  }).then(function (result) {
+    if (!result.data.ok) {
+      appendLaunchSetupLog('Error al lanzar: ' + result.data.error);
+      throw new Error(result.data.error);
+    }
+
+    appendLaunchSetupLog('Proyecto lanzado (TaskID ' + result.data.task_id + ', estado: ' + result.data.status + ').');
+    return result.data;
+  });
+}
+
+// Paso 3: lee la clave del link generico publico (solo funciona si el
+// proyecto ya esta lanzado). Todavia no la escribe en ningun lado -- solo la
+// muestra en el campo/log para el paso siguiente.
+function stepFetchKey(projectId) {
+  appendLaunchSetupLog('Buscando la clave del proyecto ' + projectId + '...');
+
+  return postJson('/internal/fine_panel_setup/fetch_key', {
+    project_id: projectId,
+  }).then(function (result) {
+    if (!result.data.ok) {
+      appendLaunchSetupLog('Error al buscar la clave: ' + result.data.error);
+      throw new Error(result.data.error);
+    }
+
+    appendLaunchSetupLog('Clave encontrada: ' + result.data.key);
+    document.getElementById('projectKeyField').value = result.data.key;
+    return result.data.key;
+  });
+}
+
+// Paso 4: arma y escribe de verdad el script "definiciones" (A1-A10 +
+// clave real pisando el placeholder, preservando la parte de FASE B en
+// adelante) via Update. Es el ultimo paso antes de las cartas.
+function stepWriteDefinitions(projectId, projectKey) {
+  appendLaunchSetupLog('Escribiendo el script "definiciones" en ' + projectId + '...');
+
+  return postJson('/internal/fine_panel_setup/write_definitions', {
+    project_id: projectId,
+    generated_script: buildScriptOutput(),
+    project_key: projectKey,
+    primerid_lines: buildPrimerIdLinesText(),
+  }).then(function (result) {
+    if (!result.data.ok) {
+      appendLaunchSetupLog('Error al escribir "definiciones": ' + result.data.error);
+      throw new Error(result.data.error);
+    }
+
+    appendLaunchSetupLog('Script "definiciones" escrito con la clave ' + projectKey + '.');
+  });
+}
+
+// Paso 5 (ultimo): genera todas las cartas (una por tipo x pais/grupo, segun
+// la seleccion de paises del generador) y las aplica via apply_email_cartas
+// -- mismo nucleo que el boton manual "Aplicar cartas en Confirmit".
+function stepApplyCartas(projectId) {
+  let cartas;
+  try {
+    cartas = buildAllCartas();
+  } catch (err) {
+    appendLaunchSetupLog('Error al generar las cartas: ' + err.message);
+    throw err;
+  }
+
+  appendLaunchSetupLog('Aplicando ' + cartas.length + ' cartas en ' + projectId + '...');
+
+  return applyCartasToProject(projectId, cartas)
+    .then(function (applied) {
+      appendLaunchSetupLog('Cartas aplicadas (' + applied.length + '): ' + applied.join(', '));
+    })
+    .catch(function (err) {
+      appendLaunchSetupLog('Error al aplicar las cartas: ' + err.message);
+      throw err;
+    });
+}
+
+// El panel de programacion externa sale del mismo select "Programación" (A9)
+// en vez de un checkbox aparte -- "no es de Fine en Confirmit" es cualquier
+// opcion distinta de "fine_confirmit" (Sipe, Survey To Go, o programacion
+// del cliente), no un concepto nuevo que haya que duplicar.
+function updateExternalProgrammingPanelVisibility() {
+  const programacion = document.getElementById('scriptProgramacion').value;
+  document.getElementById('externalProgrammingPanel').style.display = programacion === 'fine_confirmit' ? 'none' : 'block';
+}
+
+document.getElementById('scriptProgramacion').addEventListener('change', updateExternalProgrammingPanelVisibility);
+
+// Paso del wizard (solo cuando la programacion es externa): agrega el mapeo
+// "codigo de Fine -> ID de Forsta" al proyecto de redirect compartido y lo
+// relanza para publicar el cambio. Si la programacion es "Fine en Confirmit"
+// no aplica -- se salta y se deja constancia en el log.
+function stepFnpRedirectIfNeeded(projectId) {
+  const programacion = document.getElementById('scriptProgramacion').value;
+  if (programacion === 'fine_confirmit') {
+    appendLaunchSetupLog('Programación es "Fine en Confirmit" -- no aplica proceso de redirect.');
+    return Promise.resolve();
+  }
+
+  const fineProjectCode = document.getElementById('projectCode').value.trim();
+  appendLaunchSetupLog('Agregando mapeo ' + fineProjectCode + ' -> ' + projectId + ' y relanzando el redirect (puede tardar un rato, no toca la base de datos)...');
+
+  return postJson('/internal/fine_panel_setup/add_fnp_redirect', {
+    fine_project_code: fineProjectCode,
+    forsta_project_id: projectId,
+  }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    appendLaunchSetupLog('Redirect relanzado (TaskID ' + result.data.task_id + ', estado: ' + result.data.status + ').');
+  });
+}
+
+function readFileAsText(file) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () { resolve(String(reader.result)); };
+    reader.onerror = function () { reject(new Error('No se pudo leer el archivo "' + file.name + '"')); };
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+// Devuelve una Promise que resuelve con las filas {id, link} cargadas para
+// un pais (del modo link generico si esta tildado, o del archivo .txt si
+// hay uno elegido), o null si no se cargo nada para ese pais -- en cuyo
+// caso el paso del wizard lo salta sin error.
+function getCountryLinksRows(country) {
+  const genericCheck = document.getElementById('clientLinksGenericCheck_' + country.code);
+  if (genericCheck && genericCheck.checked) {
+    const genericInput = document.getElementById('clientLinksGenericInput_' + country.code);
+    const genericLink = genericInput ? genericInput.value.trim() : '';
+    if (!genericLink) return Promise.resolve(null);
+    return Promise.resolve(generateGenericLinkRows(country.code, genericLink));
+  }
+
+  const fileInput = document.getElementById('clientLinksFile_' + country.code);
+  const file = fileInput && fileInput.files[0];
+  if (!file) return Promise.resolve(null);
+
+  return readFileAsText(file).then(function (text) {
+    return parseClientLinksFile(text);
+  });
+}
+
+// Paso del wizard: sube los links de cliente de cada pais que tenga algo
+// cargado (archivo o link generico), UNO POR VEZ -- nunca en paralelo, para
+// no perder cambios (cada subida hace su propio read-modify-write del
+// schema completo; dos en paralelo pisarian el cambio de la otra). Paises
+// sin nada cargado se saltan en silencio. Devuelve cuantos paises se
+// subieron, para saber si hace falta el relanzamiento final.
+function stepUploadClientLinksIfAny(projectId) {
+  const entries = computeCountryPrimerIds();
+  let uploadedCount = 0;
+
+  return entries.reduce(function (chain, entry) {
+    return chain.then(function () {
+      return getCountryLinksRows(entry.country).then(function (rows) {
+        if (!rows || rows.length === 0) return;
+
+        uploadedCount += 1;
+        appendLaunchSetupLog('Subiendo ' + rows.length + ' links de ' + entry.country.label + ' (bloque desde ' + entry.primerId + ')...');
+
+        return postJson('/internal/fine_panel_setup/upload_client_links', {
+          project_id: projectId,
+          primer_id: entry.primerId,
+          rows: rows,
+        }).then(function (result) {
+          if (!result.data.ok) throw new Error(result.data.error);
+          appendLaunchSetupLog('Links de ' + entry.country.label + ' cargados (' + result.data.added + ', ' + result.data.removed + ' reemplazados).');
+        });
+      });
+    });
+  }, Promise.resolve()).then(function () { return uploadedCount; });
+}
+
+// Ultimo paso, solo si se subio algun link de cliente: relanza el proyecto
+// duplicado (no el redirect) para que los cambios queden en vivo en el link
+// publico. Reusa el mismo endpoint /launch del paso 2 -- mismos defaults
+// (Rebuild/WiNet/Production), no pisa la base de datos existente.
+function stepFinalRelaunch(projectId) {
+  appendLaunchSetupLog('Relanzando el proyecto para publicar los links cargados...');
+  return postJson('/internal/fine_panel_setup/launch', {
+    project_id: projectId,
+  }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    appendLaunchSetupLog('Proyecto relanzado (TaskID ' + result.data.task_id + ', estado: ' + result.data.status + ').');
+  });
+}
+
+// Valida los campos obligatorios ANTES de arrancar la cadena -- evita
+// lanzar a mitad de camino con datos incompletos. Devuelve un array de
+// strings (uno por campo faltante); vacio si esta todo OK.
+function validateRequiredFieldsForLaunch() {
+  const errors = [];
+
+  const sourceProjectId = document.getElementById('forstaModeloId').value.trim();
+  if (!sourceProjectId || sourceProjectId === 'p') {
+    errors.push('ID del modelo a duplicar (ej: p774756690265)');
+  } else if (!/^p\d+$/.test(sourceProjectId)) {
+    errors.push('ID del modelo a duplicar tiene formato inválido: "' + sourceProjectId + '" (revisá que no haya quedado la "p" precargada duplicada)');
+  }
+
+  const projectCode = document.getElementById('projectCode').value.trim();
+  if (!projectCode || projectCode === 'FP-') {
+    errors.push('Código de proyecto');
+  }
+
+  if (getSelectedScriptCountries().length === 0) {
+    errors.push('Al menos un país tildado en "Países del proyecto"');
+  }
+
+  const emailPm = document.getElementById('emailPm').value.trim();
+  if (!emailPm || emailPm === '@fine-research.com') {
+    errors.push('Email del PM (falta el usuario antes de "@fine-research.com")');
+  }
+
+  return errors;
 }
 
 function launchSetup() {
+  resetLaunchSetupLog();
+
+  const errors = validateRequiredFieldsForLaunch();
+  if (errors.length > 0) {
+    appendLaunchSetupLog('Faltan completar campos obligatorios:');
+    errors.forEach(function (e) { appendLaunchSetupLog('- ' + e); });
+    return;
+  }
+
   const sourceProjectId = document.getElementById('forstaModeloId').value.trim();
   const projectCode = document.getElementById('projectCode').value.trim();
   const tema = getCurrentLetterTema();
   const newProjectName = tema ? (projectCode + ' - ' + tema) : projectCode;
 
-  if (!sourceProjectId || sourceProjectId === 'p') {
-    setLaunchSetupStatus('Completá el ID del modelo a duplicar (ej: p774756690265).');
-    return;
-  }
-
   const btn = document.getElementById('launchSetupBtn');
   btn.disabled = true;
-  setLaunchSetupStatus('Duplicando "' + sourceProjectId + '" como "' + newProjectName + '"...');
 
-  fetch('/internal/fine_panel_setup/duplicate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source_project_id: sourceProjectId, new_project_name: newProjectName }),
-  })
-    .then(function (response) { return response.json().then(function (data) { return { status: response.status, data: data }; }); })
-    .then(function (result) {
-      if (result.data.ok) {
-        setLaunchSetupStatus('Listo — nuevo proyecto: ' + result.data.project_id);
-      } else {
-        setLaunchSetupStatus('Error: ' + result.data.error);
-      }
+  var launchedProjectId;
+
+  stepDuplicate(sourceProjectId, newProjectName)
+    .then(function (projectId) { launchedProjectId = projectId; return stepLaunch(projectId); })
+    .then(function () { return stepFetchKey(launchedProjectId); })
+    .then(function (projectKey) { return stepWriteDefinitions(launchedProjectId, projectKey); })
+    .then(function () { return stepApplyCartas(launchedProjectId); })
+    .then(function () { return stepFnpRedirectIfNeeded(launchedProjectId); })
+    .then(function () { return stepUploadClientLinksIfAny(launchedProjectId); })
+    .then(function (uploadedCount) {
+      if (uploadedCount > 0) return stepFinalRelaunch(launchedProjectId);
+      appendLaunchSetupLog('No se cargaron links de cliente -- no hace falta relanzar de nuevo.');
+    })
+    .then(function () {
+      appendLaunchSetupLog('SET UP COMPLETO');
     })
     .catch(function (err) {
-      setLaunchSetupStatus('Error de red: ' + err.message);
+      appendLaunchSetupLog('Se detuvo el proceso: ' + err.message);
     })
     .finally(function () {
       btn.disabled = false;
@@ -2235,7 +3076,7 @@ function collectFormState() {
     'tipoEmail', 'idioma', 'clienteBrasil',
     'scriptAsuntoPt', 'scriptAsuntoEs',
     'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion',
-    'fichaPaymentType', 'fichaMin', 'fichaMax',
+    'fichaPaymentType', 'fichaMin', 'fichaMax', 'wellbeingCustom',
   ];
   simpleFields.forEach(function (id) {
     const el = document.getElementById(id);
@@ -2246,6 +3087,9 @@ function collectFormState() {
   state.fichaProjectCheck = document.getElementById('fichaProjectCheck').checked;
   state.scriptIQVIAMSD = document.getElementById('scriptIQVIAMSD').checked;
   state.fichaValues = Object.assign({}, fichaValuesState);
+  state.honorarioOverrides = Object.assign({}, honorarioOverridesState);
+  state.honorarioOverrideToggle = document.getElementById('honorarioOverrideToggle').checked;
+  state.wellbeingCustomCheck = document.getElementById('wellbeingCustomCheck').checked;
 
   state.especialidadeChecks = SPECIALTIES.map(function (item, index) {
     const el = document.getElementById('especialidadeCheck_' + index);
@@ -2268,7 +3112,7 @@ function collectFormState() {
 function applyFormState(state) {
   if (!state) return;
 
-  ['projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'moedaCustom', 'especialidadeCustom', 'clienteBrasil', 'scriptAsuntoPt', 'scriptAsuntoEs', 'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion', 'fichaPaymentType', 'fichaMin', 'fichaMax'].forEach(function (id) {
+  ['projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'moedaCustom', 'especialidadeCustom', 'clienteBrasil', 'scriptAsuntoPt', 'scriptAsuntoEs', 'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion', 'fichaPaymentType', 'fichaMin', 'fichaMax', 'wellbeingCustom'].forEach(function (id) {
     if (state[id] === undefined) return;
     const el = document.getElementById(id);
     if (el) el.value = state[id];
@@ -2278,6 +3122,15 @@ function applyFormState(state) {
     document.getElementById('fichaProjectCheck').checked = state.fichaProjectCheck;
   }
 
+  if (state.honorarioOverrideToggle !== undefined) {
+    document.getElementById('honorarioOverrideToggle').checked = state.honorarioOverrideToggle;
+  }
+
+  if (state.wellbeingCustomCheck !== undefined) {
+    document.getElementById('wellbeingCustomCheck').checked = state.wellbeingCustomCheck;
+    updateWellbeingCustomVisibility();
+  }
+
   if (state.scriptIQVIAMSD !== undefined) {
     document.getElementById('scriptIQVIAMSD').checked = state.scriptIQVIAMSD;
   }
@@ -2285,6 +3138,15 @@ function applyFormState(state) {
   if (state.fichaValues) {
     Object.keys(fichaValuesState).forEach(function (key) { delete fichaValuesState[key]; });
     Object.assign(fichaValuesState, state.fichaValues);
+  }
+
+  if (state.honorarioOverrides) {
+    Object.keys(honorarioOverridesState).forEach(function (key) { delete honorarioOverridesState[key]; });
+    Object.assign(honorarioOverridesState, state.honorarioOverrides);
+  }
+
+  if (state.honorarioOverrideToggle !== undefined) {
+    document.getElementById('honorarioOverrideToggle').checked = state.honorarioOverrideToggle;
   }
 
   if (state.moeda !== undefined) document.getElementById('moeda').value = state.moeda;
@@ -2335,40 +3197,12 @@ function loadSavedState() {
   return BAKED_STATE || null;
 }
 
-function saveAsNamedCopy() {
-  const defaultName = (document.getElementById('projectCode').value || 'estudio')
-    .replace(/[^a-zA-Z0-9-]+/g, '_');
-  const rawName = prompt('Nombre del archivo (sin espacios, se agrega .html):', defaultName);
-  if (!rawName) return;
-
-  const safeName = rawName.trim().replace(/\.html?$/i, '').replace(/[\\/:*?"<>|]+/g, '_') || 'estudio';
-
-  const state = collectFormState();
-  let stateJson = JSON.stringify(state);
-  stateJson = stateJson.replace(/<\/script/gi, '<\\/script');
-
-  let html = document.documentElement.outerHTML;
-  html = html.replace('const BAKED_STATE = null;', 'const BAKED_STATE = ' + stateJson + ';');
-
-  const blob = new Blob(['<!DOCTYPE html>\n' + html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = safeName + '.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 document.getElementById('saveStateBtn').addEventListener('click', function () {
   const ok = saveState();
   const note = document.getElementById('saveStateNote');
   note.textContent = ok ? 'Guardado ✓' : 'No se pudo guardar';
   setTimeout(function () { note.textContent = ''; }, 2500);
 });
-
-document.getElementById('saveAsBtn').addEventListener('click', saveAsNamedCopy);
 
 populateScriptCountries();
 populateScriptTopico();
@@ -2395,8 +3229,10 @@ if (savedState) {
 }
 
 updateWellbeingPreview();
+updateWellbeingCustomVisibility();
 updateClosingPreview();
 updateFieldVisibility();
+updateExternalProgrammingPanelVisibility();
 render();
 </script>
 
