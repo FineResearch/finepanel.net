@@ -894,13 +894,13 @@ function buildAsignacionIncentivosLines(selected) {
 
       lines.push(
         'if(f(\'Project\')=="' + escapeForScript(projectCode) + '" && f(\'Pais1\')=="' + country.pais1Code + '")' +
-        '{f("incentivo").set("' + formatThousands(Math.round(fichaValue * min)) + '");}  // ' + country.label
+        '{f("incentivo").set("' + Math.round(fichaValue * min) + '");}'
       );
 
       for (let n = min + 1; n <= max; n++) {
         lines.push(
           'if(f(\'Project\')=="' + escapeForScript(projectCode) + '-' + n + '" && f(\'Pais1\')=="' + country.pais1Code + '")' +
-          '{f("incentivo").set("' + formatThousands(Math.round(fichaValue * n)) + '");}  // ' + country.label
+          '{f("incentivo").set("' + Math.round(fichaValue * n) + '");}'
         );
       }
     });
@@ -923,7 +923,7 @@ function buildAsignacionIncentivosLines(selected) {
     if (amount == null) return;
     lines.push(
       'if(f(\'Project\')=="' + escapeForScript(projectCode) + '" && f(\'Pais1\')=="' + country.pais1Code + '")' +
-      '{f("incentivo").set("' + formatThousands(amount) + '");}  // ' + country.label
+      '{f("incentivo").set("' + amount + '");}'
     );
   });
 

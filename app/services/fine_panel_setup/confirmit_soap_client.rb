@@ -138,6 +138,189 @@ module FinePanelSetup
     PRIMERID_BLOCK_MARKER = '//C4.'
     PRIMERID_BLOCK_END_MARKER = '//Otros paises'
 
+    # Fallback para cuando el "modelo" de Forsta elegido para duplicar es un
+    # proyecto viejo cuyo script "definiciones" no tiene el formato A1-A10
+    # actual -- sin DEFINITIONS_MARKER (o sin los marcadores C4 dentro de esa
+    # parte), no hay de donde preservar una cola valida, asi que se usa este
+    # template de referencia entero en su lugar (confirmado por el usuario
+    # 2026-08-28, es el mismo texto que ya usa un proyecto real y reciente
+    # como base). Todo lo de aca para abajo son los seteos fijos que van
+    # despues de FASE B -- ver extract_preserved_tail.
+    FALLBACK_DEFINITIONS_TAIL = <<~'TAIL'
+      //FASE B - SETEOS NECESARIOS
+
+
+
+      //ESCRIBIR LA CLAVE DEBAJO
+
+      f("clave").set("WUUBGRLO"); //
+
+
+
+      //B6. ASIGNAR INCENTIVOS EN EL PANEL Y LANZARLO
+
+
+      //FASE C - NECESARIO SI ES SAMPLE ONLY
+
+
+
+      //C1.SAMPLE-ONLY ASIGNAR CODIGO P EN FUNCION DE NOMBRE DE PROYECTO RECIBIDO EN PROYECTO REDIRECT Y LANZARLO
+
+      //C2.SAMPLE-ONLY PEGAR LOS LINKS Y LOS IDS EN LISTA DE IDS Y LISTA DE LINKS Y LANZAR ESTE PROYECTO
+
+      //C3. SAMPLE-ONLY. TESTEAR UN LINK DEL CLIENTE DIRECTO HACIENDO UN SCREEN OUT Y COMPLETA
+
+      //C4. SI NO VAN EN CLIENTLINKS- DEFINIR EL NUMERO DE ORDEN DEL PRIMER ID DE LA SERIE DE LINKS PARA CADA PAIS DEL PROYECTO POR EJEMPLO 1 PARA EL PRIMER PAIS -ASIGNAR 500 LINKS MINIMO POR PAIS. PARA MUESTRA DE MAS DE 100 CASOS POR PAIS ASIGNAR 1000
+
+      if(f('Pais')=="1") {f("primerid").set("1");}  // Brasil
+      if(f('Pais')=="2") {f("primerid").set("0");}  // Mexico
+      if(f('Pais')=="3") {f("primerid").set("0");}  // Argentina
+      if(f('Pais')=="4") {f("primerid").set("0");}  // Chile
+      if(f('Pais')=="5") {f("primerid").set("0");}  // Colombia
+      if(f('Pais')=="8") {f("primerid").set("0");}  // Peru
+      if(f('Pais')=="13") {f("primerid").set("0");}  // Guatemala
+      if(f('Pais')=="16") {f("primerid").set("0");}  // Panama
+      if(f('Pais')=="17") {f("primerid").set("0");}  // Dominicana
+      if(f('Pais')=="21") {f("primerid").set("0");}  // Ecuador
+      if(f('Pais')=="22") {f("primerid").set("0");}  // Costa Rica
+
+
+      //Otros paises - copiar la linea anterior con el codigo de pais y primeirid que corresponda
+
+      //FASE D - SETEOS OPCIONALES
+
+      // D1. CIERRE por sample number ingresar el Sample number que cierra en vez de XX o YY. si hay mas copiar la sintaxis actualizando el samplenumber
+      //deja seguir a incompletos previos en link del cliente
+
+      //CIERRE PARCIAL - PERMITE INCOMPLETAS
+
+      if (f("Samplenumber")=="YY"&& f("StatusProyecto")!="1"&& f("StatusProyecto")!="66"){f('StatusProyecto').set("33"); SetRespondentValue("StatusProyecto1","33"); f('cerradoabierto').set("cerrado");}
+      if (f("Samplenumber")=="ZZ"&& f("StatusProyecto")!="1"&& f("StatusProyecto")!="66"){f('StatusProyecto').set("33"); SetRespondentValue("StatusProyecto1","33"); f('cerradoabierto').set("cerrado");}
+
+      // por especialidad, lugar y region
+
+      if (f("esp")=="ZZ" && f("pais1")=="ZZ" && f("StatusProyecto")!="1"&& f("StatusProyecto")!="66"){f('StatusProyecto').set("33"); SetRespondentValue("StatusProyecto1","33"); f('cerradoabierto').set("cerrado");}
+      if (f("lugar")=="ZZ" && f("pais1")=="ZZ" && f("StatusProyecto")!="1"&& f("StatusProyecto")!="66"){f('StatusProyecto').set("33"); SetRespondentValue("StatusProyecto1","33"); f('cerradoabierto').set("cerrado");}
+      if (f("region")=="ZZ" && f("StatusProyecto")!="1"&& f("StatusProyecto")!="66"){f('StatusProyecto').set("33"); SetRespondentValue("StatusProyecto1","33"); f('cerradoabierto').set("cerrado");}
+
+
+      //		1	Principalmente no meu consultório
+      //		2	Principalmente em Hospital Público
+      //		6	Principalmente em Hospital Privado
+      //		3	50% consultório e 50% em hospital
+
+      //CIERRE TOTAL
+
+      if (f("Samplenumber")=="XX"&& f("StatusProyecto")!="1"){f('StatusProyecto').set("33"); SetRespondentValue("StatusProyecto1","33"); f('cerradoabierto').set("cerrado");}
+      if (f("Samplenumber")=="YY"&& f("StatusProyecto")!="1"){f('StatusProyecto').set("33"); SetRespondentValue("StatusProyecto1","33"); f('cerradoabierto').set("cerrado");}
+
+      //D2. INCENTIVOS DIFERENCIADOS Si hubiera incentivos diferentes x samplenumber definir nombres de proyectos especificos con incentivos asociados y agregar esos proyectos en la asignacion de incentivos del panel
+
+      //if (f('samplenumber') == "XXXXXX") { f("Project").set("FP-XXXXXX-A"); }
+      //if (f('samplenumber') == "YYYYYY") { f("Project").set("FP-XXXXXX-B"); }
+
+
+      //ajuste de incentivo por samplenumber si aplicara - cambiar aca, agregar una linea x sample number
+
+      //if (f('samplenumber') == "XXXXXX") { f("incentivo").set("XXX moneda"); }
+      //if (f('samplenumber') == "YYYYYY") { f("incentivo").set("yyy moneda"); }
+
+
+      // D3. TEXTOS PERSONALIZDOS POR PAIS
+      if (f('Pais1')=="xx"||f('Pais1rec')=="xx")
+      {f("texto").set("En este proyecto buscamos médicos xxx que traten pacientes con xxx.");}
+
+      //D4. PACIENTES. SI ES PROYECTO DE PACIENTES UNICAMENTE COLOCAR "ON". SI ES PANEL EXTERNO PONER CONTACTO=PANEL CON MAYUSCULAS EN EL LINK  PARA QUE NO PIDA DATOS:
+
+      f("pacientes").set("OFF");
+
+      //D5. ACTUALIZAR APELLIDOS DE EXCLUSION LIST SI LA HUBIERA DEBAJO - FORMATO NOM-APE NOM-APE NOM-APE
+
+      f("exclusion").set("");
+
+      // D6.PONER "ON" SI NECESITAMOS QUE PREFILTRE SI ENTRA CON MOBILE. POR DEFECTO ES OFF
+
+      f("noesparamobile").set("OFF");
+
+      // D7. CERRADO FIN DE SEMANA. PONER "ON" SI NECESITAMOS QUE ESTE CERRADO EL FIN DE SEMANA. POR DEFECTO ES OFF
+
+      f("noesparafindesemana").set("OFF");
+
+      // D8. PONER "OFF" SI NECESITAMOS QUE NO SE MUESTRE EN EL PORTAL Y SOLO PARTICIPE VIA LINK.POR DEFECTO ES ON
+
+      f("accesoportal").set("OFF");
+
+      // D9. PONER "ON" SI NECESITAMOS QUE ALERTE DE CRITERIOS DE CALIDAD. POR DEFECTO ES OFF.
+
+      f("avisodequalitychecks").set("OFF");
+
+
+      // D10.  SI HAY ERROR DE REDIRECTS , PONER "REDIRECT", SI EL CREDITO SE HACE POR EL MINIMO SIN TILDE PONER "MINIMO
+      //POR DEFECTO ES OFF
+
+      f("avisodeerror").set("OFF");
+
+
+      //D11. DEFINIR LOS EMAILS DE LOS SUPERVISORES DEL ESTUDIO PARA CADA FIELD TEAM
+
+      if(f('contacto')=="LAURA") {f("emailsupervisa").set("macarena.eiras@fine-research.com");}
+      if(f('contacto')=="VALE") {f("emailsupervisa").set("info@valeriadaniele.com.ar");}
+      if(f('contacto')=="AR") {f("emailsupervisa").set("online@frm.mx");}
+      if(f('contacto')=="ALBERTO") {f("emailsupervisa").set("online@frm.mx");}
+      if(f('contacto')=="FLAVIA") {f("emailsupervisa").set("flavia.munoz_ch@fine-research.com");}
+      if(f('contacto')=="SYNAPSIS") {f("emailsupervisa").set("patricia.chaparro@synapsis-cr.com");}
+      if(f('contacto')=="TESTER") {f("emailsupervisa").set("ngonzalezriesgo@testerconsulting.com");}
+      if(f('contacto')=="FINE") {f("emailsupervisa").set("sandra.miranda@fine-research.com");}
+      if(f('contacto')=="IZA") {f("emailsupervisa").set("izabergozza@hotmail.com");}
+      if(f('contacto')=="KELLY") {f("emailsupervisa").set("kellygomes_pesquisa@hotmail.com");}
+      if(f('contacto')=="CLAUDIA") {f("emailsupervisa").set("claudiahelo_lima@hotmail.com");}
+      if(f('contacto')=="MAGALY") {f("emailsupervisa").set("magaly.furtado@hotmail.com");}
+      if(f('contacto')=="NATALIA") {f("emailsupervisa").set("nlpesquisas@gmail.com");}
+      if(f('contacto')=="NADIA") {f("emailsupervisa").set("sabermarketingpesquisas@gmail.com");}
+      if(f('contacto')=="PATRICIA") {f("emailsupervisa").set("patricia@rppesquisa.com.br");}
+      if(f('contacto')=="FRANCISCO") {f("emailsupervisa").set("fasb54@gmail.com");}
+      if(f('contacto')=="ELIZABETH") {f("emailsupervisa").set("mercurypesquisas@gmail.com");}
+      if(f('contacto')=="ALEXANDRA") {f("emailsupervisa").set("alexandra.bferreira@hotmail.com");}
+      if(f('contacto')=="SONIA") {f("emailsupervisa").set("sonia.castro_co@fine-research.com");}
+      if(f('contacto')=="DORCAS") {f("emailsupervisa").set("dorcasdeoliveira@gmail.com ");}
+      if(f('contacto')=="ROSE") {f("emailsupervisa").set("rose@oliverpesquisas.com.br");}
+      if(f('contacto')=="ELIANA") {f("emailsupervisa").set("elianacristinapesquisa@hotmail.com");}
+      if(f('contacto')=="GEOVANA") {f("emailsupervisa").set("geovana.recrut@gmail.com");}
+      if(f('contacto')=="TELMA") {f("emailsupervisa").set("araujo.telma0310@outlook.com");}
+      if(f('contacto')=="MAISA") {f("emailsupervisa").set("maisa.msousa@yahoo.com.br");}
+      if(f('contacto')=="TEST") {f("emailsupervisa").set("dcasar@fine-research.com");}
+      if(f('contacto')=="TANIA") {f("emailsupervisa").set("Tania_nng@hotmail.com");}
+      if(f('contacto')=="MARIAROSA") {f("emailsupervisa").set("ma.rosa185@gmail.com");}
+      if(f('contacto')=="PIVA") {f("emailsupervisa").set("elias.perez@pivamarketing.com.mx");}
+      if(f('contacto')=="BRIZU") {f("emailsupervisa").set("nathbrizuela@gmail.com");}
+
+
+      //si quisieramos diferenciar incentivos por equipo deberiamos tener samplenumbers separados y agregar esta linea para cada samplenumber y proveedor, definiendo pais y valor de cada linea
+
+      //if (f("samplenumber"=="XXXXX") && f('contacto') == "XXXX") { f("Pais1rec").set("XXXXX"); f("pagafine").set("ON"); f("incentivoequipovalor").set(0) }
+
+      //D12. RUTINA DE MANTENIMIENTO - DEFINIR MANTENIMIENTO = ON SI LA ENCUESTA ESTA TEMPORALMENTE SUSPENDIDA
+      //POR DEFECTO ES OFF
+
+      f("mantenimiento").set("OFF");
+
+      //D13. Aviso de espera. Si la pagina del cliente tarda en cargar, se pone en ON que desplega una pagina de aviso de que tenga paciencia antes de ir al link del clienteAddPanelSurveyHistory
+      //POR DEFECTO ES OFF
+
+      f("avisodeespera").set("OFF");
+
+      if(f('emaildp')=="dcasar@fine-research.com") {f("dp").set("Diego Casaravilla");}
+      if(f('emaildp')=="lorenaromo@fine-research.com") {f("dp").set("Maria Lorena Romo");}
+      if(f('emaildp')=="jreznik@fine-research.com") {f("dp").set("Javier Reznik");}
+      if(f('emaildp')=="matias.borda@fine-research.com") {f("dp").set("Matias Borda");}
+      if(f('emaildp')=="fabiola.suarez@fine-research.com") {f("dp").set("Fabiola Suarez");}
+      if(f('emaildp')=="melina.araneta@fine-research.com") {f("dp").set("Melina Araneta");}
+      if(f('emaildp')=="giuseppe.oliveira@fine-research.com") {f("dp").set("Giuseppe Oliveira");}
+      if(f('emaildp')=="natalia.mendez@fine-research.com") {f("dp").set("Natalia Mendez");}
+      if(f('emaildp')=="gabilarocca@fine-research.com") {f("dp").set("Gabriela Larocca");}
+      if(f('emaildp')=="monique.cardozoo@fine-research.com") {f("dp").set("Monique Cardozo");}
+    TAIL
+
     # Solo lectura: arma el ScriptCode final que habria que escribir en el nodo
     # "definiciones" del proyecto -- reemplaza la parte de antes del marcador por
     # el script recien generado, preserva intacta la parte de despues. Si se pasa
@@ -153,10 +336,8 @@ module FinePanelSetup
       response_body = get_questionnaire(key: key, project_id: project_id, endpoint: AUTHORING_ENDPOINT)
 
       current_script_code = extract_definitions_script_code(response_body)
-      marker_index = current_script_code.index(DEFINITIONS_MARKER)
-      raise "No se encontro el marcador \"#{DEFINITIONS_MARKER}\" en el script \"#{DEFINITIONS_SCRIPT_NAME}\" del proyecto #{project_id}" unless marker_index
+      preserved_tail = extract_preserved_tail(current_script_code)
 
-      preserved_tail = current_script_code[marker_index..-1]
       if project_key.present?
         preserved_tail = preserved_tail.sub(PROJECT_KEY_FIELD_PATTERN, "f(\"clave\").set(\"#{project_key}\")")
       end
@@ -909,6 +1090,23 @@ module FinePanelSetup
       raise "Confirmit Update fault: #{fault.at_xpath('.//faultstring')&.text || fault.text}" if fault
 
       true
+    end
+
+    # Corta el script "definiciones" actual del proyecto en el marcador FASE B
+    # (ver DEFINITIONS_MARKER) para preservar la parte fija de despues. Si el
+    # "modelo" de Forsta elegido para duplicar es un proyecto viejo que no
+    # tiene ese marcador -- o lo tiene pero le faltan los marcadores C4 de
+    # adentro (ver PRIMERID_BLOCK_MARKER/PRIMERID_BLOCK_END_MARKER) -- no hay
+    # de donde preservar una cola compatible con el resto de este cliente
+    # (project_key/primerid_lines dependen de esos marcadores), asi que se usa
+    # el template de referencia (FALLBACK_DEFINITIONS_TAIL) en su lugar.
+    def extract_preserved_tail(current_script_code)
+      marker_index = current_script_code.index(DEFINITIONS_MARKER)
+      return FALLBACK_DEFINITIONS_TAIL unless marker_index
+
+      tail = current_script_code[marker_index..-1]
+      has_primerid_markers = tail.include?(PRIMERID_BLOCK_MARKER) && tail.include?(PRIMERID_BLOCK_END_MARKER)
+      has_primerid_markers ? tail : FALLBACK_DEFINITIONS_TAIL
     end
 
     # Reemplaza las lineas "if(f('Pais')==...) {f('primerid').set(...);}"
