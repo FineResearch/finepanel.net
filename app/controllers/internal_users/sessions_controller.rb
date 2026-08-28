@@ -23,6 +23,10 @@ module InternalUsers
       end
     end
 
+    # Cuenta compartida a proposito (ver InternalUser) -- este endpoint no
+    # revoca el jti (esa ruta no esta en jwt.revocation_requests), asi que
+    # no invalida la sesion de otras personas conectadas con la misma
+    # cuenta. El frontend borra el token de su propio navegador y ya.
     def destroy
       render json: { message: 'Logout exitoso.' }, status: :ok
     end

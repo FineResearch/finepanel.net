@@ -16,7 +16,9 @@ Devise.setup do |config|
     jwt.revocation_requests = [
       ['DELETE', %r{^/api/v1/logout$}],
       ['DELETE', %r{^/api/v1/logout.json$}],
-      ['DELETE', %r{^/internal/auth/logout$}],
+      # internal_user es cuenta compartida a proposito: logout no revoca el
+      # jti (ver comentario en InternalUser) para no invalidar las sesiones
+      # de otras personas conectadas con la misma cuenta.
     ]
 
     jwt.expiration_time = 7.days.to_i

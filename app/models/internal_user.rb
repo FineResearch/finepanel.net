@@ -6,8 +6,15 @@ class InternalUser < ApplicationRecord
   # :jwt_authenticatable en vez de sesion por cookie -- en produccion
   # config.session_store esta deshabilitado (ver config/initializers/
   # session_store.rb, auth real de la app es JWT), asi que un login basado en
-  # sesion/flash no funciona ahi. jti se rota en cada login (ver
-  # #jwt_payload), asi que un login nuevo invalida el token anterior.
+  # sesion/flash no funciona ahi.
+  #
+  # Esta es una cuenta corporativa COMPARTIDA (varias personas se conectan
+  # con las mismas credenciales al mismo tiempo) -- jti no se rota en cada
+  # login ni en logout (ver InternalUsers::SessionsController#destroy y
+  # jwt.revocation_requests en config/initializers/devise.rb, a proposito
+  # sin la entrada de /internal/auth/logout), asi que todos los tokens
+  # emitidos quedan validos en paralelo hasta que expiran solos (7 dias).
+  # "Salir" en el frontend solo borra el token de ese navegador.
   include Devise::JWT::RevocationStrategies::JTIMatcher
   devise :database_authenticatable, :recoverable, :rememberable,
          :jwt_authenticatable, jwt_revocation_strategy: self
@@ -89,12 +96,6 @@ class InternalUser < ApplicationRecord
       subject: 'Recuperar contraseña - Fine Panel Setup',
       text_body: "Para elegir una contraseña nueva, entrá a este link:\n\n#{reset_url}\n\nSi no lo pediste vos, podés ignorar este mensaje."
     )
-  end
-
-  def jwt_payload
-    self.jti = SecureRandom.uuid
-    save!
-    super.merge('jti' => jti)
   end
 
   private
