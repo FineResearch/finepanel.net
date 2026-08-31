@@ -301,9 +301,13 @@
     <div id="closingPreview" class="opener-preview"></div>
     <div class="hint">Sorteada entre 5 variaciones. Aparece en todos los tipos de correo. Usá "Variar" para cambiar.</div>
 
-    <label for="solidario">Mensaje (opcional)</label>
+    <label for="solidario" id="solidarioLabel">Mensaje (opcional)</label>
     <textarea id="solidario" placeholder="Dejalo en blanco para omitir este bloque, o escribí un texto personalizado."></textarea>
-    <div class="hint">Aparece justo debajo del botón principal ("Iniciar Pesquisa" / "Iniciar Encuesta"). Sin texto fijo — solo se muestra si escribís algo acá.</div>
+    <div id="solidarioPtGroup" style="display:none;">
+      <label for="solidarioPt">Mensaje (opcional) — Português</label>
+      <textarea id="solidarioPt" placeholder="Dejalo en blanco para omitir, o escribí el texto en portugués (si lo dejás vacío, se usa el de arriba)."></textarea>
+    </div>
+    <div class="hint">Aparece justo debajo del botón principal ("Iniciar Pesquisa" / "Iniciar Encuesta"). Sin texto fijo — solo se muestra si escribís algo acá. Con Brasil y otro país seleccionados, podés escribir un texto distinto para cada idioma.</div>
 
     <div class="hint" style="margin-top:16px; padding-top:12px; border-top:1px solid #e5e7eb;">
       Las variables del sistema (^Tituloest^, ^Titulo^, ^name^, ^apellido^, ^surl^, ^pais^, ^cc^, ^email^, ^password1^, ^id^) y todos los links de tracking (l=1046 para portugués, l=2058 para español, exit=portal) son fijos en el template.
@@ -362,7 +366,8 @@ const fichaValuesState = {};
 // se sugiere para todos los paises seleccionados de una, y esto guarda las
 // excepciones puntuales que el usuario quiera cambiar.
 const honorarioOverridesState = {};
-let lastAutoFichaText = '';
+let lastAutoFichaTextEs = '';
+let lastAutoFichaTextPt = '';
 const BAKED_STATE = null;
 
 const SPECIALTIES = [
@@ -808,6 +813,10 @@ function updateScriptAsuntoBoxes() {
   document.getElementById('scriptAsuntoPtGroup').style.display = hasBrasil ? 'block' : 'none';
   document.getElementById('scriptAsuntoEsGroup').style.display = hasNonBrasil ? 'block' : 'none';
   document.getElementById('clienteBrasilGroup').style.display = hasBrasil ? 'block' : 'none';
+
+  const bothLangs = hasBrasil && hasNonBrasil;
+  document.getElementById('solidarioPtGroup').style.display = bothLangs ? 'block' : 'none';
+  document.getElementById('solidarioLabel').textContent = bothLangs ? 'Mensaje (opcional) — Español' : 'Mensaje (opcional)';
 
   const fichaChecked = document.getElementById('fichaProjectCheck').checked;
   document.getElementById('fichaPaymentTypeGroup').style.display = fichaChecked ? 'block' : 'none';
@@ -2217,7 +2226,9 @@ function buildHtml() {
   const moeda = escapeHtml(getSelectedValue('moeda', 'moedaCustom'));
   const bonusValor = escapeHtml(document.getElementById('bonusValor').value.trim());
   const projectCode = escapeHtml(document.getElementById('projectCode').value.trim());
-  const solidario = document.getElementById('solidario').value.trim();
+  const solidarioEs = document.getElementById('solidario').value.trim();
+  const solidarioPtRaw = document.getElementById('solidarioPt').value.trim();
+  const solidario = idioma === 'pt' ? (solidarioPtRaw || solidarioEs) : solidarioEs;
 
   const openers = OPENERS[idioma] || OPENERS.pt;
   const wellbeingCustomText = document.getElementById('wellbeingCustom').value.trim();
@@ -2284,20 +2295,25 @@ function buildFichaBaseNoticeText(idioma) {
     : 'El estudio incluye completar fichas descriptivas de tratamentos, en forma completamente anónima.';
 }
 
+// Completa el mensaje opcional de fichas en los dos idiomas (no solo el que
+// esta activo en el preview) para que quede bien aunque el proyecto tenga
+// Brasil + otro pais -- ver buildHtml, que usa el campo PT solo para cartas
+// en portugues.
 function updateFichaSolidarioText() {
-  const idioma = document.getElementById('idioma').value;
-  const newText = buildFichaBaseNoticeText(idioma);
-
-  if (!newText) {
-    lastAutoFichaText = '';
-    return;
-  }
+  const newTextEs = buildFichaBaseNoticeText('es');
+  const newTextPt = buildFichaBaseNoticeText('pt');
 
   const solidarioEl = document.getElementById('solidario');
-  if (solidarioEl.value === '' || solidarioEl.value === lastAutoFichaText) {
-    solidarioEl.value = newText;
+  if (newTextEs && (solidarioEl.value === '' || solidarioEl.value === lastAutoFichaTextEs)) {
+    solidarioEl.value = newTextEs;
   }
-  lastAutoFichaText = newText;
+  lastAutoFichaTextEs = newTextEs;
+
+  const solidarioPtEl = document.getElementById('solidarioPt');
+  if (newTextPt && (solidarioPtEl.value === '' || solidarioPtEl.value === lastAutoFichaTextPt)) {
+    solidarioPtEl.value = newTextPt;
+  }
+  lastAutoFichaTextPt = newTextPt;
 }
 
 function buildFichaRangeSentenceHtml(idioma) {
@@ -2512,7 +2528,7 @@ document.getElementById('rerollClosingBtn').addEventListener('click', function (
   render();
 });
 
-['duracao', 'valor', 'especialidadeCustom', 'moedaCustom', 'solidario', 'bonusValor', 'projectCode', 'forstaModeloId', 'emailPm', 'fichaMin', 'fichaMax', 'scriptClienteCustom', 'wellbeingCustom'].forEach(function (id) {
+['duracao', 'valor', 'especialidadeCustom', 'moedaCustom', 'solidario', 'solidarioPt', 'bonusValor', 'projectCode', 'forstaModeloId', 'emailPm', 'fichaMin', 'fichaMax', 'scriptClienteCustom', 'wellbeingCustom'].forEach(function (id) {
   document.getElementById(id).addEventListener('input', render);
   document.getElementById(id).addEventListener('change', render);
 });
@@ -3120,7 +3136,7 @@ function collectFormState() {
   const state = {};
 
   const simpleFields = [
-    'projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario',
+    'projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'solidarioPt',
     'moeda', 'moedaCustom', 'especialidadeCustom',
     'tipoEmail', 'idioma', 'clienteBrasil',
     'scriptAsuntoPt', 'scriptAsuntoEs',
@@ -3161,7 +3177,7 @@ function collectFormState() {
 function applyFormState(state) {
   if (!state) return;
 
-  ['projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'moedaCustom', 'especialidadeCustom', 'clienteBrasil', 'scriptAsuntoPt', 'scriptAsuntoEs', 'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion', 'fichaPaymentType', 'fichaMin', 'fichaMax', 'wellbeingCustom'].forEach(function (id) {
+  ['projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'solidarioPt', 'moedaCustom', 'especialidadeCustom', 'clienteBrasil', 'scriptAsuntoPt', 'scriptAsuntoEs', 'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion', 'fichaPaymentType', 'fichaMin', 'fichaMax', 'wellbeingCustom'].forEach(function (id) {
     if (state[id] === undefined) return;
     const el = document.getElementById(id);
     if (el) el.value = state[id];

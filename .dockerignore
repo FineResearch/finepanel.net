@@ -1,3 +1,13 @@
 tmp/
 public/assets/
 whatsapp-inbox-frontend/node_modules/
+
+# Nunca empaquetar el .env local dentro de una imagen -- termino pisando
+# DISABLE_WHATSAPP_SEND/DISABLE_EMAIL_DELIVERY=true (defaults de seguridad
+# de desarrollo local) en produccion porque esas claves no existen en el
+# secret real, y dotenv-rails completa cualquier ENV que no este ya seteada
+# (confirmado 2026-08-31: asi se rompio el envio de WhatsApp en produccion).
+.env
+.env.*
+!.env.example
+!.env.sample
