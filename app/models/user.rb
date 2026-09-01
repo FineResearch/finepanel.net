@@ -92,9 +92,21 @@ class User < ApplicationRecord
     profile_data(respid)
   end
 
+  # @profile_data solo memoiza dentro de la misma instancia/request -- cada
+  # request de Rails carga un User nuevo, asi que no evita nada entre
+  # requests. En la practica login, user_information, surveys, payments y
+  # varios endpoints mas (todos via profile_data/profile_data_from_email)
+  # piden la MISMA respuesta de Confirmit para el mismo respid+spanel unos
+  # segundos aparte -- confirmado 2026-08-31 con timings reales (~8s cada
+  # una). El cache es corto a proposito: alcanza para cubrir ese ida y
+  # vuelta entre requests sin arriesgar servir datos de pago/perfil
+  # desactualizados por mucho tiempo.
+  PROFILE_DATA_CACHE_TTL = 5.minutes
+
   def profile_data(respid)
-    @profile_data ||= ConfirmitGateway
-                      .get_user_attrs_from_profile(user_profile_url(respid))
+    @profile_data ||= Rails.cache.fetch("confirmit_profile_data/#{respid}/#{spanel}", expires_in: PROFILE_DATA_CACHE_TTL) do
+      ConfirmitGateway.get_user_attrs_from_profile(user_profile_url(respid))
+    end
   end
 
   def surveys

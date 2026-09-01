@@ -57,8 +57,16 @@ Rails.application.configure do
   # Prepend all log lines with the following tags.
   config.log_tags = [ :request_id ]
 
-  # Use a different cache store in production.
-  # config.cache_store = :mem_cache_store
+  # Redis (mismo REDIS_URL que ya usan Sidekiq/ActionCable), namespace propio
+  # para no compartir claves con esos otros usos. Habilitado especificamente
+  # para poder cachear User#profile_data (ver ahi) -- confirmado 2026-08-31
+  # que login + user_information (y varios endpoints mas via
+  # Api::V1::ApiController#set_user_data) le pegan a Confirmit por la misma
+  # respuesta de perfil, segundos aparte, sin compartir nada entre requests.
+  config.cache_store = :redis_cache_store, {
+    url: ENV['REDIS_URL'] || 'redis://localhost:6379',
+    namespace: 'finepanel_cache',
+  }
 
   # Use a real queuing backend for Active Job (and separate queues per environment)
   # config.active_job.queue_adapter     = :resque
