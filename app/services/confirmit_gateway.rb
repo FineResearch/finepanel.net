@@ -135,6 +135,19 @@ class ConfirmitGateway
       end
     end
 
+    # Limitado a listas de survey_links subidas en los ultimos 30 dias
+    # (SurveyLink#created_at = cuando SyncSurveyLinksWorker proceso el
+    # archivo que Forsta mando a Fine Panel, no una fecha de Confirmit) --
+    # sin esto, cada match historico del panelista dispara una llamada HTTP
+    # sincronica a Confirmit en valid_surveys/data_from_valid_survey, una
+    # por una, lo que puede ser docenas de llamadas para un panelista con
+    # anios de historial. Confirmado 2026-08-31: hoy casi no se suben listas
+    # nuevas (se prefiere invitar por email en vez de mostrar en el portal,
+    # que puede generar comportamientos impredecibles con muchas encuestas
+    # simultaneas para el mismo perfil), asi que en la practica esto corta
+    # el caso comun a una consulta SQL vacia sin tocar Confirmit.
+    RECENT_SURVEY_LINK_WINDOW = 30.days
+
     def get_active_surveys_for_user(surveys, language_param)
       or_conditions = []
       surveys.each do |survey|
@@ -144,7 +157,9 @@ class ConfirmitGateway
 
       return [] if or_conditions.empty?
 
-      survey_links = SurveyLink.active.where(or_conditions.join(' OR '))
+      survey_links = SurveyLink.active
+                                .where('survey_links.created_at >= ?', RECENT_SURVEY_LINK_WINDOW.ago)
+                                .where(or_conditions.join(' OR '))
       survey_links = survey_links.group_by(&:project_id)
       valid_surveys(surveys, survey_links, language_param)
     end
