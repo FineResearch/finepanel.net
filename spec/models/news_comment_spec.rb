@@ -58,4 +58,63 @@ RSpec.describe NewsComment do
       expect(FirstCommentReplyWorker.jobs.size).to eq(0)
     end
   end
+
+  describe '#parent_comment_must_be_top_level' do
+    it 'allows replying to a top-level comment' do
+      parent = create_comment('a@example.com')
+      reply = NewsComment.new(
+        text: 'una respuesta',
+        user: create_user('b@example.com'),
+        news_feed: news_feed,
+        user_info: { 'email' => 'b@example.com' },
+        parent_comment: parent,
+      )
+
+      expect(reply).to be_valid
+    end
+
+    it 'rejects replying to a reply (only 1 level of nesting allowed)' do
+      parent = create_comment('a@example.com')
+      reply = NewsComment.create!(
+        text: 'una respuesta',
+        user: create_user('b@example.com'),
+        news_feed: news_feed,
+        user_info: { 'email' => 'b@example.com' },
+        parent_comment: parent,
+      )
+      reply_to_reply = NewsComment.new(
+        text: 'otra respuesta',
+        user: create_user('c@example.com'),
+        news_feed: news_feed,
+        user_info: { 'email' => 'c@example.com' },
+        parent_comment: reply,
+      )
+
+      expect(reply_to_reply).not_to be_valid
+    end
+  end
+
+  describe '#notify_parent_comment_author' do
+    before { CommentReplyNotificationWorker.jobs.clear }
+
+    it 'enqueues the worker when a comment is a reply' do
+      parent = create_comment('a@example.com')
+      reply = NewsComment.create!(
+        text: 'una respuesta',
+        user: create_user('b@example.com'),
+        news_feed: news_feed,
+        user_info: { 'email' => 'b@example.com' },
+        parent_comment: parent,
+      )
+
+      expect(CommentReplyNotificationWorker.jobs.size).to eq(1)
+      expect(CommentReplyNotificationWorker.jobs.first['args']).to eq([reply.id])
+    end
+
+    it 'does not enqueue the worker for a top-level comment' do
+      create_comment('a@example.com')
+
+      expect(CommentReplyNotificationWorker.jobs.size).to eq(0)
+    end
+  end
 end

@@ -3,10 +3,51 @@ class NewsConversationReminderMailer < ApplicationMailer
 
   TEMPLATE_IDS = {
     reminder: 'd-2c12dc1deb784f54ad565a3147cdab24',
-    first_reply: 'd-e73f18ba2c3448a894766bc0329e9224'
+    first_reply: 'd-e73f18ba2c3448a894766bc0329e9224',
+    comment_agreement: 'd-e20daba5283d43a180babd0dfa900aa4',
+    # Reusa el template de first_reply a proposito -- mismo layout, mismas
+    # variables (subject/heading/body/cta/cta_url), el contenido real sigue
+    # siendo distinto porque se inyecta en runtime via dynamic_template_data.
+    # Unico costo: las estadisticas de apertura de SendGrid quedan mezcladas
+    # entre first_reply y comment_reply (decision del usuario 2026-09-19).
+    comment_reply: 'd-e73f18ba2c3448a894766bc0329e9224'
   }.freeze
 
   FROM = "comentarios@finepanel.net"
+
+  def comment_reply_email(recipient_email, locale, news_feed)
+    mail = generate_email(TEMPLATE_IDS[:comment_reply], FROM)
+    personalization = generate_personalization(recipient_email)
+
+    personalization.add_dynamic_template_data({
+      subject: I18n.t('mailers.comment_reply.subject', locale: locale),
+      heading: I18n.t('mailers.comment_reply.heading', locale: locale),
+      body: I18n.t('mailers.comment_reply.body', locale: locale, title: title_for(news_feed, locale)),
+      cta: I18n.t('mailers.comment_reply.cta', locale: locale),
+      cta_url: conversation_url(news_feed),
+    })
+
+    mail.add_personalization(personalization)
+
+    send_email(mail)
+  end
+
+  def comment_agreement_email(recipient_email, locale, news_feed)
+    mail = generate_email(TEMPLATE_IDS[:comment_agreement], FROM)
+    personalization = generate_personalization(recipient_email)
+
+    personalization.add_dynamic_template_data({
+      subject: I18n.t('mailers.comment_agreement.subject', locale: locale),
+      heading: I18n.t('mailers.comment_agreement.heading', locale: locale),
+      body: I18n.t('mailers.comment_agreement.body', locale: locale, title: title_for(news_feed, locale)),
+      cta: I18n.t('mailers.comment_agreement.cta', locale: locale),
+      cta_url: conversation_url(news_feed),
+    })
+
+    mail.add_personalization(personalization)
+
+    send_email(mail)
+  end
 
   def first_reply_email(recipient_email, locale, news_feed)
     mail = generate_email(TEMPLATE_IDS[:first_reply], FROM)

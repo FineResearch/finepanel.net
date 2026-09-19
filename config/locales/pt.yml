@@ -738,6 +738,16 @@ pt:
       heading: "Um colega respondeu à discussão que você iniciou"
       body: 'Outro médico compartilhou sua experiência sobre "%{title}". Veja o que ele comentou e continue a conversa.'
       cta: "VER A DISCUSSÃO"
+    comment_agreement:
+      subject: "Seu comentário está gerando interesse"
+      heading: "Seu comentário está gerando interesse"
+      body: '2 colegas concordaram com seu comentário na discussão sobre "%{title}".'
+      cta: "VER A DISCUSSÃO"
+    comment_reply:
+      subject: "Um colega respondeu ao seu comentário"
+      heading: "Um colega respondeu ao seu comentário"
+      body: 'Um colega respondeu ao seu comentário na discussão sobre "%{title}".'
+      cta: "VER A RESPOSTA"
 
   bank_account_types:
     checking_account: Conta corrente

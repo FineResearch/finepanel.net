@@ -165,6 +165,9 @@ end
 
       resources :news_comment, only: [:create] do
         get :delete, on: :member
+        post :reply, on: :member
+        post :react, on: :member
+        get :reactors, on: :member
       end
 
       resources :home, only: [] do

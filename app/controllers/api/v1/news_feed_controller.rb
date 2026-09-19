@@ -49,7 +49,9 @@ module Api
         specialty = Specialty.find_by(slug: params.dig("specialty"))
 
         if specialty.present?
-          render json: NewsFeedBlueprint.render(specialty.news_feeds.order(set_sort), {locale: params.dig("locale"), current_user: current_user}), status: :ok
+          news_feeds = specialty.news_feeds.includes(:news_comments).order(set_sort)
+          annotate_comment_reactions(news_feeds)
+          render json: NewsFeedBlueprint.render(news_feeds, {locale: params.dig("locale"), current_user: current_user}), status: :ok
         else
           render json: [], status: :ok
         end
@@ -58,7 +60,9 @@ module Api
       def search
         if params.dig("query").present?
           news = NewsFeed.search_by_text(params.dig("query")).or(NewsFeed.search_by_title(params.dig("query"))).distinct
-          render json: NewsFeedBlueprint.render(news.order(set_sort), {locale: params.dig("locale"), current_user: current_user}), status: :ok
+          news_feeds = news.includes(:news_comments).order(set_sort)
+          annotate_comment_reactions(news_feeds)
+          render json: NewsFeedBlueprint.render(news_feeds, {locale: params.dig("locale"), current_user: current_user}), status: :ok
         else
           render json: [], status: :ok
         end
@@ -131,6 +135,29 @@ module Api
       end
 
       private
+
+      # Setea reaction_count/my_comment_reaction (atributos transitorios,
+      # ver NewsComment) en cada comentario de la pagina ANTES de
+      # renderizar, con 2 queries agregadas para toda la pagina en vez de
+      # una por comentario (evita N+1 -- ver NewsCommentBlueprint). No
+      # depende de que Blueprinter propague options a un blueprint anidado
+      # (association :news_comments dentro de NewsFeedBlueprint), que no
+      # esta garantizado -- los datos ya viajan seteados en el objeto.
+      def annotate_comment_reactions(news_feeds)
+        comments = news_feeds.flat_map(&:news_comments)
+        return if comments.empty?
+
+        comment_ids = comments.map(&:id)
+        counts = NewsCommentReaction.where(news_comment_id: comment_ids).group(:news_comment_id).count
+        my_reacted_ids = current_user.present? ?
+          NewsCommentReaction.where(news_comment_id: comment_ids, user_id: current_user.id).pluck(:news_comment_id).to_set :
+          Set.new
+
+        comments.each do |comment|
+          comment.reaction_count = counts[comment.id] || 0
+          comment.my_comment_reaction = my_reacted_ids.include?(comment.id)
+        end
+      end
 
       def set_sort
         return "alert_created_at DESC, created_at DESC" unless params.dig("sort").present?
