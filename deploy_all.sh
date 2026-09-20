@@ -27,7 +27,7 @@ echo "Repo   : $(pwd)"
 echo "================================================"
 
 echo
-echo "[0/9] Git status"
+echo "[0/10] Git status"
 
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
 UPSTREAM_BRANCH="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
@@ -50,7 +50,7 @@ else
 fi
 
 echo
-echo "[1/9] Login ECR"
+echo "[1/10] Login ECR"
 aws ecr get-login-password --region "${AWS_REGION}" \
 | docker login --username AWS --password-stdin \
 "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
@@ -59,9 +59,14 @@ echo
 
 
 echo
-echo "[1.5/9] Build WhatsApp Inbox frontend"
+echo "[1.5/10] Build WhatsApp Inbox frontend"
 if [[ -d "whatsapp-inbox-frontend" ]]; then
-  docker run --rm \
+  # MSYS_NO_PATHCONV=1: en Git Bash/Windows, docker.exe es un binario nativo y
+  # MSYS reescribe cualquier argumento con pinta de path POSIX antes de
+  # pasarlo -- "-w /app" (un path DENTRO del contenedor, no del host) termina
+  # convertido en "C:/Program Files/Git/app" y el build explota. Sin esto
+  # rompia siempre en Windows (confirmado 2026-09-02).
+  MSYS_NO_PATHCONV=1 docker run --rm \
     -v "$(pwd)/whatsapp-inbox-frontend":/app \
     -w /app \
     node:20 \
@@ -78,14 +83,14 @@ fi
 
 
 
-echo "[2/9] Build Docker image"
+echo "[2/10] Build Docker image"
 docker build --platform linux/amd64 -f Dockerfile.release -t "${IMAGE_URI}" .
 
 
 
 
 echo
-echo "[3/9] Push Docker image"
+echo "[3/10] Push Docker image"
 docker push "${IMAGE_URI}"
 
 update_taskdef () {
@@ -124,12 +129,12 @@ PY
 }
 
 echo
-echo "[4/9] Update task definitions"
+echo "[4/10] Update task definitions"
 update_taskdef "${API_TASKDEF_FILE}" "${API_CONTAINER}"
 update_taskdef "${SIDEKIQ_TASKDEF_FILE}" "${SIDEKIQ_CONTAINER}"
 
 echo
-echo "[5/9] Register API task definition"
+echo "[5/10] Register API task definition"
 API_TASKDEF_ARN="$(aws ecs register-task-definition \
   --cli-input-json "file://${API_TASKDEF_FILE}" \
   --query 'taskDefinition.taskDefinitionArn' \
@@ -139,7 +144,7 @@ API_TASKDEF_ARN="$(aws ecs register-task-definition \
 echo "API task definition ARN: ${API_TASKDEF_ARN}"
 
 echo
-echo "[6/9] Register Sidekiq task definition"
+echo "[6/10] Register Sidekiq task definition"
 SIDEKIQ_TASKDEF_ARN="$(aws ecs register-task-definition \
   --cli-input-json "file://${SIDEKIQ_TASKDEF_FILE}" \
   --query 'taskDefinition.taskDefinitionArn' \
@@ -149,7 +154,7 @@ SIDEKIQ_TASKDEF_ARN="$(aws ecs register-task-definition \
 echo "Sidekiq task definition ARN: ${SIDEKIQ_TASKDEF_ARN}"
 
 echo
-echo "[7/9] Update ECS services with new task definitions"
+echo "[7/10] Update ECS services with new task definitions"
 aws ecs update-service \
   --cluster "${ECS_CLUSTER}" \
   --service "${API_SERVICE}" \
@@ -165,7 +170,7 @@ aws ecs update-service \
   --no-cli-pager > "/tmp/update-sidekiq-${TIMESTAMP}.json"
 
 echo
-echo "[8/9] Waiting services to stabilize..."
+echo "[8/10] Waiting services to stabilize..."
 aws ecs wait services-stable \
   --cluster "${ECS_CLUSTER}" \
   --services "${API_SERVICE}"
@@ -175,8 +180,22 @@ aws ecs wait services-stable \
   --services "${SIDEKIQ_SERVICE}"
 
 echo
-echo "[9/9] Show running ECS-related containers"
+echo "[9/10] Show running ECS-related containers"
 docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}" | grep ecs || true
+
+echo
+echo "[10/10] Prune leftover local images/build cache"
+# El deploy ya termino y la imagen ya esta en ECR -- no hace falta
+# conservarla localmente. Sin esto, cada deploy deja sus propias capas de
+# COPY/build sin compartir nada con los anteriores (node:16-alpine y
+# yarn install si se cachean/comparten, pero el codigo y el build
+# compilado son distintos en cada commit), y se van acumulando hasta
+# llenar el disco (confirmado 2026-09-20: 68GB acumulados en un dia de
+# deploys sin podar). Solo borra imagenes sin tag (huerfanas) y cache de
+# build de mas de un dia -- nunca toca imagenes tageadas, para no arriesgar
+# algo que el usuario este usando para otra cosa.
+docker image prune -f
+docker builder prune -f --filter "until=24h"
 
 echo
 echo "================================================"
