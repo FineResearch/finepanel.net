@@ -46,7 +46,7 @@ RSpec.describe CommentAgreementNotificationWorker do
     perform
 
     expect(NewsConversationReminderMailer).to have_received(:comment_agreement_email).once.with(
-      'author@example.com', 'es', news_feed
+      'author@example.com', 'es', news_feed, author
     )
     expect(
       Notification.exists?(user: author, news_feed: news_feed, notification_type: 'comment_agreement', news_comment: comment)

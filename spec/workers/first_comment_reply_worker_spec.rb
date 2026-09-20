@@ -48,7 +48,7 @@ RSpec.describe FirstCommentReplyWorker do
     perform
 
     expect(NewsConversationReminderMailer).to have_received(:first_reply_email).once.with(
-      'a@example.com', 'es', news_feed
+      'a@example.com', 'es', news_feed, user_a
     )
     expect(
       Notification.exists?(user: user_a, news_feed: news_feed, notification_type: 'first_comment_reply')

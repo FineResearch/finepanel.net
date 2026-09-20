@@ -48,17 +48,18 @@ class CommentAgreementNotificationWorker
 
     return unless comment.user_info.present? && comment.user_info['email'].present?
 
-    locale = resolve_locale(comment.user_id)
+    user = comment.user
+    locale = resolve_locale(user)
 
     NewsConversationReminderMailer.comment_agreement_email(
       comment.user_info['email'],
       locale,
       comment.news_feed,
+      user,
     ).deliver_later
   end
 
-  def resolve_locale(user_id)
-    user = User.find_by(id: user_id)
+  def resolve_locale(user)
     return 'es' unless user.present?
 
     user.language == 'por' ? 'pt' : 'es'

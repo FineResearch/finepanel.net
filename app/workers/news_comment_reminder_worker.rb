@@ -60,18 +60,19 @@ class NewsCommentReminderWorker
     return unless user_info.present? && user_info['email'].present?
 
     countries = subsequent_comments.map { |comment| comment.user_info['country'] }.compact.uniq
-    locale = resolve_locale(user_id)
+    user = User.find_by(id: user_id)
+    locale = resolve_locale(user)
 
     NewsConversationReminderMailer.reminder_email(
       user_info['email'],
       locale,
       news_feed,
       countries,
+      user,
     ).deliver_later
   end
 
-  def resolve_locale(user_id)
-    user = User.find_by(id: user_id)
+  def resolve_locale(user)
     return 'es' unless user.present?
 
     user.language == 'por' ? 'pt' : 'es'

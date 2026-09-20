@@ -48,7 +48,7 @@ RSpec.describe CommentReplyNotificationWorker do
     described_class.new.perform(reply.id)
 
     expect(NewsConversationReminderMailer).to have_received(:comment_reply_email).once.with(
-      'author@example.com', 'es', news_feed
+      'author@example.com', 'es', news_feed, author
     )
     expect(
       Notification.exists?(user: author, news_feed: news_feed, notification_type: 'comment_reply', news_comment: comment)

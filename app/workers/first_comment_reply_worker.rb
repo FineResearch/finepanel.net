@@ -52,17 +52,18 @@ class FirstCommentReplyWorker
 
     return unless first_comment.user_info.present? && first_comment.user_info['email'].present?
 
-    locale = resolve_locale(first_comment.user_id)
+    user = first_comment.user
+    locale = resolve_locale(user)
 
     NewsConversationReminderMailer.first_reply_email(
       first_comment.user_info['email'],
       locale,
       news_feed,
+      user,
     ).deliver_later
   end
 
-  def resolve_locale(user_id)
-    user = User.find_by(id: user_id)
+  def resolve_locale(user)
     return 'es' unless user.present?
 
     user.language == 'por' ? 'pt' : 'es'

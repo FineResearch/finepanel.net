@@ -51,7 +51,7 @@ RSpec.describe NewsCommentReminderWorker do
     perform
 
     expect(NewsConversationReminderMailer).to have_received(:reminder_email).once.with(
-      'a@example.com', 'es', news_feed, match_array(%w[Argentina Brasil Colombia])
+      'a@example.com', 'es', news_feed, match_array(%w[Argentina Brasil Colombia]), user_a
     )
     expect(
       Notification.exists?(user: user_a, news_feed: news_feed, notification_type: 'news_conversation_reminder')
