@@ -53,6 +53,8 @@ class FirstCommentReplyWorker
     return unless first_comment.user_info.present? && first_comment.user_info['email'].present?
 
     user = first_comment.user
+    return if user&.comment_notifications_opt_out?
+
     locale = resolve_locale(user)
 
     NewsConversationReminderMailer.first_reply_email(

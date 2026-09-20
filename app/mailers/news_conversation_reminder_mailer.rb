@@ -25,6 +25,8 @@ class NewsConversationReminderMailer < ApplicationMailer
       body: I18n.t('mailers.comment_reply.body', locale: locale, title: title_for(news_feed, locale)),
       cta: I18n.t('mailers.comment_reply.cta', locale: locale),
       cta_url: conversation_url(news_feed, user, recipient_email),
+      unsubscribe_label: I18n.t('mailers.unsubscribe_label', locale: locale),
+      unsubscribe_url: unsubscribe_url(user, locale),
     })
 
     mail.add_personalization(personalization)
@@ -42,6 +44,8 @@ class NewsConversationReminderMailer < ApplicationMailer
       body: I18n.t('mailers.comment_agreement.body', locale: locale, title: title_for(news_feed, locale)),
       cta: I18n.t('mailers.comment_agreement.cta', locale: locale),
       cta_url: conversation_url(news_feed, user, recipient_email),
+      unsubscribe_label: I18n.t('mailers.unsubscribe_label', locale: locale),
+      unsubscribe_url: unsubscribe_url(user, locale),
     })
 
     mail.add_personalization(personalization)
@@ -59,6 +63,8 @@ class NewsConversationReminderMailer < ApplicationMailer
       body: I18n.t('mailers.first_comment_reply.body', locale: locale, title: title_for(news_feed, locale)),
       cta: I18n.t('mailers.first_comment_reply.cta', locale: locale),
       cta_url: conversation_url(news_feed, user, recipient_email),
+      unsubscribe_label: I18n.t('mailers.unsubscribe_label', locale: locale),
+      unsubscribe_url: unsubscribe_url(user, locale),
     })
 
     mail.add_personalization(personalization)
@@ -79,6 +85,8 @@ class NewsConversationReminderMailer < ApplicationMailer
       countries_text: countries_text(countries, locale),
       cta: I18n.t('mailers.news_conversation_reminder.cta', locale: locale),
       cta_url: conversation_url(news_feed, user, recipient_email),
+      unsubscribe_label: I18n.t('mailers.unsubscribe_label', locale: locale),
+      unsubscribe_url: unsubscribe_url(user, locale),
     })
 
     mail.add_personalization(personalization)
@@ -102,6 +110,18 @@ class NewsConversationReminderMailer < ApplicationMailer
 
     respid = user.user_respid(email)
     "#{base}/users/redirect_user_login?e=#{user.encrypted_email}&r=#{respid}&s=#{user.spanel}&t=#{news_feed.id}"
+  end
+
+  # Link de un click para darse de baja SOLO de estos avisos de comentarios
+  # (no del resto de FinePanel, eso lo maneja Forsta aparte). nil si no hay
+  # user -- el helper de la vista/template de SendGrid decide que hacer
+  # con un link vacio, pero en la practica user siempre esta presente aca.
+  def unsubscribe_url(user, locale)
+    return nil unless user.present?
+
+    base = ENV.fetch('WEB_APP_HOST', 'https://finepanel.net')
+    path_prefix = locale == 'pt' ? '/pt' : ''
+    "#{base}#{path_prefix}/notifications/unsubscribe?token=#{user.comment_notifications_unsubscribe_token}"
   end
 
   # Prioriza el titulo editorial (fine_news_summary) traducido al idioma

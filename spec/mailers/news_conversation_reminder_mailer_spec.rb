@@ -27,13 +27,17 @@ RSpec.describe NewsConversationReminderMailer do
   # que send_email intente pegarle a la red (send_email queda stubbeado).
   # Se llama a la instancia directo (no via la clase, que en ActionMailer
   # devuelve un MessageDelivery diferido) para ejecutar el metodo ya mismo.
-  def cta_url_for(user)
+  def dynamic_template_data_for(user, locale: 'es')
     sent_mail = nil
     allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
 
-    described_class.new.comment_reply_email('author@example.com', 'es', news_feed, user)
+    described_class.new.comment_reply_email('author@example.com', locale, news_feed, user)
 
-    JSON.parse(sent_mail.to_json).dig('personalizations', 0, 'dynamic_template_data', 'cta_url')
+    JSON.parse(sent_mail.to_json).dig('personalizations', 0, 'dynamic_template_data')
+  end
+
+  def cta_url_for(user)
+    dynamic_template_data_for(user)['cta_url']
   end
 
   describe '#comment_reply_email' do
@@ -65,6 +69,35 @@ RSpec.describe NewsConversationReminderMailer do
 
     it 'cae al link plano cuando no hay usuario' do
       expect(cta_url_for(nil)).to eq("https://finepanel.net/dashboard/news#news_#{news_feed.id}")
+    end
+  end
+
+  describe 'unsubscribe_url / unsubscribe_label' do
+    let(:user) do
+      User.create!(encrypted_email: Digest::MD5.hexdigest('author@example.com'), jti: SecureRandom.uuid)
+    end
+
+    it 'incluye un link firmado al endpoint de unsubscribe, en espanol por default' do
+      data = dynamic_template_data_for(user)
+
+      expect(data['unsubscribe_url']).to start_with('https://finepanel.net/notifications/unsubscribe?token=')
+      expect(data['unsubscribe_label']).to eq('Cancelar suscripción a estos avisos')
+
+      token = data['unsubscribe_url'].split('token=').last
+      expect(User.find_from_unsubscribe_token(token)).to eq(user)
+    end
+
+    it 'usa el prefijo /pt y el copy en portugues cuando locale es pt' do
+      data = dynamic_template_data_for(user, locale: 'pt')
+
+      expect(data['unsubscribe_url']).to start_with('https://finepanel.net/pt/notifications/unsubscribe?token=')
+      expect(data['unsubscribe_label']).to eq('Descadastrar-se destes avisos')
+    end
+
+    it 'no genera link cuando no hay usuario' do
+      data = dynamic_template_data_for(nil)
+
+      expect(data['unsubscribe_url']).to be_nil
     end
   end
 end

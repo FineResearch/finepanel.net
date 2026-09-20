@@ -178,6 +178,8 @@ end
 
       resources :refer_colleague, only: [:create]
 
+      get 'notifications/unsubscribe', to: 'notifications#unsubscribe'
+
       post :news_mailer, to: 'news_mailer#create'
       get 'webhooks/handle_whatsapp_response', to: 'webhooks#handle_whatsapp_response'
       post 'webhooks/handle_whatsapp_response', to: 'webhooks#handle_whatsapp_response'

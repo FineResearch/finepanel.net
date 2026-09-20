@@ -131,6 +131,22 @@ RSpec.describe NewsCommentReminderWorker do
     expect(NewsConversationReminderMailer).to have_received(:reminder_email).once
   end
 
+  it 'still reserves the notification but does not send the mail when the recipient opted out' do
+    user_a.update!(comment_notifications_opt_out: true)
+    t = Time.current
+    create_comment(user_a, 'a@example.com', created_at: t)
+    create_comment(user_b, 'b@example.com', created_at: t + 1.minute, country: 'Argentina')
+    create_comment(user_c, 'c@example.com', created_at: t + 2.minutes, country: 'Brasil')
+    create_comment(user_d, 'd@example.com', created_at: t + 3.minutes, country: 'Colombia')
+
+    perform
+
+    expect(NewsConversationReminderMailer).not_to have_received(:reminder_email)
+    expect(
+      Notification.exists?(user: user_a, news_feed: news_feed, notification_type: 'news_conversation_reminder')
+    ).to be true
+  end
+
   it 'enforces at most one notification per user/news_feed/type at the database level' do
     Notification.create!(user: user_a, news_feed: news_feed, notification_type: 'news_conversation_reminder')
 

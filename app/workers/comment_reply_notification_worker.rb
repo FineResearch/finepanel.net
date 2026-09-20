@@ -52,6 +52,8 @@ class CommentReplyNotificationWorker
     return unless parent_comment.user_info.present? && parent_comment.user_info['email'].present?
 
     user = parent_comment.user
+    return if user&.comment_notifications_opt_out?
+
     locale = resolve_locale(user)
 
     NewsConversationReminderMailer.comment_reply_email(

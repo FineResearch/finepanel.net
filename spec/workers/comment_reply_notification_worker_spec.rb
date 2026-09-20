@@ -83,4 +83,16 @@ RSpec.describe CommentReplyNotificationWorker do
     expect(NewsConversationReminderMailer).not_to have_received(:comment_reply_email)
     expect(Notification.count).to eq(0)
   end
+
+  it 'still reserves the notification but does not send the mail when the author opted out' do
+    author.update!(comment_notifications_opt_out: true)
+    reply = reply_to(comment, replier_a)
+
+    described_class.new.perform(reply.id)
+
+    expect(NewsConversationReminderMailer).not_to have_received(:comment_reply_email)
+    expect(
+      Notification.exists?(user: author, news_feed: news_feed, notification_type: 'comment_reply', news_comment: comment)
+    ).to be true
+  end
 end

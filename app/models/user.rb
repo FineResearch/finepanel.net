@@ -69,6 +69,22 @@ class User < ApplicationRecord
     User.find_by(encrypted_email: encrypted_email)
   end
 
+  # Token firmado (no adivinable, a diferencia de encrypted_email) para el
+  # link de "no quiero mas avisos de comentarios" -- sin expiracion a
+  # proposito, un link de un mail de hace meses tiene que seguir andando.
+  # El "purpose" evita que este mismo token sirva para otra cosa si en el
+  # futuro se firma algo mas con message_verifier.
+  def self.find_from_unsubscribe_token(token)
+    user_id = Rails.application.message_verifier(:comment_notifications_unsubscribe).verify(token)
+    find_by(id: user_id)
+  rescue ActiveSupport::MessageVerifier::InvalidSignature
+    nil
+  end
+
+  def comment_notifications_unsubscribe_token
+    Rails.application.message_verifier(:comment_notifications_unsubscribe).generate(id)
+  end
+
   def self.automated_password(email)
     # Algorithm used to create passwords inside confirmit
     span = email[2..6]

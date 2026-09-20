@@ -114,6 +114,19 @@ RSpec.describe CommentAgreementNotificationWorker do
     expect(Notification.where(user: author, news_feed: news_feed, notification_type: 'comment_agreement').count).to eq(2)
   end
 
+  it 'still reserves the notification but does not send the mail when the author opted out' do
+    author.update!(comment_notifications_opt_out: true)
+    react(reactor_a)
+    react(reactor_b)
+
+    perform
+
+    expect(NewsConversationReminderMailer).not_to have_received(:comment_agreement_email)
+    expect(
+      Notification.exists?(user: author, news_feed: news_feed, notification_type: 'comment_agreement', news_comment: comment)
+    ).to be true
+  end
+
   it 'does not interfere with first_comment_reply/news_conversation_reminder notifications for the same news_feed' do
     allow(NewsConversationReminderMailer).to receive(:first_reply_email).and_return(double(deliver_later: true))
 

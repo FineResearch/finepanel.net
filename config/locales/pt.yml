@@ -748,6 +748,7 @@ pt:
       heading: "Um colega respondeu ao seu comentário"
       body: 'Um colega respondeu ao seu comentário na discussão sobre "%{title}".'
       cta: "VER A RESPOSTA"
+    unsubscribe_label: "Descadastrar-se destes avisos"
 
   bank_account_types:
     checking_account: Conta corrente

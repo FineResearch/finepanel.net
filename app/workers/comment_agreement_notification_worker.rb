@@ -49,6 +49,8 @@ class CommentAgreementNotificationWorker
     return unless comment.user_info.present? && comment.user_info['email'].present?
 
     user = comment.user
+    return if user&.comment_notifications_opt_out?
+
     locale = resolve_locale(user)
 
     NewsConversationReminderMailer.comment_agreement_email(

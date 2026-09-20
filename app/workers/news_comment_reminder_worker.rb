@@ -59,8 +59,10 @@ class NewsCommentReminderWorker
 
     return unless user_info.present? && user_info['email'].present?
 
-    countries = subsequent_comments.map { |comment| comment.user_info['country'] }.compact.uniq
     user = User.find_by(id: user_id)
+    return if user&.comment_notifications_opt_out?
+
+    countries = subsequent_comments.map { |comment| comment.user_info['country'] }.compact.uniq
     locale = resolve_locale(user)
 
     NewsConversationReminderMailer.reminder_email(
