@@ -10,7 +10,10 @@ class NewsConversationReminderMailer < ApplicationMailer
     # siendo distinto porque se inyecta en runtime via dynamic_template_data.
     # Unico costo: las estadisticas de apertura de SendGrid quedan mezcladas
     # entre first_reply y comment_reply (decision del usuario 2026-09-19).
-    comment_reply: 'd-e73f18ba2c3448a894766bc0329e9224'
+    comment_reply: 'd-e73f18ba2c3448a894766bc0329e9224',
+    # Template propio (no reusa otro) para poder trackear este tipo de
+    # aviso por separado en las estadisticas de apertura de SendGrid.
+    news_social_discovery: 'd-3c87e491af7743cfbafe9f654696f4b1'
   }.freeze
 
   FROM = "comentarios@finepanel.net"
@@ -94,6 +97,31 @@ class NewsConversationReminderMailer < ApplicationMailer
     send_email(mail)
   end
 
+  # Aviso de "descubrimiento social": util_count es un snapshot fijado una
+  # sola vez cuando se reserva la campana (NewsSocialDiscoveryService), no
+  # un conteo recalculado en caliente -- asi el numero es el mismo para
+  # todos los destinatarios de una misma corrida aunque el conteo real
+  # siga subiendo mientras el worker procesa la lista.
+  def news_social_discovery_email(recipient_email, locale, news_feed, user, useful_count)
+    mail = generate_email(TEMPLATE_IDS[:news_social_discovery], FROM)
+    personalization = generate_personalization(recipient_email)
+
+    personalization.add_dynamic_template_data({
+      subject: I18n.t('mailers.news_social_discovery.subject', locale: locale, title: title_for(news_feed, locale)),
+      heading: title_for(news_feed, locale),
+      teaser: teaser_for(news_feed, locale),
+      body: I18n.t('mailers.news_social_discovery.body', locale: locale, count: useful_count),
+      cta: I18n.t('mailers.news_social_discovery.cta', locale: locale),
+      cta_url: conversation_url(news_feed, user, recipient_email),
+      unsubscribe_label: I18n.t('mailers.unsubscribe_label', locale: locale),
+      unsubscribe_url: unsubscribe_url(user, locale),
+    })
+
+    mail.add_personalization(personalization)
+
+    send_email(mail)
+  end
+
   private
 
   # Link de auto-login cuando el destinatario tiene los datos necesarios
@@ -139,6 +167,22 @@ class NewsConversationReminderMailer < ApplicationMailer
     translation = news_feed.news_feed_translations.find_by(locale: locale)
 
     translation&.title || news_feed.title
+  end
+
+  # Mismo patron de fallback que title_for, pero para el teaser del mail
+  # de descubrimiento social -- usa el primer bloque editorial (lo mas
+  # parecido a un resumen corto en fine_news_summary), cae al texto plano
+  # de siempre para articulos en formato viejo sin fine_news_summary.
+  def teaser_for(news_feed, locale)
+    if news_feed.fine_news_summary.present?
+      translated_teaser = news_feed.fine_news_summary_translations&.dig(locale, 'editorial_content', 'what_this_evidence_shows')
+      return translated_teaser if translated_teaser.present?
+
+      original_teaser = news_feed.fine_news_summary.dig('editorial_content', 'what_this_evidence_shows')
+      return original_teaser if original_teaser.present?
+    end
+
+    news_feed.text
   end
 
   def countries_text(countries, locale)

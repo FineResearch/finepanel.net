@@ -25,6 +25,7 @@ class Notification < ApplicationRecord
     news_conversation_reminder: 'news_conversation_reminder',
     first_comment_reply: 'first_comment_reply',
     comment_agreement: 'comment_agreement',
-    comment_reply: 'comment_reply'
+    comment_reply: 'comment_reply',
+    news_social_discovery: 'news_social_discovery'
   }.freeze
 end

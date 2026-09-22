@@ -73,6 +73,7 @@ module Api
 
         news_feed.view_count += 1
         news_feed.save!
+        record_view(news_feed)
 
         render json: news_feed.view_count, status: :ok
 
@@ -135,6 +136,38 @@ module Api
       end
 
       private
+
+      # Registra la vista identificada del lector para la base usada por
+      # NewsSocialDiscoveryWorker -- nunca debe romper el request que
+      # incrementa view_count (respid/email son best-effort). current_user
+      # ya funciona en esta misma accion gracias a devise-jwt (Warden
+      # autentica el JWT del header por su cuenta, aparte de @current_user
+      # que setea check_basic_auth) -- mismo patron que ya usa #react en
+      # este archivo. find_or_create_by hace que una segunda vista del
+      # mismo usuario sobre la misma noticia sea un no-op silencioso
+      # (primera vista gana).
+      def record_view(news_feed)
+        return unless current_user.present?
+
+        NewsFeedView.find_or_create_by(user: current_user, news_feed: news_feed) do |view|
+          view.specialty = Specialty.find_by_slug(params[:specialty])
+          view.email = params[:email]
+          view.respid = safe_respid(current_user)
+        end
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+          nil
+      end
+
+      # respid se calcula server-side (aritmetica pura, sin llamar a
+      # Confirmit) -- no hace falta que el frontend mande el r= crudo del
+      # link del panel.
+      def safe_respid(user)
+        return nil unless params[:email].present?
+
+        user.user_respid(params[:email])
+        rescue StandardError
+          nil
+      end
 
       # Setea reaction_count/my_comment_reaction (atributos transitorios,
       # ver NewsComment) en cada comentario de la pagina ANTES de

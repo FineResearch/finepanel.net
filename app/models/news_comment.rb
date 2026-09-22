@@ -37,6 +37,7 @@ class NewsComment < ApplicationRecord
   after_create :check_conversation_reminder
   after_create :notify_first_commenter_on_reply
   after_create :notify_parent_comment_author
+  after_create :evaluate_social_discovery
 
   # Solo 1 nivel de anidamiento -- no se puede responder a una respuesta.
   # Reforzado tambien en NewsCommentController#reply (mismo criterio que
@@ -71,5 +72,12 @@ class NewsComment < ApplicationRecord
     return unless parent_comment_id.present?
 
     CommentReplyNotificationWorker.perform_async(id)
+  end
+
+  # Cualquier comentario cuenta para la condicion B del trigger de
+  # descubrimiento social (>=1 NewsComment), respuestas incluidas -- sin
+  # condicion, a diferencia de los callbacks de arriba.
+  def evaluate_social_discovery
+    NewsSocialDiscoveryService.evaluate(news_feed)
   end
 end

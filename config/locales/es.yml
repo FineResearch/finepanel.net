@@ -754,6 +754,10 @@ es:
       heading: "Un colega respondió a tu comentario"
       body: 'Un colega respondió a tu comentario en la discusión sobre "%{title}".'
       cta: "VER LA RESPUESTA"
+    news_social_discovery:
+      subject: "Actualización: %{title}"
+      body: "%{count} colegas de tu especialidad encontraron útil esta actualización y ya están comentando sobre ella."
+      cta: "VER ACTUALIZACIÓN Y DISCUSIÓN"
     unsubscribe_label: "Cancelar suscripción a estos avisos"
 
   bank_account_types:

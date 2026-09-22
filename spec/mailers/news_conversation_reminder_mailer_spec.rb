@@ -36,6 +36,15 @@ RSpec.describe NewsConversationReminderMailer do
     JSON.parse(sent_mail.to_json).dig('personalizations', 0, 'dynamic_template_data')
   end
 
+  def social_discovery_data_for(user, locale: 'es', useful_count: 10)
+    sent_mail = nil
+    allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+    described_class.new.news_social_discovery_email('reader@example.com', locale, news_feed, user, useful_count)
+
+    JSON.parse(sent_mail.to_json).dig('personalizations', 0, 'dynamic_template_data')
+  end
+
   def cta_url_for(user)
     dynamic_template_data_for(user)['cta_url']
   end
@@ -98,6 +107,35 @@ RSpec.describe NewsConversationReminderMailer do
       data = dynamic_template_data_for(nil)
 
       expect(data['unsubscribe_url']).to be_nil
+    end
+  end
+
+  describe '#news_social_discovery_email' do
+    let(:user) do
+      User.create!(encrypted_email: Digest::MD5.hexdigest('reader@example.com'), jti: SecureRandom.uuid)
+    end
+
+    it 'usa el copy en espanol y el conteo pasado como snapshot' do
+      data = social_discovery_data_for(user, locale: 'es', useful_count: 14)
+
+      expect(data['subject']).to eq("Actualización: #{news_feed.title}")
+      expect(data['heading']).to eq(news_feed.title)
+      expect(data['body']).to eq('14 colegas de tu especialidad encontraron útil esta actualización y ya están comentando sobre ella.')
+      expect(data['cta']).to eq('VER ACTUALIZACIÓN Y DISCUSIÓN')
+    end
+
+    it 'usa el copy en portugues cuando el locale es pt' do
+      data = social_discovery_data_for(user, locale: 'pt', useful_count: 14)
+
+      expect(data['subject']).to eq("Atualização: #{news_feed.title}")
+      expect(data['body']).to eq('14 colegas da sua especialidade acharam esta atualização útil e já estão comentando sobre ela.')
+      expect(data['cta']).to eq('VER ATUALIZAÇÃO E DISCUSSÃO')
+    end
+
+    it 'cae al texto plano de la noticia como teaser cuando no hay fine_news_summary' do
+      data = social_discovery_data_for(user)
+
+      expect(data['teaser']).to eq(news_feed.text)
     end
   end
 end
