@@ -4,6 +4,7 @@ require 'net/http'
 require 'json'
 require 'jwt'
 require 'openssl'
+require 'base64'
 
 # Manda push notifications via Firebase Cloud Messaging (API HTTP v1),
 # reemplazando el POST a myqmob.com/LumiSay que se usaba con la app vieja
@@ -17,9 +18,23 @@ require 'openssl'
 #
 # PASO MANUAL PENDIENTE: falta generar la service account key en Firebase
 # Console (Configuracion del proyecto > Cuentas de servicio > Generar
-# nueva clave privada) y cargar su JSON completo en
-# ENV['FCM_SERVICE_ACCOUNT_JSON'] (secret de produccion) antes de que esto
-# pueda mandar push de verdad.
+# nueva clave privada) y cargar su contenido en
+# ENV['FCM_SERVICE_ACCOUNT_JSON_BASE64'] (secret de produccion) -- en
+# BASE64, no el JSON crudo. entrypoint.release.sh arma las variables de
+# entorno con un export $(...) que corta por CUALQUIER salto de linea, y
+# el campo private_key de este JSON siempre tiene saltos de linea reales
+# adentro (es el formato PEM) -- ningun nivel de "comprimir" el JSON
+# externo evita eso, asi que la unica forma segura de que sobreviva ese
+# mecanismo es que el valor entero sea una sola linea sin espacios ni
+# saltos, que es justo lo que produce base64 (confirmado en produccion
+# 2026-09-23: subir el JSON tal cual, incluso ya minificado, tumbo la API
+# y Sidekiq enteras -- el circuit breaker de ECS roll-backeo solo, pero
+# hasta el rollback fallaba porque CUALQUIER container que arrancara leia
+# el mismo secret roto).
+#
+#   base64 -w0 service-account-key.json
+#
+# (en Mac/sin -w0: base64 -i service-account-key.json | tr -d '\n')
 class PushNotifier
   FCM_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging'
   GOOGLE_TOKEN_URI = 'https://oauth2.googleapis.com/token'
@@ -112,6 +127,6 @@ class PushNotifier
   end
 
   def service_account
-    @service_account ||= JSON.parse(ENV.fetch('FCM_SERVICE_ACCOUNT_JSON'))
+    @service_account ||= JSON.parse(Base64.decode64(ENV.fetch('FCM_SERVICE_ACCOUNT_JSON_BASE64')))
   end
 end

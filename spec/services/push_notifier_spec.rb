@@ -33,14 +33,14 @@ RSpec.describe PushNotifier do
   end
 
   around do |example|
-    original = ENV['FCM_SERVICE_ACCOUNT_JSON']
-    ENV['FCM_SERVICE_ACCOUNT_JSON'] = service_account
+    original = ENV['FCM_SERVICE_ACCOUNT_JSON_BASE64']
+    ENV['FCM_SERVICE_ACCOUNT_JSON_BASE64'] = Base64.strict_encode64(service_account)
     # Memory store real y aislado por test -- no depende de que
     # config.cache_store del entorno de test sea uno que realmente
     # persista entre llamadas (ej. :null_store no lo haria).
     allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
     example.run
-    ENV['FCM_SERVICE_ACCOUNT_JSON'] = original
+    ENV['FCM_SERVICE_ACCOUNT_JSON_BASE64'] = original
   end
 
   it 'does nothing when there are no user_ids' do
