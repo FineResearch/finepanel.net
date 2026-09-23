@@ -150,6 +150,9 @@ end
         get :home_highlights, on: :collection
       end
 
+      post 'device_tokens', to: 'device_tokens#create'
+      delete 'device_tokens', to: 'device_tokens#destroy'
+
       resources :user_information, only: [:index] do
         put :update_profile, on: :collection
         put :update_payment_data, on: :collection

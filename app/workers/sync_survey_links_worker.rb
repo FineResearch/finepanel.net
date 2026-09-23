@@ -18,10 +18,10 @@ class SyncSurveyLinksWorker
 
     project_id = feed_file_path.match(/p\d+/).to_s
 
-    active_users = User.with_active_app
+    active_users = User.with_device_token
 
-    es_users = []
-    por_users = []
+    es_user_ids = []
+    por_user_ids = []
 
     CSV.foreach(feed_file_path, col_sep: "\t", headers: true) do |row|
       spanel = row[1].split('=').last
@@ -50,17 +50,17 @@ class SyncSurveyLinksWorker
       if user
         case user.language
         when 'es'
-          es_users << email
+          es_user_ids << user.id
         when 'por'
-          por_users << email
+          por_user_ids << user.id
         end
       end
     end
 
     batch_manager.finish
 
-    PushNotificationsWorker.perform_async(es_users, texts['es'])
-    PushNotificationsWorker.perform_async(por_users, texts['por'])
+    PushNotificationsWorker.perform_async(es_user_ids, texts['es'])
+    PushNotificationsWorker.perform_async(por_user_ids, texts['por'])
 
     File.delete(feed_file_path)
     File.delete(file_path)

@@ -13,8 +13,14 @@ class User < ApplicationRecord
   has_many :notifications
   has_many :news_feed_reactions
   has_many :news_comment_reactions
+  has_many :device_tokens, dependent: :destroy
 
   scope :with_active_app, -> { where(active_app: true) }
+  # Reemplaza a with_active_app como filtro de audiencia para push: mide
+  # "tiene un dispositivo registrado hoy" en vez de "alguna vez sincronizo
+  # con la app vieja" (ese flag nunca se resetea a false, ver
+  # 20260923090000_create_device_tokens.rb).
+  scope :with_device_token, -> { joins(:device_tokens).distinct }
 
   validates :encrypted_email, presence: true, uniqueness: true
 
