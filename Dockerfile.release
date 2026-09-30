@@ -17,19 +17,30 @@ RUN apk add --no-cache jq nodejs build-base postgresql-dev libxml2-dev libxslt-d
   git openssh postgresql
 
 # PSPP (compila la sintaxis SPSS re-etiquetada a .sav real, ver
-# RelabelSpssExportWorker) -- no esta en los repos estables de Alpine, hay
-# que sumar los repos "edge". REACTIVADO (2026-09-30): el intento anterior
-# revento con SEGFAULT porque "docker build --platform linux/amd64" corria
-# LOCAL en una maquina ARM via emulacion QEMU -- confirmado reproduciendo
-# el mismo RUN en aislado (crasheaba incluso con --allow-untrusted, no era
-# un problema de confianza de firma sino de apk-tools/musl bajo QEMU). El
-# build de release ahora corre en CodeBuild (hardware x86_64 real, ver
-# buildspec.yml + deploy_all.sh) -- sin la emulacion de por medio, este
-# mismo RUN deberia funcionar limpio sin ningun truco extra.
-RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
-  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
-  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
-  apk update --allow-untrusted && apk add --no-cache --allow-untrusted pspp
+# RelabelSpssExportWorker) -- DESHABILITADO (2026-09-30, segundo intento).
+# Se penso que el SEGFAULT anterior (ver commits previos) era por la
+# emulacion QEMU de "docker build --platform linux/amd64" corriendo local
+# en una maquina ARM -- se armo un pipeline de build en CodeBuild
+# (buildspec.yml) para correr en hardware x86_64 real y evitar eso, PERO
+# el mismo RUN revienta IGUAL ahi (mismo "Segmentation fault (core
+# dumped)", exit 139, confirmado en logs reales de CodeBuild). Esto
+# descarta la hipotesis de la emulacion: es "apk-tools" de Alpine 3.7
+# (2018) crasheando al procesar el APKINDEX de "edge" tal cual esta HOY
+# (2026) -- una incompatibilidad de formato/version de ~8 anios entre esa
+# base vieja y el repo edge actual, no un problema de arquitectura ni de
+# confianza de firma. Sin PSPP instalado, RelabelSpssExportWorker no
+# rompe -- su propio fallback (ver #build_output_paths) manda el zip
+# original sin re-etiquetar en vez de fallar. Pendiente: la unica salida
+# viable que probamos y anduvo (copiar un binario ya instalado desde un
+# Alpine mas nuevo) tambien crashea EN TIEMPO DE EJECUCION por deps de
+# GTK/glib faltantes -- este RUN necesita repensarse desde otra base
+# (Debian/Ubuntu para esta capa, o PSPP como servicio aparte), no un
+# parche mas sobre Alpine 3.7.
+#
+# RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
+#   echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+#   echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+#   apk update --allow-untrusted && apk add --no-cache --allow-untrusted pspp
 
 ##########################
 # Set working directory  #
