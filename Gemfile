@@ -49,6 +49,11 @@ gem 'rubyzip', '~> 1.2', '>= 1.2.2'
 # Lee/escribe .xlsx -- usado por RelabelExcelExportWorker para reescribir
 # los encabezados de export de Confirmit (ver ExportRelabeling).
 gem 'rubyXL'
+# Usados por ExportRelabeling::PsppLambdaClient para mandar el compile de
+# SPSS a una Lambda aparte (Alpine, la base de esta app, no puede correr
+# PSPP -- ver Dockerfile.release).
+gem 'aws-sdk-lambda'
+gem 'aws-sdk-s3'
 gem 'sidekiq'
 gem 'sidekiq-scheduler'
 gem 'dotenv-rails', '~> 2.1', '>= 2.1.1'

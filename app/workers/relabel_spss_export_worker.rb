@@ -4,8 +4,10 @@ require 'zip'
 
 # Recibe el zip que Confirmit manda con la sintaxis SPSS (.sps + .asc) de un
 # export, corrige los labels (ExportRelabeling::SpssSyntaxRewriter) y compila
-# el resultado a .sav real via PSPP -- ver el plan en
-# export_relabeling/label_parser.rb para el contexto completo.
+# el resultado a .sav real -- el compile en si corre en una Lambda aparte
+# (ver ExportRelabeling::PsppLambdaClient, lambda/pspp_compiler/), no en
+# este mismo contenedor: la base de la app (Alpine 3.7) no puede instalar
+# ni correr PSPP de ninguna forma (ver el diagnostico en Dockerfile.release).
 #
 # Un zip puede traer mas de un par .sps+.asc (los loops de la encuesta se
 # exportan como archivos separados, ej. "..._def_X.sps"/"..._def_X_fichas.sps")
@@ -17,8 +19,9 @@ class RelabelSpssExportWorker
   WORK_ROOT = Rails.root.join('tmp', 'relabel_spss')
   # El FILE HANDLE del .sps original apunta a un path de Windows
   # (c:\temp\archivo.asc) porque Confirmit asume que alguien lo va a correr
-  # a mano en SPSS local -- ac\u00e1 se reescribe para apuntar al .asc real ya
-  # extraido en el work_dir de este job.
+  # a mano en SPSS local -- se reescribe para apuntar al path fijo que
+  # espera la Lambda de compilado (ver ExportRelabeling::PsppLambdaClient),
+  # no a un path local de este contenedor.
   FILE_HANDLE_NAME = /NAME\s*=\s*'([^']+)'/.freeze
 
   def perform(zip_path, project_id, recipients)
@@ -73,16 +76,14 @@ class RelabelSpssExportWorker
     raise "Falta el archivo de datos #{data_path} para #{sps_path}" unless File.exist?(data_path)
 
     rewritten = ExportRelabeling::SpssSyntaxRewriter.call(original, lookup: lookup)
-    rewritten = rewritten.sub(FILE_HANDLE_NAME, "NAME = '#{data_path}'")
-
-    sav_path = sps_path.sub(/\.sps\z/, '.sav')
-    rewritten += "\nSAVE OUTFILE='#{sav_path}'.\n"
+    rewritten = rewritten.sub(FILE_HANDLE_NAME, "NAME = '#{ExportRelabeling::PsppLambdaClient::LAMBDA_DATA_PATH}'")
+    rewritten += "\nSAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}'.\n"
 
     relabeled_sps_path = sps_path.sub(/\.sps\z/, '_relabeled.sps')
     File.write(relabeled_sps_path, rewritten)
 
-    run_pspp(relabeled_sps_path)
-    raise "PSPP no genero el .sav esperado: #{sav_path}" unless File.exist?(sav_path)
+    sav_path = sps_path.sub(/\.sps\z/, '.sav')
+    ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: data_path, output_path: sav_path)
 
     sav_path
   end
@@ -93,14 +94,5 @@ class RelabelSpssExportWorker
 
     original_name = File.basename(match[1].tr('\\', '/'))
     @work_dir.join(original_name).to_s
-  end
-
-  def run_pspp(relabeled_sps_path)
-    log_path = "#{relabeled_sps_path}.log"
-    success = system('pspp', '-o', log_path, relabeled_sps_path)
-
-    return if success
-
-    raise "PSPP fallo procesando #{relabeled_sps_path}: #{File.exist?(log_path) ? File.read(log_path) : '(sin log)'}"
   end
 end

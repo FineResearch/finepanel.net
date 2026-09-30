@@ -1,10 +1,11 @@
 {
   "family": "Sidekiq",
   "executionRoleArn": "arn:aws:iam::784064929014:role/ECS-production-Task-Execution-Role",
+  "taskRoleArn": "arn:aws:iam::784064929014:role/finepanel-pspp-sidekiq-task-role",
   "containerDefinitions": [
     {
       "name": "sidekiq",
-      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260529-204249",
+      "image": "784064929014.dkr.ecr.us-east-1.amazonaws.com/production/finepanel:deploy-20260929-214744",
       "cpu": 600,
       "memory": 3056,
       "links": [],
