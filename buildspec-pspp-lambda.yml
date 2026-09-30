@@ -1,0 +1,32 @@
+version: 0.2
+
+# Build separado del buildspec.yml principal -- arma la imagen Lambda de
+# PSPP (lambda/pspp_compiler/, base Debian, ver el Dockerfile ahi para el
+# por que) y la pushea al MISMO repo ECR que ya usa la imagen de la app
+# (production/finepanel), con un tag distinto -- evita crear un repo ECR
+# aparte solo para esto. Se dispara pasando este archivo como
+# --buildspec-override al mismo proyecto CodeBuild (finepanel-release-build).
+
+env:
+  variables:
+    AWS_REGION: us-east-1
+    AWS_ACCOUNT_ID: "784064929014"
+    ECR_REPO: production/finepanel
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo "Logging in to Docker Hub..."
+      - echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+      - IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
+  build:
+    commands:
+      - echo "Building PSPP Lambda image $IMAGE_URI ..."
+      - docker build --platform linux/amd64 -f lambda/pspp_compiler/Dockerfile -t $IMAGE_URI lambda/pspp_compiler
+  post_build:
+    commands:
+      - echo "Pushing $IMAGE_URI ..."
+      - docker push $IMAGE_URI
+      - echo "Pushed $IMAGE_URI"
