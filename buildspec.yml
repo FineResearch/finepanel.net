@@ -19,6 +19,14 @@ phases:
     commands:
       - echo "Logging in to ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      # Sin esto, "docker build"/"docker run node:20" pegan pull anonimo a
+      # Docker Hub -- las IPs compartidas de CodeBuild entre todos los
+      # clientes de AWS chocan seguido contra el limite anonimo (confirmado,
+      # 429 Too Many Requests en ruby:2.5.1-alpine Y node:20 en el primer
+      # intento). DOCKERHUB_USERNAME/PASSWORD vienen de Secrets Manager (ver
+      # el proyecto CodeBuild), nunca en texto plano aca.
+      - echo "Logging in to Docker Hub..."
+      - echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
       - IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
   build:
     commands:
