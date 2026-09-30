@@ -1,0 +1,39 @@
+version: 0.2
+
+# Corre en CodeBuild (hardware x86_64 real, sin emulacion QEMU) -- ver
+# deploy_all.sh, que sube el contexto de build a S3 y dispara este proyecto
+# en vez de construir la imagen localmente. Reemplaza solo los pasos
+# "Build WhatsApp Inbox frontend" / "Build Docker image" / "Push Docker
+# image" de deploy_all.sh; el resto (task definitions, update-service,
+# esperar que estabilice) sigue corriendo local, con las credenciales de
+# siempre.
+
+env:
+  variables:
+    AWS_REGION: us-east-1
+    AWS_ACCOUNT_ID: "784064929014"
+    ECR_REPO: production/finepanel
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
+  build:
+    commands:
+      - |
+        if [ -d "whatsapp-inbox-frontend" ]; then
+          echo "Building WhatsApp Inbox frontend..."
+          docker run --rm -v "$(pwd)/whatsapp-inbox-frontend":/app -w /app node:20 sh -c "npm install && npm run build"
+          rm -rf public/whatsapp-inbox/*
+          mkdir -p public/whatsapp-inbox
+          cp -R whatsapp-inbox-frontend/dist/* public/whatsapp-inbox/
+        fi
+      - echo "Building Docker image $IMAGE_URI ..."
+      - docker build --platform linux/amd64 -f Dockerfile.release -t $IMAGE_URI .
+  post_build:
+    commands:
+      - echo "Pushing $IMAGE_URI ..."
+      - docker push $IMAGE_URI
+      - echo "Pushed $IMAGE_URI"
