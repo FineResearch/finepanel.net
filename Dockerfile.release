@@ -17,14 +17,23 @@ RUN apk add --no-cache jq nodejs build-base postgresql-dev libxml2-dev libxslt-d
   git openssh postgresql
 
 # PSPP (compila la sintaxis SPSS re-etiquetada a .sav real, ver
-# RelabelSpssExportWorker) -- no esta en los repos estables de Alpine,
-# confirmado que instala y corre bien (2.0.1) desde edge/testing+community.
-# Trae dependencias de GTK aunque no se use la parte grafica (~110MB) --
-# no hay una variante mas liviana empaquetada para Alpine.
-RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
-  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
-  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
-  apk update && apk add --no-cache pspp
+# RelabelSpssExportWorker) -- DESHABILITADO TEMPORALMENTE (2026-09-29):
+# agregar los repos "edge" de Alpine a esta base vieja (Alpine 3.7, 2018)
+# hace que "apk update" reviente con SEGFAULT bajo la emulacion QEMU
+# amd64-sobre-ARM que usa este mismo host para "docker build --platform
+# linux/amd64" (confirmado que pasa incluso con --allow-untrusted, no es
+# un problema de firma sino de apk-tools viejo crasheando bajo QEMU) --
+# esto tumbaba el build ENTERO (una sola imagen para Api y Sidekiq), no
+# solo la parte de SPSS. Sin PSPP instalado, RelabelSpssExportWorker no
+# rompe -- su propio fallback (ver #build_output_paths) manda el zip
+# original sin re-etiquetar en vez de fallar. Pendiente: reinstalar via
+# multi-stage (compilar en un Alpine mas nuevo, ej. 3.19, y copiar el
+# binario + libs a esta imagen) en vez de agregar los repos edge acá.
+#
+# RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
+#   echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+#   echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+#   apk update --allow-untrusted && apk add --no-cache --allow-untrusted pspp
 
 ##########################
 # Set working directory  #
