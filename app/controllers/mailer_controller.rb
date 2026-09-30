@@ -4,6 +4,9 @@ class MailerController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:sync, :whatsapp_mailer, :update_user_mailer, :export_sync]
 
   EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.freeze
+  # Solo para #export_sync (ver #valid_export_sender?) -- las demas casillas
+  # del mailer siguen con la lista blanca original de #valid_send?.
+  FINE_RESEARCH_DOMAIN = '@fine-research.com'
 
   def sync
     Rails.logger.info("Starting sync: #{params.inspect}")
@@ -123,7 +126,7 @@ class MailerController < ApplicationController
     file = params[:attachment1]
     sender = params[:from].to_s.scan(EMAIL_REGEX)[0]&.strip
 
-    unless valid_send?(sender)
+    unless valid_export_sender?(sender)
       Rails.logger.error("[export_sync] remitente invalido: #{sender.inspect}")
       return head :ok
     end
@@ -173,6 +176,18 @@ class MailerController < ApplicationController
       ConfigurationReader.sender_email.strip,
       ConfigurationReader.sender_email_alternative.strip
     ].include?(sender)
+  end
+
+  # Separado de #valid_send? a proposito -- Diego pidio abrir el remitente
+  # permitido para #export_sync especificamente (cualquier @fine-research.com,
+  # para poder probar/disparar exports sin depender de panel@fine-research.com
+  # puntual), pero las demas casillas (#sync, #whatsapp_mailer,
+  # #update_user_mailer) siguen con la lista blanca original -- no hay que
+  # aflojar esas sin que lo pidan, mueven datos reales de usuarios/WhatsApp.
+  def valid_export_sender?(sender)
+    return false if sender.blank?
+
+    valid_send?(sender) || sender.downcase.end_with?(FINE_RESEARCH_DOMAIN)
   end
 
   def normalize_whatsapp_mailer_text(text)
