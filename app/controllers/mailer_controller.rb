@@ -162,8 +162,14 @@ class MailerController < ApplicationController
 
   private
 
+  # 'feed_files' (no 'export_feed_files') a proposito -- es el directorio que
+  # ya esta montado sobre el volumen EFS compartido entre los containers de
+  # Api y Sidekiq (ver taskdef-*.json). El worker que procesa el zip corre en
+  # el container de Sidekiq, separado del de Api que recibe el mail; un
+  # directorio nuevo sin ese mount es invisible para Sidekiq aunque exista en
+  # el disco local del container de Api.
   def save_uploaded_zip(file)
-    file_root_path = Rails.root.join('tmp', 'export_feed_files')
+    file_root_path = Rails.root.join('tmp', 'feed_files', 'export')
     FileUtils.mkdir_p(file_root_path) unless File.directory?(file_root_path)
 
     zip_path = File.join(file_root_path, file.original_filename)
