@@ -17,23 +17,19 @@ RUN apk add --no-cache jq nodejs build-base postgresql-dev libxml2-dev libxslt-d
   git openssh postgresql
 
 # PSPP (compila la sintaxis SPSS re-etiquetada a .sav real, ver
-# RelabelSpssExportWorker) -- DESHABILITADO TEMPORALMENTE (2026-09-29):
-# agregar los repos "edge" de Alpine a esta base vieja (Alpine 3.7, 2018)
-# hace que "apk update" reviente con SEGFAULT bajo la emulacion QEMU
-# amd64-sobre-ARM que usa este mismo host para "docker build --platform
-# linux/amd64" (confirmado que pasa incluso con --allow-untrusted, no es
-# un problema de firma sino de apk-tools viejo crasheando bajo QEMU) --
-# esto tumbaba el build ENTERO (una sola imagen para Api y Sidekiq), no
-# solo la parte de SPSS. Sin PSPP instalado, RelabelSpssExportWorker no
-# rompe -- su propio fallback (ver #build_output_paths) manda el zip
-# original sin re-etiquetar en vez de fallar. Pendiente: reinstalar via
-# multi-stage (compilar en un Alpine mas nuevo, ej. 3.19, y copiar el
-# binario + libs a esta imagen) en vez de agregar los repos edge acá.
-#
-# RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
-#   echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
-#   echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
-#   apk update --allow-untrusted && apk add --no-cache --allow-untrusted pspp
+# RelabelSpssExportWorker) -- no esta en los repos estables de Alpine, hay
+# que sumar los repos "edge". REACTIVADO (2026-09-30): el intento anterior
+# revento con SEGFAULT porque "docker build --platform linux/amd64" corria
+# LOCAL en una maquina ARM via emulacion QEMU -- confirmado reproduciendo
+# el mismo RUN en aislado (crasheaba incluso con --allow-untrusted, no era
+# un problema de confianza de firma sino de apk-tools/musl bajo QEMU). El
+# build de release ahora corre en CodeBuild (hardware x86_64 real, ver
+# buildspec.yml + deploy_all.sh) -- sin la emulacion de por medio, este
+# mismo RUN deberia funcionar limpio sin ningun truco extra.
+RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
+  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+  apk update --allow-untrusted && apk add --no-cache --allow-untrusted pspp
 
 ##########################
 # Set working directory  #
