@@ -362,6 +362,9 @@ GEM
       unicode-display_width (>= 1.4.0, < 1.6)
     ruby-progressbar (1.10.0)
     ruby2_keywords (0.0.5)
+    rubyXL (3.4.6)
+      nokogiri (>= 1.4.4)
+      rubyzip (>= 1.1.6)
     ruby_dep (1.5.0)
     ruby_http_client (3.5.1)
     rubyzip (1.2.2)
@@ -492,6 +495,7 @@ DEPENDENCIES
   remotipart (~> 1.0)
   rspec-rails
   rubocop (~> 0.66.0)
+  rubyXL
   rubyzip (~> 1.2, >= 1.2.2)
   sass-rails (~> 5.0)
   selenium-webdriver

@@ -16,6 +16,16 @@ ENV AUTOMATICALLY_MIGRATE=$AUTOMATICALLY_MIGRATE
 RUN apk add --no-cache jq nodejs build-base postgresql-dev libxml2-dev libxslt-dev sqlite-dev tzdata \
   git openssh postgresql
 
+# PSPP (compila la sintaxis SPSS re-etiquetada a .sav real, ver
+# RelabelSpssExportWorker) -- no esta en los repos estables de Alpine,
+# confirmado que instala y corre bien (2.0.1) desde edge/testing+community.
+# Trae dependencias de GTK aunque no se use la parte grafica (~110MB) --
+# no hay una variante mas liviana empaquetada para Alpine.
+RUN echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
+  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+  echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+  apk update && apk add --no-cache pspp
+
 ##########################
 # Set working directory  #
 ##########################

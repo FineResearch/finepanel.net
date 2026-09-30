@@ -88,6 +88,9 @@ end
   post 'mailer', to: 'mailer#sync'
   post 'whatsapp_mailer', to: 'mailer#whatsapp_mailer'
   post 'update_user_mailer', to: 'mailer#update_user_mailer'
+  # Casilla dedicada export@export.finepanel.net -- exports de Confirmit a
+  # re-etiquetar (SPSS/Excel), ver MailerController#export_sync.
+  post 'export_mailer', to: 'mailer#export_sync'
 
   devise_scope :user do
     namespace :users do

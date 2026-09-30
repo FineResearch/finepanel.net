@@ -46,6 +46,9 @@ gem 'remotipart', '~> 1.0'
 gem 'devise', '~> 4.6'
 gem 'devise-jwt'
 gem 'rubyzip', '~> 1.2', '>= 1.2.2'
+# Lee/escribe .xlsx -- usado por RelabelExcelExportWorker para reescribir
+# los encabezados de export de Confirmit (ver ExportRelabeling).
+gem 'rubyXL'
 gem 'sidekiq'
 gem 'sidekiq-scheduler'
 gem 'dotenv-rails', '~> 2.1', '>= 2.1.1'
