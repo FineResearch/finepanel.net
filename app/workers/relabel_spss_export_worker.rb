@@ -52,6 +52,7 @@ class RelabelSpssExportWorker
   def perform(zip_path, project_id, recipients, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
+    @permission_denied = false
 
     output_paths, relabeled = build_output_paths(zip_path, project_id)
 
@@ -59,6 +60,11 @@ class RelabelSpssExportWorker
       recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
       project_title: project_title, interview_status_filter: interview_status_filter
     ).deliver_now
+
+    ExportRelabeling::ProcessingAlertNotifier.call(
+      recipients: recipients, project_id: project_id, export_type: :spss,
+      permission_denied: @permission_denied, relabeled: relabeled
+    )
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
     File.delete(zip_path) if zip_path && File.exist?(zip_path)
@@ -86,6 +92,9 @@ class RelabelSpssExportWorker
 
   def build_lookup(project_id)
     ExportRelabeling::ConfirmitSchemaFetcher.call(project_id)
+  rescue ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError
+    @permission_denied = true
+    nil
   end
 
   def extract_zip(zip_path, work_dir)

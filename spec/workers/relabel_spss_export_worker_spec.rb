@@ -164,4 +164,23 @@ RSpec.describe RelabelSpssExportWorker do
     expect(captured[:output_paths]).to eq([zip_path])
     expect(captured[:relabeled]).to be false
   end
+
+  # Diego: "vamos a generar alertas para no tener fallos silenciosos" --
+  # ver ExportRelabeling::ProcessingAlertNotifier. El pipeline sigue
+  # (lookup nil, fallback a texto) pero alguien de Fine Research tiene que
+  # enterarse de que hay que autorizar la API.
+  it 'si el fetch del schema falla por permisos, avisa a los destinatarios @fine-research.com (y el pipeline sigue igual)' do
+    allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+      .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+    stub_pspp_success
+    stub_mailer
+
+    alert_delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+    allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(alert_delivery)
+
+    described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com', 'dcasar@fine-research.com'])
+
+    expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+      .with(['dcasar@fine-research.com'], 'p123456', export_type: :spss, alert_type: :permission_denied)
+  end
 end

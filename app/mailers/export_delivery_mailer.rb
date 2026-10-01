@@ -41,10 +41,16 @@ class ExportDeliveryMailer < ApplicationMailer
   # includes_quotas/includes_report reflejan si ESTE envio en particular
   # trae esas hojas (Excel) -- nunca un valor fijo, para no prometer en el
   # cuerpo algo que el archivo adjunto no tiene.
+  #
+  # completed_quotas (ver ExportRelabeling::CompletedQuotas) -- array de
+  # {quota:, field:, value:, target:, achieved:} para las cuotas que ya
+  # alcanzaron o superaron la meta. Pedido de Diego: mostrarlas en el
+  # cuerpo para que no haga falta abrir el Excel a buscarlas -- la seccion
+  # entera se omite si no hay ninguna completa.
   def relabeled_export_email(
     recipients, project_id, file_paths, export_type:,
     relabeled: true, project_title: nil, includes_quotas: false, includes_report: false,
-    interview_status_filter: nil
+    interview_status_filter: nil, completed_quotas: []
   )
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: FROM)
@@ -54,10 +60,33 @@ class ExportDeliveryMailer < ApplicationMailer
     personalization.subject = subject_for(project_id, export_type, project_title)
     mail.add_personalization(personalization)
 
-    body = body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter)
+    body = body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter, completed_quotas)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
     file_paths.each { |path| mail.add_attachment(build_attachment(path)) }
+
+    send_email(mail)
+  end
+
+  # Alerta interna (ver ExportRelabeling::ProcessingAlertNotifier) -- NUNCA
+  # al cliente, solo a las direcciones @fine-research.com que ya estaban
+  # en el envio original. 2 tipos, pedido explicito de Diego: falta de
+  # permisos en la API de Confirmit, o cualquier otro error que impidio un
+  # procesamiento integral.
+  ALERT_MESSAGES = {
+    permission_denied: 'No se pudo hacer un procesamiento completo por falta de permisos, favor autorizar a la API de Confirmit.',
+    processing_error: 'Por algun motivo el archivo no pudo procesar integralmente, por favor chequear que el cliente reciba su export.'
+  }.freeze
+
+  def processing_alert_email(recipients, project_id, export_type:, alert_type:)
+    mail = SendGrid::Mail.new
+    mail.from = Email.new(email: FROM)
+
+    personalization = generate_personalization(Array(recipients).join(','))
+    personalization.subject = "[ALERTA] #{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
+    mail.add_personalization(personalization)
+
+    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: ALERT_MESSAGES.fetch(alert_type)))
 
     send_email(mail)
   end
@@ -69,7 +98,7 @@ class ExportDeliveryMailer < ApplicationMailer
     "#{prefix}#{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
   end
 
-  def body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter)
+  def body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter, completed_quotas)
     <<~BODY
       This message is intended only for following recipients: #{recipient_list.join(', ')}
 
@@ -80,7 +109,7 @@ class ExportDeliveryMailer < ApplicationMailer
 
       The files reflect all interviews processed as of #{Time.current.strftime('%Y-%m-%d %H:%M UTC')}.
       #{validation_note(relabeled)}
-
+      #{completed_quotas_section(completed_quotas)}
       Best regards,
       Fine Research
     BODY
@@ -100,6 +129,13 @@ class ExportDeliveryMailer < ApplicationMailer
 
     'Note: automated validation against the scripted questionnaire could not be completed for this delivery -- ' \
       'the attached file reflects the data exactly as received, without relabeling.'
+  end
+
+  def completed_quotas_section(completed_quotas)
+    return '' if completed_quotas.blank?
+
+    lines = completed_quotas.map { |q| "#{q[:quota]} | #{q[:field]}: #{q[:value]} | Target: #{q[:target]} | Achieved: #{q[:achieved]}" }
+    "\nCompleted Quotas:\n\n#{lines.join("\n")}\n"
   end
 
   CONTENT_TYPES = {

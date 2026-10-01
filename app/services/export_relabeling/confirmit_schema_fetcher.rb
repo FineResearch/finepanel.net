@@ -8,6 +8,16 @@
 # y el llamador sigue sin lookup (cae 100% al parseo del texto del export).
 module ExportRelabeling
   class ConfirmitSchemaFetcher
+    # Distinguido aparte de cualquier otro fallo (timeout, proyecto sin
+    # schema, etc.) para poder alertar especificamente "hay que autorizar
+    # la API" -- ver ExportRelabeling::ProcessingAlertNotifier. El
+    # faultstring real de Confirmit es literalmente "Server was unable to
+    # process request. ---> Permission denied." (confirmado contra un
+    # proyecto real, p833174000229).
+    class PermissionDeniedError < StandardError; end
+
+    PERMISSION_DENIED_PATTERN = /Permission denied/i.freeze
+
     def self.call(project_id)
       client = ::FinePanelSetup::ConfirmitSoapClient.new
       key = client.log_on
@@ -15,6 +25,8 @@ module ExportRelabeling
       ConfirmitVariableLookup.new(schema[:inner])
     rescue StandardError => e
       Rails.logger.error("[ConfirmitSchemaFetcher] no se pudo traer el schema de #{project_id}: #{e.class} #{e.message}")
+      raise PermissionDeniedError, e.message if e.message.to_s.match?(PERMISSION_DENIED_PATTERN)
+
       nil
     end
   end

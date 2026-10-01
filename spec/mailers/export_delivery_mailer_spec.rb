@@ -165,4 +165,69 @@ RSpec.describe ExportDeliveryMailer do
       expect(json['attachments'].first['filename']).to eq('input_export.zip')
     end
   end
+
+  describe 'Completed Quotas' do
+    it 'con completed_quotas presentes, agrega la seccion antes de "Best regards"' do
+      Dir.mktmpdir do |dir|
+        path = File.join(dir, 'p123456_def.xlsx')
+        File.write(path, 'x')
+
+        sent_mail = nil
+        allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+        completed_quotas = [
+          { quota: 'quota1', field: 'regiao', value: 'Sudeste', target: 50, achieved: 51 },
+          { quota: 'quota2', field: 's0', value: '1', target: 10, achieved: 10 }
+        ]
+
+        described_class.new.relabeled_export_email(
+          ['a@cliente.com'], 'p123456', [path], export_type: :excel, completed_quotas: completed_quotas
+        )
+
+        body = sent_json(sent_mail)['content'].first['value']
+        expect(body).to include('Completed Quotas:')
+        expect(body).to include('quota1 | regiao: Sudeste | Target: 50 | Achieved: 51')
+        expect(body).to include('quota2 | s0: 1 | Target: 10 | Achieved: 10')
+        expect(body.index('Completed Quotas:')).to be < body.index('Best regards')
+      end
+    end
+
+    it 'sin completed_quotas, no agrega la seccion' do
+      Dir.mktmpdir do |dir|
+        path = File.join(dir, 'p123456_def.xlsx')
+        File.write(path, 'x')
+
+        sent_mail = nil
+        allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+        described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [path], export_type: :excel)
+
+        expect(sent_json(sent_mail)['content'].first['value']).not_to include('Completed Quotas')
+      end
+    end
+  end
+
+  describe '#processing_alert_email' do
+    it 'arma una alerta interna de falta de permisos' do
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.processing_alert_email(['dcasar@fine-research.com'], 'p123456', export_type: :spss, alert_type: :permission_denied)
+
+      json = sent_json(sent_mail)
+      expect(json['personalizations'].first['to'].map { |t| t['email'] }).to eq(['dcasar@fine-research.com'])
+      expect(json['personalizations'].first['subject']).to eq('[ALERTA] p123456 - SPSS Export')
+      expect(json['content'].first['value']).to include('favor autorizar a la API de Confirmit')
+    end
+
+    it 'arma una alerta interna de error de procesamiento' do
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.processing_alert_email(['dcasar@fine-research.com'], 'p123456', export_type: :excel, alert_type: :processing_error)
+
+      body = sent_json(sent_mail)['content'].first['value']
+      expect(body).to include('favor chequear que el cliente reciba su export')
+    end
+  end
 end

@@ -196,6 +196,29 @@ RSpec.describe RelabelExcelExportWorker do
       expect(captured[:includes_quotas]).to be true
     end
 
+    # Diego: mostrar en el cuerpo del mail las cuotas ya completas (ver
+    # ExportRelabeling::CompletedQuotas), sin tener que abrir el Excel.
+    it 'pasa las cuotas ya completas (achieved >= goal) al mailer como completed_quotas' do
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:answer_options).and_return([])
+      allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
+      allow(lookup).to receive(:quotas).and_return(
+        [{ name: 'quota1', cells: [{ limit: 2, fields: [{ name: 's0', precode: nil, value: '1' }] }] }]
+      )
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
+
+      captured = {}
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, _paths, completed_quotas:, **|
+        captured[:completed_quotas] = completed_quotas
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
+
+      described_class.new.perform(zip_path_with_status, 'p123456', ['destino@cliente.com'])
+
+      expect(captured[:completed_quotas]).to eq([{ quota: 'quota1', field: 's0', value: '1', target: 2, achieved: 2 }])
+    end
+
     it 'no agrega hoja de cuotas si el lookup no resuelve (fetch de schema fallo)' do
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(nil)
 
@@ -460,5 +483,21 @@ RSpec.describe RelabelExcelExportWorker do
         expect(captured[:workbook].worksheets[0].sheet_name).to eq('Sheet1')
       end
     end
+  end
+
+  # Diego: "vamos a generar alertas para no tener fallos silenciosos" --
+  # ver ExportRelabeling::ProcessingAlertNotifier.
+  it 'si el fetch del schema falla por permisos, avisa a los destinatarios @fine-research.com (y el pipeline sigue igual)' do
+    allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+      .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+    stub_mailer
+
+    alert_delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+    allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(alert_delivery)
+
+    described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com', 'dcasar@fine-research.com'])
+
+    expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+      .with(['dcasar@fine-research.com'], 'p123456', export_type: :excel, alert_type: :permission_denied)
   end
 end

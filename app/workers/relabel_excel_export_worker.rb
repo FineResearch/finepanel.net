@@ -93,14 +93,21 @@ class RelabelExcelExportWorker
   def perform(zip_path, project_id, recipients, email_body = nil, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
+    @permission_denied = false
 
-    output_paths, relabeled, includes_quotas, includes_report = build_output_paths(zip_path, project_id, email_body)
+    output_paths, relabeled, includes_quotas, includes_report, completed_quotas = build_output_paths(zip_path, project_id, email_body)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :excel, relabeled: relabeled,
       includes_quotas: includes_quotas, includes_report: includes_report,
-      project_title: project_title, interview_status_filter: interview_status_filter
+      project_title: project_title, interview_status_filter: interview_status_filter,
+      completed_quotas: completed_quotas
     ).deliver_now
+
+    ExportRelabeling::ProcessingAlertNotifier.call(
+      recipients: recipients, project_id: project_id, export_type: :excel,
+      permission_denied: @permission_denied, relabeled: relabeled
+    )
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
     File.delete(zip_path) if zip_path && File.exist?(zip_path)
@@ -115,18 +122,18 @@ class RelabelExcelExportWorker
   # etiquetar/escribir) revienta en CUALQUIER punto -- a diferencia de las
   # mejoras opcionales de #safely, que ya degradan solas sin llegar aca --
   # se manda el zip original TAL CUAL LLEGO en vez de no mandar nada.
-  # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, incluye_cuotas?, incluye_report?].
+  # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, incluye_cuotas?, incluye_report?, cuotas_completas].
   def build_output_paths(zip_path, project_id, email_body)
     extract_zip(zip_path, @work_dir)
-    output_paths, includes_quotas, includes_report = relabel_all(project_id, email_body)
-    [output_paths, true, includes_quotas, includes_report]
+    output_paths, includes_quotas, includes_report, completed_quotas = relabel_all(project_id, email_body)
+    [output_paths, true, includes_quotas, includes_report, completed_quotas]
   rescue StandardError => e
     Rails.logger.error("[RelabelExcelExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
-    [[zip_path], false, false, false]
+    [[zip_path], false, false, false, []]
   end
 
   def relabel_all(project_id, email_body)
-    lookup = ExportRelabeling::ConfirmitSchemaFetcher.call(project_id)
+    lookup = build_lookup(project_id)
 
     sheets = xlsx_files.map { |path| [path, ExportRelabeling::ExcelReader.call(path)] }
     parsed_by_path = sheets.each_with_object({}) { |(path, sheet), acc| acc[path] = resolve_headers(sheet.headers, lookup) }
@@ -138,9 +145,17 @@ class RelabelExcelExportWorker
     quota_rows = build_quota_rows(lookup, sources, manual[:quotas])
     report_rows = safely('hoja Report') { build_report_rows(manual[:crosses], sources) }
     dictionary_rows = safely('Dictionary consolidado') { build_consolidated_dictionary_rows(sheets, parsed_by_path, lookup) }
+    completed_quotas = safely('cuotas completas para el cuerpo del mail', []) { ExportRelabeling::CompletedQuotas.call(quota_rows && quota_rows[:rows]) }
 
     output_paths = sheets.map { |path, sheet| relabel(path, sheet, parsed_by_path[path], quota_rows, report_rows, dictionary_rows, lookup) }
-    [output_paths, quota_rows.present?, report_rows.present?]
+    [output_paths, quota_rows.present?, report_rows.present?, completed_quotas]
+  end
+
+  def build_lookup(project_id)
+    ExportRelabeling::ConfirmitSchemaFetcher.call(project_id)
+  rescue ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError
+    @permission_denied = true
+    nil
   end
 
   # El proceso principal es que el cliente reciba la base re-etiquetada --
