@@ -30,4 +30,27 @@ RSpec.describe ExportRelabeling::VariableLabelResolver do
 
     expect(result).to eq(code: 'F4', attribute: 'Atributo', question: 'Pregunta')
   end
+
+  # Confirmado contra variables Hidden/de sistema reales (ej.
+  # "LinkFarmaco", "FechaCompleta"): la API las "encuentra" en el schema
+  # pero sin Title/Text configurado (nunca se le muestran al
+  # respondiente) -- un hash {question: nil} no es "no encontrado", pero
+  # aceptarlo tal cual borraba el label que el export YA traia crudo.
+  it 'cae a LabelParser cuando el lookup encuentra la variable pero con el texto vacio (Hidden/sistema)' do
+    lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+    allow(lookup).to receive(:call).with('linkfarmaco').and_return(code: nil, attribute: nil, question: nil)
+
+    result = described_class.call(variable_name: 'linkfarmaco', raw_label: 'LinkFarmaco', lookup: lookup)
+
+    expect(result).to eq(code: nil, attribute: nil, question: 'LinkFarmaco')
+  end
+
+  it 'lo mismo si el lookup devuelve question como string vacio (no nil)' do
+    lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+    allow(lookup).to receive(:call).with('fechacompleta').and_return(code: nil, attribute: nil, question: '')
+
+    result = described_class.call(variable_name: 'fechacompleta', raw_label: 'FechaCompleta', lookup: lookup)
+
+    expect(result).to eq(code: nil, attribute: nil, question: 'FechaCompleta')
+  end
 end
