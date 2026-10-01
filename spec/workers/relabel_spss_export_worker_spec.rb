@@ -63,11 +63,12 @@ RSpec.describe RelabelSpssExportWorker do
 
     described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
 
-    expect(ExportDeliveryMailer).to have_received(:relabeled_export_email) do |recipients, project_id, sav_paths|
+    expect(ExportDeliveryMailer).to have_received(:relabeled_export_email) do |recipients, project_id, sav_paths, export_type:, **|
       expect(recipients).to eq(['destino@cliente.com'])
       expect(project_id).to eq('p123456')
       expect(sav_paths.length).to eq(1)
       expect(File.basename(sav_paths.first)).to eq('data.sav')
+      expect(export_type).to eq(:spss)
     end
   end
 
@@ -113,7 +114,7 @@ RSpec.describe RelabelSpssExportWorker do
     allow(ExportRelabeling::PsppLambdaClient).to receive(:compile).and_raise(StandardError, 'PSPP Lambda fallo')
 
     captured = {}
-    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true|
+    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
       captured[:output_paths] = output_paths
       captured[:relabeled] = relabeled
       instance_double(ActionMailer::MessageDelivery, deliver_now: true)

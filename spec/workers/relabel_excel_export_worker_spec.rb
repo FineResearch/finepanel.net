@@ -56,10 +56,11 @@ RSpec.describe RelabelExcelExportWorker do
     # perform -- hay que leer el archivo de salida DURANTE la llamada al
     # mailer (antes de que perform retorne), no despues.
     captured = {}
-    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |recipients, project_id, output_paths|
+    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |recipients, project_id, output_paths, export_type:, **|
       captured[:recipients] = recipients
       captured[:project_id] = project_id
       captured[:output_paths] = output_paths
+      captured[:export_type] = export_type
       captured[:workbook] = RubyXL::Parser.parse(output_paths.first)
       instance_double(ActionMailer::MessageDelivery, deliver_now: true)
     end
@@ -69,6 +70,7 @@ RSpec.describe RelabelExcelExportWorker do
     expect(captured[:recipients]).to eq(['destino@cliente.com'])
     expect(captured[:project_id]).to eq('p123456')
     expect(captured[:output_paths].length).to eq(1)
+    expect(captured[:export_type]).to eq(:excel)
 
     sheet = captured[:workbook].worksheets[0]
     expect(sheet.sheet_name).to eq('Sheet1')
@@ -118,7 +120,7 @@ RSpec.describe RelabelExcelExportWorker do
     allow(ExportRelabeling::ExcelReader).to receive(:call).and_raise(StandardError, 'archivo corrupto')
 
     captured = {}
-    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true|
+    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
       captured[:output_paths] = output_paths
       captured[:relabeled] = relabeled
       instance_double(ActionMailer::MessageDelivery, deliver_now: true)
@@ -177,8 +179,9 @@ RSpec.describe RelabelExcelExportWorker do
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
 
       captured = {}
-      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths|
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, includes_quotas:, **|
         captured[:workbook] = RubyXL::Parser.parse(output_paths.first)
+        captured[:includes_quotas] = includes_quotas
         instance_double(ActionMailer::MessageDelivery, deliver_now: true)
       end
 
@@ -190,6 +193,7 @@ RSpec.describe RelabelExcelExportWorker do
       expect(quotas_sheet[0][0].is_bolded).to be true
       expect(quotas_sheet[0][0].fill_color).to eq('FFFF00')
       expect(quotas_sheet[1].cells.map(&:value)).to eq(['quota1', 's0', '1', 88, 2, 86])
+      expect(captured[:includes_quotas]).to be true
     end
 
     it 'no agrega hoja de cuotas si el lookup no resuelve (fetch de schema fallo)' do
@@ -392,9 +396,10 @@ RSpec.describe RelabelExcelExportWorker do
         allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
 
         captured = {}
-        allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths|
+        allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, includes_report:, **|
           main_output = output_paths.find { |p| !p.include?('fichas') }
           captured[:workbook] = RubyXL::Parser.parse(main_output)
+          captured[:includes_report] = includes_report
           instance_double(ActionMailer::MessageDelivery, deliver_now: true)
         end
 
@@ -408,6 +413,7 @@ RSpec.describe RelabelExcelExportWorker do
         expect(report[0][0].fill_color).to eq('FFFF00')
         expect(rows[1]).to eq([nil, 'completa', 'Total'])
         expect(rows[2]).to eq(['1', 1, 1])
+        expect(captured[:includes_report]).to be true
         expect(rows[3]).to eq(['Total', 1, 1])
       end
 

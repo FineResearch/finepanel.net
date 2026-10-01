@@ -38,7 +38,9 @@ class RelabelSpssExportWorker
 
     output_paths, relabeled = build_output_paths(zip_path, project_id)
 
-    ExportDeliveryMailer.relabeled_export_email(recipients, project_id, output_paths, relabeled: relabeled).deliver_now
+    ExportDeliveryMailer.relabeled_export_email(
+      recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled
+    ).deliver_now
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
     File.delete(zip_path) if zip_path && File.exist?(zip_path)

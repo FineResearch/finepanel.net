@@ -94,9 +94,12 @@ class RelabelExcelExportWorker
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
 
-    output_paths, relabeled = build_output_paths(zip_path, project_id, email_body)
+    output_paths, relabeled, includes_quotas, includes_report = build_output_paths(zip_path, project_id, email_body)
 
-    ExportDeliveryMailer.relabeled_export_email(recipients, project_id, output_paths, relabeled: relabeled).deliver_now
+    ExportDeliveryMailer.relabeled_export_email(
+      recipients, project_id, output_paths, export_type: :excel, relabeled: relabeled,
+      includes_quotas: includes_quotas, includes_report: includes_report
+    ).deliver_now
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
     File.delete(zip_path) if zip_path && File.exist?(zip_path)
@@ -111,13 +114,14 @@ class RelabelExcelExportWorker
   # etiquetar/escribir) revienta en CUALQUIER punto -- a diferencia de las
   # mejoras opcionales de #safely, que ya degradan solas sin llegar aca --
   # se manda el zip original TAL CUAL LLEGO en vez de no mandar nada.
-  # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?].
+  # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, incluye_cuotas?, incluye_report?].
   def build_output_paths(zip_path, project_id, email_body)
     extract_zip(zip_path, @work_dir)
-    [relabel_all(project_id, email_body), true]
+    output_paths, includes_quotas, includes_report = relabel_all(project_id, email_body)
+    [output_paths, true, includes_quotas, includes_report]
   rescue StandardError => e
     Rails.logger.error("[RelabelExcelExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
-    [[zip_path], false]
+    [[zip_path], false, false, false]
   end
 
   def relabel_all(project_id, email_body)
@@ -134,7 +138,8 @@ class RelabelExcelExportWorker
     report_rows = safely('hoja Report') { build_report_rows(manual[:crosses], sources) }
     dictionary_rows = safely('Dictionary consolidado') { build_consolidated_dictionary_rows(sheets, parsed_by_path, lookup) }
 
-    sheets.map { |path, sheet| relabel(path, sheet, parsed_by_path[path], quota_rows, report_rows, dictionary_rows, lookup) }
+    output_paths = sheets.map { |path, sheet| relabel(path, sheet, parsed_by_path[path], quota_rows, report_rows, dictionary_rows, lookup) }
+    [output_paths, quota_rows.present?, report_rows.present?]
   end
 
   # El proceso principal es que el cliente reciba la base re-etiquetada --
