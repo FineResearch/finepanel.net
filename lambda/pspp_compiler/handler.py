@@ -37,9 +37,14 @@ def handler(event, _context):
 
     if not os.path.exists(SAV_PATH):
         log_content = open(LOG_PATH).read() if os.path.exists(LOG_PATH) else "(sin log)"
+        # Truncado a proposito -- si pspp termina listando el dataset entero
+        # en el log (ej. por un LIST que vino en la sintaxis original de
+        # Confirmit), el mensaje de error sin acotar supera el limite de
+        # 6MB de respuesta sincronica de Lambda, y el error real termina
+        # perdido detras de un generico "ResponseSizeTooLarge".
         raise RuntimeError(
             f"PSPP no genero el .sav esperado. exit={result.returncode} "
-            f"stdout={result.stdout} stderr={result.stderr} log={log_content}"
+            f"stdout={result.stdout[-3000:]} stderr={result.stderr[-3000:]} log={log_content[-3000:]}"
         )
 
     s3.upload_file(SAV_PATH, bucket, event["sav_key"])

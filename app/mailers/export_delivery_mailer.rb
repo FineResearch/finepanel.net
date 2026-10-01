@@ -6,7 +6,13 @@ require 'base64'
 # Excel) a los destinatarios extraidos del cuerpo del mail original de la
 # Rule de Confirmit -- ver RelabelSpssExportWorker/RelabelExcelExportWorker.
 class ExportDeliveryMailer < ApplicationMailer
-  FROM = ENV.fetch('EXPORT_DELIVERY_FROM_EMAIL', 'export@export.finepanel.net')
+  # @finepanel.net (dominio raiz), no @export.finepanel.net -- ese subdominio
+  # solo esta autenticado en SendGrid para RECIBIR (MX + Inbound Parse), no
+  # para enviar (sin SPF/DKIM configurado ahi), asi que un envio saliente
+  # desde esa direccion se perdia en silencio (confirmado: no aparecia ni en
+  # el Activity Feed de SendGrid). El resto de los mailers de la app ya usan
+  # el dominio raiz (ver comentarios@finepanel.net, auto-export@finepanel.net).
+  FROM = ENV.fetch('EXPORT_DELIVERY_FROM_EMAIL', 'export@finepanel.net')
 
   # relabeled: false cuando el pipeline de re-etiquetado (Excel o SPSS)
   # revento en algun punto core (no las mejoras opcionales, que ya
