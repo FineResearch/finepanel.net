@@ -31,6 +31,23 @@ class RelabelSpssExportWorker
   # que el log de pspp superara el limite de 6MB de respuesta sincronica
   # de Lambda. Se quita antes de compilar: no aporta nada al .sav final.
   LIST_COMMAND = /^[ \t]*LIST[ \t]*\.[ \t]*\r?\n?/i.freeze
+  # Confirmit a veces exporta el .asc/.dat con un BOM UTF-8 (3 bytes) al
+  # principio -- como DATA LIST FIXED lee por posicion de BYTE, esos 3
+  # bytes invisibles corren TODA la primera fila hacia la derecha.
+  # Confirmado contra un archivo real (p833174000229): el RESPONSEID y el
+  # RESPID de la primera fila terminaban pegados dentro de otras columnas
+  # (STATUS/FECHACOMPLETA), y esa fila se perdia/corrompia en el .sav
+  # resultante. No se toca el .asc ORIGINAL (el fallback a "se manda la
+  # base sin cambios" usa el zip tal cual llego) -- se compila una copia
+  # sin el BOM.
+  UTF8_BOM = "\xEF\xBB\xBF".b.freeze
+  # Default de PSPP es 100 -- lo suficientemente bajo como para pisarse con
+  # cualquier export real (confirmado: un archivo de 80 casos ya genera
+  # >100 warnings de "VALUE LABELS: Truncating..."/formato no numerico).
+  # Al pisarse, PSPP corta el procesamiento de sintaxis ("Warnings exceed
+  # limit... halted") -- no se confirmo que esto perdiera casos en los
+  # tests contra datos reales, pero es barato subirlo preventivamente.
+  MXWARNS_DIRECTIVE = "SET MXWARNS=100000.\n"
 
   def perform(zip_path, project_id, recipients, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
@@ -86,16 +103,19 @@ class RelabelSpssExportWorker
     data_path = resolve_data_file_path(original)
     raise "Falta el archivo de datos #{data_path} para #{sps_path}" unless File.exist?(data_path)
 
+    clean_data_path = strip_bom(data_path)
+
     rewritten = ExportRelabeling::SpssSyntaxRewriter.call(original, lookup: lookup)
     rewritten = rewritten.sub(FILE_HANDLE_NAME, "NAME = '#{ExportRelabeling::PsppLambdaClient::LAMBDA_DATA_PATH}'")
     rewritten = rewritten.gsub(LIST_COMMAND, '')
+    rewritten = MXWARNS_DIRECTIVE + rewritten
     rewritten += "\nSAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}'.\n"
 
     relabeled_sps_path = sps_path.sub(/\.sps\z/, '_relabeled.sps')
     File.write(relabeled_sps_path, rewritten)
 
     sav_path = sps_path.sub(/\.sps\z/, '.sav')
-    ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: data_path, output_path: sav_path)
+    ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: clean_data_path, output_path: sav_path)
 
     sav_path
   end
@@ -106,5 +126,14 @@ class RelabelSpssExportWorker
 
     original_name = File.basename(match[1].tr('\\', '/'))
     @work_dir.join(original_name).to_s
+  end
+
+  def strip_bom(data_path)
+    content = File.read(data_path, mode: 'rb')
+    return data_path unless content.start_with?(UTF8_BOM)
+
+    clean_path = data_path.sub(/(\.[^.\/]+)\z/, '_nobom\1')
+    File.write(clean_path, content.byteslice(UTF8_BOM.bytesize..-1), mode: 'wb')
+    clean_path
   end
 end

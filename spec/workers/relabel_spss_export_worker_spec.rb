@@ -92,6 +92,45 @@ RSpec.describe RelabelSpssExportWorker do
     # al log de pspp. Con un .asc real esto supero el limite de 6MB de
     # respuesta sincronica de Lambda (visto en un envio de prueba real).
     expect(captured_sps).not_to match(/^\s*LIST\s*\.\s*$/i)
+    # Default de pspp (100) se pisa con cualquier export real -- subido
+    # preventivamente para que un exceso de warnings no corte el
+    # procesamiento de sintaxis a mitad de camino.
+    expect(captured_sps).to start_with('SET MXWARNS=100000.')
+  end
+
+  # Confirmado contra un archivo real (p833174000229): el .asc con BOM
+  # hacia que la PRIMERA fila se corriera de columna (RESPONSEID/RESPID
+  # terminaban mezclados con STATUS/FECHACOMPLETA) -- DATA LIST FIXED lee
+  # por posicion de byte, y esos 3 bytes invisibles corren todo lo demas.
+  it 'saca el BOM UTF-8 del .asc antes de compilar, si lo trae' do
+    dir = Dir.mktmpdir
+    zip_with_bom = File.join(dir, 'test_export_bom.zip')
+    Zip::File.open(zip_with_bom, Zip::File::CREATE) do |zip|
+      zip.get_output_stream('data.sps') { |f| f.write(sps_content) }
+      zip.get_output_stream('data.asc') { |f| f.write("\xEF\xBB\xBF1 \n".b) }
+    end
+
+    captured_data_content = nil
+    allow(ExportRelabeling::PsppLambdaClient).to receive(:compile) do |data_path:, output_path:, **|
+      captured_data_content = File.read(data_path, mode: 'rb')
+      File.write(output_path, 'contenido sav simulado')
+    end
+    stub_mailer
+
+    described_class.new.perform(zip_with_bom, 'p123456', ['destino@cliente.com'])
+
+    expect(captured_data_content).to eq("1 \n")
+    expect(captured_data_content.b).not_to start_with("\xEF\xBB\xBF".b)
+  end
+
+  it 'no toca el .asc si no trae BOM (deja el path original tal cual)' do
+    captured_data_path = nil
+    stub_pspp_success { |_sps_path, data_path| captured_data_path = data_path }
+    stub_mailer
+
+    described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+    expect(File.basename(captured_data_path)).to eq('data.asc')
   end
 
   it 'borra el zip original y el directorio de trabajo al terminar' do
