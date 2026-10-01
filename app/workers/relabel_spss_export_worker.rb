@@ -23,6 +23,14 @@ class RelabelSpssExportWorker
   # espera la Lambda de compilado (ver ExportRelabeling::PsppLambdaClient),
   # no a un path local de este contenedor.
   FILE_HANDLE_NAME = /NAME\s*=\s*'([^']+)'/.freeze
+  # Confirmit siempre cierra la sintaxis con un "LIST." suelto (una muestra
+  # de los datos pensada para revision manual en SPSS de escritorio) --
+  # confirmado en p833174000229_def_dcasar_586575525.sps real. Sin
+  # variables especificadas, LIST imprime TODAS las columnas de TODOS los
+  # casos al log -- con el .asc real de ese proyecto (5.78MB), esto hizo
+  # que el log de pspp superara el limite de 6MB de respuesta sincronica
+  # de Lambda. Se quita antes de compilar: no aporta nada al .sav final.
+  LIST_COMMAND = /^[ \t]*LIST[ \t]*\.[ \t]*\r?\n?/i.freeze
 
   def perform(zip_path, project_id, recipients)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
@@ -77,6 +85,7 @@ class RelabelSpssExportWorker
 
     rewritten = ExportRelabeling::SpssSyntaxRewriter.call(original, lookup: lookup)
     rewritten = rewritten.sub(FILE_HANDLE_NAME, "NAME = '#{ExportRelabeling::PsppLambdaClient::LAMBDA_DATA_PATH}'")
+    rewritten = rewritten.gsub(LIST_COMMAND, '')
     rewritten += "\nSAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}'.\n"
 
     relabeled_sps_path = sps_path.sub(/\.sps\z/, '_relabeled.sps')
