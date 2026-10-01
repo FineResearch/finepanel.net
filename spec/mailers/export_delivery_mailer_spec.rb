@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 require 'tmpdir'
+require 'zip'
 
 RSpec.describe ExportDeliveryMailer do
   around do |example|
@@ -17,6 +18,21 @@ RSpec.describe ExportDeliveryMailer do
     # para normalizarlo a claves string, sin asumir si el Hash original
     # viene con claves symbol o string.
     JSON.parse(mail.to_json.to_json)
+  end
+
+  # El mail manda un unico adjunto .zip (pedido de Diego: "se puede
+  # zipear el o los archivo en un unico zip antes de enviarlo") -- este
+  # helper decodifica ese adjunto y devuelve {nombre_de_entrada => contenido}
+  # para poder revisar que archivos trae adentro y con que contenido.
+  def zip_entries(attachment)
+    Dir.mktmpdir do |dir|
+      zip_path = File.join(dir, 'attachment.zip')
+      File.write(zip_path, Base64.strict_decode64(attachment['content']), mode: 'wb')
+
+      Zip::File.open(zip_path) do |zip|
+        zip.each_with_object({}) { |entry, acc| acc[entry.name] = entry.get_input_stream.read }
+      end
+    end
   end
 
   it 'arma el mail con destinatarios, asunto por proyecto/tipo, y un adjunto por archivo' do
@@ -35,8 +51,9 @@ RSpec.describe ExportDeliveryMailer do
       expect(personalization['to'].map { |t| t['email'] }).to contain_exactly('a@cliente.com', 'b@cliente.com')
       expect(personalization['subject']).to eq('p123456 - SPSS Export')
       expect(json['attachments'].length).to eq(1)
-      expect(json['attachments'].first['filename']).to eq('p123456_def.sav')
-      expect(Base64.strict_decode64(json['attachments'].first['content'])).to eq('contenido sav de prueba')
+      expect(json['attachments'].first['filename']).to eq('p123456.zip')
+      expect(json['attachments'].first['type']).to eq('application/zip')
+      expect(zip_entries(json['attachments'].first)).to eq('p123456_def.sav' => 'contenido sav de prueba')
 
       body = json['content'].first['value']
       expect(body).to include('This message is intended only for following recipients: a@cliente.com, b@cliente.com')
@@ -162,7 +179,34 @@ RSpec.describe ExportDeliveryMailer do
       expect(json['personalizations'].first['subject']).to eq('p123456 - SPSS Export')
       expect(body).to include('could not be completed for this delivery')
       expect(body).not_to include('are automatically validated against the scripted questionnaire prior')
-      expect(json['attachments'].first['filename']).to eq('input_export.zip')
+      expect(json['attachments'].first['filename']).to eq('p123456.zip')
+      expect(zip_entries(json['attachments'].first)).to eq('input_export.zip' => 'contenido zip de prueba')
+    end
+  end
+
+  # Pedido de Diego: "se puede zipear el o los archivo en un unico zip
+  # antes de enviarlo" -- un solo adjunto, nunca uno por archivo, ni
+  # siquiera cuando hay varios (ej. un loop de la encuesta como
+  # "..._fichas.sav" ademas del archivo principal).
+  it 'con mas de un archivo (ej. un loop), los zipea juntos en un unico adjunto' do
+    Dir.mktmpdir do |dir|
+      main_path = File.join(dir, 'p123456_def.sav')
+      loop_path = File.join(dir, 'p123456_def_fichas.sav')
+      File.write(main_path, 'contenido principal')
+      File.write(loop_path, 'contenido del loop')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [main_path, loop_path], export_type: :spss)
+
+      json = sent_json(sent_mail)
+      expect(json['attachments'].length).to eq(1)
+      expect(json['attachments'].first['filename']).to eq('p123456.zip')
+      expect(zip_entries(json['attachments'].first)).to eq(
+        'p123456_def.sav' => 'contenido principal',
+        'p123456_def_fichas.sav' => 'contenido del loop'
+      )
     end
   end
 

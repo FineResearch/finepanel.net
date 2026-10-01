@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'base64'
+require 'zip'
+require 'tmpdir'
 
 # Manda por mail los archivos ya re-etiquetados (.sav de SPSS, .xlsx de
 # Excel) a los destinatarios extraidos del cuerpo del mail original de la
@@ -63,9 +65,12 @@ class ExportDeliveryMailer < ApplicationMailer
     body = body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter, completed_quotas)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
-    file_paths.each { |path| mail.add_attachment(build_attachment(path)) }
+    delivery_zip_path = build_delivery_zip(file_paths, project_id)
+    mail.add_attachment(build_attachment(delivery_zip_path))
 
     send_email(mail)
+  ensure
+    FileUtils.rm_rf(File.dirname(delivery_zip_path)) if delivery_zip_path
   end
 
   # Alerta interna (ver ExportRelabeling::ProcessingAlertNotifier) -- NUNCA
@@ -92,6 +97,23 @@ class ExportDeliveryMailer < ApplicationMailer
   end
 
   private
+
+  # Pedido de Diego: un solo adjunto en vez de uno por archivo (loops
+  # incluidos) -- mas facil de guardar/reenviar para el cliente que varios
+  # archivos sueltos. Se arma en un directorio temporal propio (no en
+  # @work_dir del worker, que ya se borra en su propio "ensure" antes de
+  # que este metodo pueda terminar) y se borra en el "ensure" de arriba
+  # apenas se termina de leer para el adjunto.
+  def build_delivery_zip(file_paths, project_id)
+    zip_dir = Dir.mktmpdir
+    zip_path = File.join(zip_dir, "#{project_id}.zip")
+
+    Zip::File.open(zip_path, Zip::File::CREATE) do |zip|
+      file_paths.each { |path| zip.add(File.basename(path), path) }
+    end
+
+    zip_path
+  end
 
   def subject_for(project_id, export_type, project_title)
     prefix = project_title.present? ? "Project: #{project_title} - " : ''
