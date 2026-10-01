@@ -86,6 +86,11 @@ RSpec.describe RelabelSpssExportWorker do
     # El .asc real (extraido del zip) se le pasa aparte a PsppLambdaClient --
     # nunca se sube el que el FILE HANDLE original apuntaba en Windows.
     expect(File.basename(captured_data_path)).to eq('data.asc')
+    # Confirmit siempre cierra la sintaxis con un "LIST." suelto -- sin
+    # variables especificadas, lista TODAS las columnas de TODOS los casos
+    # al log de pspp. Con un .asc real esto supero el limite de 6MB de
+    # respuesta sincronica de Lambda (visto en un envio de prueba real).
+    expect(captured_sps).not_to match(/^\s*LIST\s*\.\s*$/i)
   end
 
   it 'borra el zip original y el directorio de trabajo al terminar' do
