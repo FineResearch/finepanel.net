@@ -30,18 +30,21 @@ class ExportDeliveryMailer < ApplicationMailer
   # decirle al destinatario que un archivo fue "automaticamente validado"
   # cuando esa validacion justamente fallo.
   #
-  # project_title: nil hasta que se defina una forma confiable de traerlo de
-  # Confirmit (el SurveySchema no lo trae -- confirmado contra un proyecto
-  # real -- y GetProjectInfo todavia no esta confirmado contra el WSDL real,
-  # ver conversacion). El asunto simplemente omite el prefijo "Project: ..."
-  # mientras tanto, nunca lo deja a medias ("Project:  - pXXXXX - ...").
+  # project_title/interview_status_filter vienen de
+  # ExportRelabeling::ConfirmitExportEmailParser, que los lee del propio
+  # cuerpo del mail de la Rule de Confirmit (la unica fuente confirmada --
+  # el SurveySchema no trae el titulo del proyecto). Ninguno de los dos
+  # esta garantizado -- un PM probando a mano (sin pasar por una Rule real)
+  # nunca los tiene, y el subject/cuerpo simplemente los omiten, nunca los
+  # dejan a medias ("Project:  - pXXXXX - ...").
   #
   # includes_quotas/includes_report reflejan si ESTE envio en particular
   # trae esas hojas (Excel) -- nunca un valor fijo, para no prometer en el
   # cuerpo algo que el archivo adjunto no tiene.
   def relabeled_export_email(
     recipients, project_id, file_paths, export_type:,
-    relabeled: true, project_title: nil, includes_quotas: false, includes_report: false
+    relabeled: true, project_title: nil, includes_quotas: false, includes_report: false,
+    interview_status_filter: nil
   )
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: FROM)
@@ -51,7 +54,7 @@ class ExportDeliveryMailer < ApplicationMailer
     personalization.subject = subject_for(project_id, export_type, project_title)
     mail.add_personalization(personalization)
 
-    body = body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report)
+    body = body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
     file_paths.each { |path| mail.add_attachment(build_attachment(path)) }
@@ -66,14 +69,14 @@ class ExportDeliveryMailer < ApplicationMailer
     "#{prefix}#{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
   end
 
-  def body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report)
+  def body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter)
     <<~BODY
       This message is intended only for following recipients: #{recipient_list.join(', ')}
 
       Please find attached the latest data files for #{project_id}, generated through our automated data delivery.
       The delivery includes:
 
-      #{delivery_bullets(export_type, includes_quotas, includes_report)}
+      #{delivery_bullets(export_type, includes_quotas, includes_report, interview_status_filter)}
 
       The files reflect all interviews processed as of #{Time.current.strftime('%Y-%m-%d %H:%M UTC')}.
       #{validation_note(relabeled)}
@@ -83,11 +86,12 @@ class ExportDeliveryMailer < ApplicationMailer
     BODY
   end
 
-  def delivery_bullets(export_type, includes_quotas, includes_report)
+  def delivery_bullets(export_type, includes_quotas, includes_report, interview_status_filter)
     bullets = ['* Latest survey data']
     bullets << '* Data dictionary, including variable names, labels and response codes' if export_type == :excel
     bullets << '* Quota providing an updated view of fieldwork progress' if includes_quotas
     bullets << '* Key cross-tab status' if includes_report
+    bullets << "* Interview Status Filter: #{interview_status_filter}" if interview_status_filter.present?
     bullets.join("\n")
   end
 

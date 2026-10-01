@@ -32,14 +32,15 @@ class RelabelSpssExportWorker
   # de Lambda. Se quita antes de compilar: no aporta nada al .sav final.
   LIST_COMMAND = /^[ \t]*LIST[ \t]*\.[ \t]*\r?\n?/i.freeze
 
-  def perform(zip_path, project_id, recipients)
+  def perform(zip_path, project_id, recipients, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
 
     output_paths, relabeled = build_output_paths(zip_path, project_id)
 
     ExportDeliveryMailer.relabeled_export_email(
-      recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled
+      recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
+      project_title: project_title, interview_status_filter: interview_status_filter
     ).deliver_now
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir

@@ -78,6 +78,36 @@ RSpec.describe ExportDeliveryMailer do
     end
   end
 
+  it 'con interview_status_filter presente, lo agrega como bullet (ausente si no viene)' do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'p123456_def.sav')
+      File.write(path, 'x')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(
+        ['a@cliente.com'], 'p123456', [path], export_type: :spss, interview_status_filter: 'All(unfiltered)'
+      )
+
+      expect(sent_json(sent_mail)['content'].first['value']).to include('* Interview Status Filter: All(unfiltered)')
+    end
+  end
+
+  it 'sin interview_status_filter, no agrega esa linea' do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'p123456_def.sav')
+      File.write(path, 'x')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [path], export_type: :spss)
+
+      expect(sent_json(sent_mail)['content'].first['value']).not_to include('Interview Status Filter')
+    end
+  end
+
   it 'con includes_quotas/includes_report, agrega esas lineas (ninguna por defecto)' do
     Dir.mktmpdir do |dir|
       path = File.join(dir, 'p123456_def.xlsx')

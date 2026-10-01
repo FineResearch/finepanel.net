@@ -90,7 +90,7 @@ class RelabelExcelExportWorker
 
   WORK_ROOT = Rails.root.join('tmp', 'relabel_excel')
 
-  def perform(zip_path, project_id, recipients, email_body = nil)
+  def perform(zip_path, project_id, recipients, email_body = nil, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
 
@@ -98,7 +98,8 @@ class RelabelExcelExportWorker
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :excel, relabeled: relabeled,
-      includes_quotas: includes_quotas, includes_report: includes_report
+      includes_quotas: includes_quotas, includes_report: includes_report,
+      project_title: project_title, interview_status_filter: interview_status_filter
     ).deliver_now
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir

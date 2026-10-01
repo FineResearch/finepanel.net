@@ -4,6 +4,11 @@ class MailerController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:sync, :whatsapp_mailer, :update_user_mailer, :export_sync]
 
   EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.freeze
+  # El disclaimer legal que Confirmit agrega al final del mail de la Rule
+  # (ver ExportRelabeling::ConfirmitExportEmailParser) menciona esta
+  # direccion como contacto -- nunca un destinatario real del reenvio, pero
+  # el scan de EMAIL_REGEX sobre el cuerpo completo la agarraba igual.
+  EXCLUDED_RECIPIENT_EMAILS = ['info@fine-research.com'].freeze
   # Solo para #export_sync (ver #valid_export_sender?) -- las demas casillas
   # del mailer siguen con la lista blanca original de #valid_send?.
   FINE_RESEARCH_DOMAIN = '@fine-research.com'
@@ -133,7 +138,8 @@ class MailerController < ApplicationController
 
     zip_path = save_uploaded_zip(file)
     project_id = file.original_filename[/p\d+/]
-    recipients = params[:text].to_s.scan(EMAIL_REGEX).uniq
+    body_text = params[:text].to_s
+    recipients = body_text.scan(EMAIL_REGEX).uniq.reject { |email| EXCLUDED_RECIPIENT_EMAILS.include?(email.downcase) }
 
     if recipients.empty?
       Rails.logger.error("[export_sync] no se encontraron destinatarios en el cuerpo del mail, se descarta #{zip_path}")
@@ -141,13 +147,14 @@ class MailerController < ApplicationController
       return head :ok
     end
 
+    metadata = ExportRelabeling::ConfirmitExportEmailParser.call(body_text)
     entry_names = Zip::File.open(zip_path) { |zip_file| zip_file.entries.map(&:name) }
 
     if entry_names.any? { |name| name.end_with?('.sps') }
-      RelabelSpssExportWorker.perform_async(zip_path, project_id, recipients)
+      RelabelSpssExportWorker.perform_async(zip_path, project_id, recipients, metadata[:project_title], metadata[:interview_status_filter])
       Rails.logger.info('export_sync: RelabelSpssExportWorker enqueued')
     elsif entry_names.any? { |name| name.end_with?('.xlsx') }
-      RelabelExcelExportWorker.perform_async(zip_path, project_id, recipients, params[:text].to_s)
+      RelabelExcelExportWorker.perform_async(zip_path, project_id, recipients, body_text, metadata[:project_title], metadata[:interview_status_filter])
       Rails.logger.info('export_sync: RelabelExcelExportWorker enqueued')
     else
       Rails.logger.error("[export_sync] zip sin .sps ni .xlsx reconocible, se descarta: #{entry_names}")
@@ -157,6 +164,11 @@ class MailerController < ApplicationController
     head :ok
   rescue StandardError => e
     Rails.logger.error("[MailerController#export_sync] #{e.class} - #{e.message}")
+    # zip_path puede existir aca si save_uploaded_zip ya corrio pero algo
+    # DESPUES revento (ej. el adjunto no es un zip valido) -- sin esto,
+    # ese archivo quedaba huerfano para siempre en el EFS compartido (ver
+    # conversacion sobre la rutina de limpieza).
+    File.delete(zip_path) if zip_path && File.exist?(zip_path)
     head :ok
   end
 
