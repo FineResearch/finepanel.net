@@ -35,3 +35,7 @@ production:
     cron: '0 0 11 * * 6'   # Runs every Saturday at 11:00 AM
     class: ArticlesCreatorWorker
     args: [5, 15]
+
+  export_files_cleanup:
+    cron: '0 0 4 * * *'   # Runs every day at 4:00 AM
+    class: ExportFilesCleanupWorker
