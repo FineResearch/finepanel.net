@@ -64,9 +64,9 @@ RSpec.describe MailerController do
   end
 
   describe '#export_sync' do
-    def build_zip(entry_name: 'data.sps')
+    def build_zip(entry_name: 'data.sps', filename: 'p123456_def_dcasar_1.sps')
       dir = Dir.mktmpdir
-      path = File.join(dir, 'p123456_def_dcasar_1.sps')
+      path = File.join(dir, filename)
       Zip::File.open(path, Zip::File::CREATE) { |zip| zip.get_output_stream(entry_name) { |f| f.write('contenido') } }
       path
     end
@@ -96,6 +96,27 @@ RSpec.describe MailerController do
       end
 
       post :export_sync, params: { attachment1: upload_for(build_zip), from: 'mailer@us.confirmit.com', text: body }
+    end
+
+    # Diego: "a veces los PMs pueden customizar el nombre del proyecto
+    # pXXXXX cuando el envio es directo de Confirmit... en esos casos
+    # donde el pXXXX falte, es tomar el numero de la nota que viene en el
+    # mensaje" -- visto de verdad: un envio real llego con el project_id
+    # vacio porque el filename no tenia el patron esperado.
+    it 'si el nombre del archivo no trae el project_id, cae al "Survey ID:" del cuerpo del mail' do
+      body = <<~BODY
+        Survey ID: p833174000229
+        Comment: dcasar@fine-research.com
+      BODY
+
+      expect(RelabelSpssExportWorker).to receive(:perform_async) do |_zip_path, project_id, *_rest|
+        expect(project_id).to eq('p833174000229')
+      end
+
+      post :export_sync, params: {
+        attachment1: upload_for(build_zip(filename: 'export_personalizado.sps')),
+        from: 'mailer@us.confirmit.com', text: body
+      }
     end
 
     # Antes de este fix, si algo revienta DESPUES de guardar el zip (ej. el

@@ -25,6 +25,7 @@ RSpec.describe ExportRelabeling::ConfirmitExportEmailParser do
 
     expect(result[:project_title]).to eq('FP-18358N - 3418357_ATU CPNPC Early Stages Imfinzi')
     expect(result[:interview_status_filter]).to eq('All(unfiltered)')
+    expect(result[:survey_id]).to eq('p833174000229')
   end
 
   it 'tambien funciona si los campos vienen separados por tabs en una sola linea (tal cual se vio en un envio real)' do
@@ -34,13 +35,15 @@ RSpec.describe ExportRelabeling::ConfirmitExportEmailParser do
 
     expect(result[:project_title]).to eq('FP-18358N - Imfinzi')
     expect(result[:interview_status_filter]).to eq('All(unfiltered)')
+    expect(result[:survey_id]).to eq('p833174000229')
   end
 
-  it 'devuelve nil para ambos campos cuando el mail no trae la metadata de Confirmit (ej. un test manual de un PM)' do
+  it 'devuelve nil para los 3 campos cuando el mail no trae la metadata de Confirmit (ej. un test manual de un PM)' do
     result = described_class.call("dcasar@fine-research.com\n\nQuotas:\nS0: 1=50")
 
     expect(result[:project_title]).to be_nil
     expect(result[:interview_status_filter]).to be_nil
+    expect(result[:survey_id]).to be_nil
   end
 
   it 'no rompe con un body nil' do
@@ -48,5 +51,6 @@ RSpec.describe ExportRelabeling::ConfirmitExportEmailParser do
 
     expect(result[:project_title]).to be_nil
     expect(result[:interview_status_filter]).to be_nil
+    expect(result[:survey_id]).to be_nil
   end
 end

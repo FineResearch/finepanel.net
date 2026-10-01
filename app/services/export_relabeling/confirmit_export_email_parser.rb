@@ -21,10 +21,21 @@
 # entrega (ver ExportDeliveryMailer#subject_for) -- unica fuente confirmada
 # hasta ahora, el SurveySchema de Confirmit no lo trae (confirmado contra
 # un proyecto real).
+#
+# "Survey ID" (project_id) normalmente sale del nombre del archivo
+# adjunto (ver MailerController#export_sync, /p\d+/) -- pero un PM puede
+# personalizar ese nombre al armar la Rule en Confirmit, y ahi el regex
+# contra el filename no encuentra nada. Diego: "en esos casos donde el
+# pXXXX falte, es tomar el numero de la nota que viene en el mensaje".
+# Se devuelve aca tambien, en minuscula (mismo formato que usa el resto
+# de la app, ej. "p833174000229"), para que el controller lo use como
+# fallback -- nunca como fuente primaria, el filename sigue siendo mas
+# confiable cuando esta presente.
 module ExportRelabeling
   class ConfirmitExportEmailParser
     SURVEY_NAME = /Survey Name:\s*"([^"]*)"/.freeze
     INTERVIEW_STATUS_FILTER = /Interview Status Filter:\s*([^\t\r\n]+?)(?=\t|\r?\n|\z)/.freeze
+    SURVEY_ID = /Survey ID:\s*(p\d+)/i.freeze
 
     def self.call(body)
       new(body).call
@@ -37,7 +48,8 @@ module ExportRelabeling
     def call
       {
         project_title: @body[SURVEY_NAME, 1].presence,
-        interview_status_filter: @body[INTERVIEW_STATUS_FILTER, 1]&.strip&.presence
+        interview_status_filter: @body[INTERVIEW_STATUS_FILTER, 1]&.strip&.presence,
+        survey_id: @body[SURVEY_ID, 1]&.downcase&.presence
       }
     end
   end

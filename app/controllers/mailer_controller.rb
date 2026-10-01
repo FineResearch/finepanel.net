@@ -137,8 +137,15 @@ class MailerController < ApplicationController
     end
 
     zip_path = save_uploaded_zip(file)
-    project_id = file.original_filename[/p\d+/]
     body_text = params[:text].to_s
+    metadata = ExportRelabeling::ConfirmitExportEmailParser.call(body_text)
+    # El nombre del archivo es la fuente primaria -- pero un PM puede
+    # personalizarlo al armar la Rule en Confirmit, y ahi el regex contra
+    # el filename no encuentra nada. En ese caso se cae al "Survey ID:"
+    # que Confirmit siempre agrega al cuerpo del mail (ver
+    # ExportRelabeling::ConfirmitExportEmailParser) -- confirmado que esto
+    # pasa de verdad (un envio real llego con el project_id vacio).
+    project_id = file.original_filename[/p\d+/] || metadata[:survey_id]
     recipients = body_text.scan(EMAIL_REGEX).uniq.reject { |email| EXCLUDED_RECIPIENT_EMAILS.include?(email.downcase) }
 
     if recipients.empty?
@@ -147,7 +154,6 @@ class MailerController < ApplicationController
       return head :ok
     end
 
-    metadata = ExportRelabeling::ConfirmitExportEmailParser.call(body_text)
     entry_names = Zip::File.open(zip_path) { |zip_file| zip_file.entries.map(&:name) }
 
     if entry_names.any? { |name| name.end_with?('.sps') }
