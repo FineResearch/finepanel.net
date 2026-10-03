@@ -40,9 +40,14 @@ class ExportDeliveryMailer < ApplicationMailer
   # nunca los tiene, y el subject/cuerpo simplemente los omiten, nunca los
   # dejan a medias ("Project:  - pXXXXX - ...").
   #
-  # includes_quotas/includes_report reflejan si ESTE envio en particular
-  # trae esas hojas (Excel) -- nunca un valor fijo, para no prometer en el
-  # cuerpo algo que el archivo adjunto no tiene.
+  # includes_quotas/includes_report/includes_dictionary reflejan si ESTE
+  # envio en particular trae esas hojas -- nunca un valor fijo por tipo de
+  # export, para no prometer en el cuerpo algo que el archivo adjunto no
+  # tiene. Desde que SPSS tambien puede traer una planilla de metadata
+  # (Dictionary/Quotas/Report, ver RelabelSpssExportWorker), ninguno de
+  # los 3 bullets esta atado a export_type -- antes includes_dictionary
+  # existia, el bullet de Dictionary se mostraba siempre para Excel sin
+  # chequear si esa hoja realmente se pudo armar.
   #
   # completed_quotas (ver ExportRelabeling::CompletedQuotas) -- array de
   # {quota:, field:, value:, target:, achieved:} para las cuotas que ya
@@ -52,7 +57,7 @@ class ExportDeliveryMailer < ApplicationMailer
   def relabeled_export_email(
     recipients, project_id, file_paths, export_type:,
     relabeled: true, project_title: nil, includes_quotas: false, includes_report: false,
-    interview_status_filter: nil, completed_quotas: []
+    includes_dictionary: false, interview_status_filter: nil, completed_quotas: []
   )
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: FROM)
@@ -62,7 +67,7 @@ class ExportDeliveryMailer < ApplicationMailer
     personalization.subject = subject_for(project_id, export_type, project_title)
     mail.add_personalization(personalization)
 
-    body = body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter, completed_quotas)
+    body = body_for(project_id, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
     delivery_zip_path = build_delivery_zip(file_paths, project_id)
@@ -120,14 +125,14 @@ class ExportDeliveryMailer < ApplicationMailer
     "#{prefix}#{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
   end
 
-  def body_for(project_id, recipient_list, export_type, relabeled, includes_quotas, includes_report, interview_status_filter, completed_quotas)
+  def body_for(project_id, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
     <<~BODY
       This message is intended only for following recipients: #{recipient_list.join(', ')}
 
       Please find attached the latest data files for #{project_id}, generated through our automated data delivery.
       The delivery includes:
 
-      #{delivery_bullets(export_type, includes_quotas, includes_report, interview_status_filter)}
+      #{delivery_bullets(includes_quotas, includes_report, includes_dictionary, interview_status_filter)}
 
       The files reflect all interviews processed as of #{Time.current.strftime('%Y-%m-%d %H:%M UTC')}.
       #{validation_note(relabeled)}
@@ -137,9 +142,9 @@ class ExportDeliveryMailer < ApplicationMailer
     BODY
   end
 
-  def delivery_bullets(export_type, includes_quotas, includes_report, interview_status_filter)
+  def delivery_bullets(includes_quotas, includes_report, includes_dictionary, interview_status_filter)
     bullets = ['* Latest survey data']
-    bullets << '* Data dictionary, including variable names, labels and response codes' if export_type == :excel
+    bullets << '* Data dictionary, including variable names, labels and response codes' if includes_dictionary
     bullets << '* Quota providing an updated view of fieldwork progress' if includes_quotas
     bullets << '* Key cross-tab status' if includes_report
     bullets << "* Interview Status Filter: #{interview_status_filter}" if interview_status_filter.present?

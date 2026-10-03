@@ -88,9 +88,10 @@ RSpec.describe MailerController do
         The information contained in this email message may be privileged. Contact info@fine-research.com.
       BODY
 
-      expect(RelabelSpssExportWorker).to receive(:perform_async) do |_zip_path, project_id, recipients, project_title, interview_status_filter|
+      expect(RelabelSpssExportWorker).to receive(:perform_async) do |_zip_path, project_id, recipients, email_body, project_title, interview_status_filter|
         expect(project_id).to eq('p123456')
         expect(recipients).to eq(['dcasar@fine-research.com'])
+        expect(email_body).to eq(body)
         expect(project_title).to eq('FP-18358N - 3418357_ATU CPNPC Early Stages Imfinzi')
         expect(interview_status_filter).to eq('All(unfiltered)')
       end

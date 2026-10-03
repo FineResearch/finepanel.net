@@ -3,6 +3,7 @@
 require 'rails_helper'
 require 'zip'
 require 'tmpdir'
+require 'rubyXL'
 
 RSpec.describe RelabelSpssExportWorker do
   # Sin esto, cada test intentaria pegarle a la API real de Confirmit --
@@ -63,11 +64,12 @@ RSpec.describe RelabelSpssExportWorker do
 
     described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
 
-    expect(ExportDeliveryMailer).to have_received(:relabeled_export_email) do |recipients, project_id, sav_paths, export_type:, **|
+    expect(ExportDeliveryMailer).to have_received(:relabeled_export_email) do |recipients, project_id, output_paths, export_type:, **|
       expect(recipients).to eq(['destino@cliente.com'])
       expect(project_id).to eq('p123456')
-      expect(sav_paths.length).to eq(1)
-      expect(File.basename(sav_paths.first)).to eq('data.sav')
+      # El .sav compilado + la planilla de metadata (Dictionary/Quotas/
+      # Report, ver #metadata_sheet_for) -- 2 archivos, no 1.
+      expect(output_paths.map { |p| File.basename(p) }).to contain_exactly('data.sav', 'p123456_metadata.xlsx')
       expect(export_type).to eq(:spss)
     end
   end
@@ -182,5 +184,135 @@ RSpec.describe RelabelSpssExportWorker do
 
     expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
       .with(['dcasar@fine-research.com'], 'p123456', export_type: :spss, alert_type: :permission_denied)
+  end
+
+  # Diego: "seria posible que en el zip del spss se habilitara tambien
+  # agregar una planilla en excel que contuviera diccionario, quotas y
+  # report (no los datos)? se pueden obtener estos datos si el envio
+  # incluye los .dat y sps?" -- si, via ExportRelabeling::SpssDataListReader
+  # (lee las posiciones de columna del DATA LIST) + el mismo
+  # ExportRelabeling::ExportMetadataBuilder que ya usa Excel.
+  describe 'planilla de metadata (Dictionary/Quotas/Report)' do
+    let(:sps_content_con_status) do
+      <<~SPS
+        FILE HANDLE F1
+         /NAME = 'c:\\temp\\data.asc'
+         /LRECL=9.
+        DATA LIST
+         FIXED FILE = F1
+         RECORDS=1
+        /1
+         STATUS 1-8 (A)
+         Q1 9-9
+        .
+        VARIABLE LABELS
+         STATUS 'status'
+         Q1 'Pergunta (F1 - Texto de la pregunta)'
+        .
+      SPS
+    end
+
+    let(:zip_path_con_status) do
+      dir = Dir.mktmpdir
+      path = File.join(dir, 'test_export_status.zip')
+      Zip::File.open(path, Zip::File::CREATE) do |zip|
+        zip.get_output_stream('data.sps') { |f| f.write(sps_content_con_status) }
+        zip.get_output_stream('data.asc') { |f| f.write("complete1\ncomplete2\nscreened1\n") }
+      end
+      path
+    end
+
+    def captured_metadata_workbook(output_paths)
+      metadata_path = output_paths.find { |p| p.end_with?('_metadata.xlsx') }
+      RubyXL::Parser.parse(metadata_path)
+    end
+
+    it 'arma <project_id>_metadata.xlsx con una hoja Dictionary (code/attribute/question + estadisticas, sin los datos)' do
+      stub_pspp_success
+      captured = nil
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, **|
+        captured = captured_metadata_workbook(output_paths)
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
+
+      described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+      dictionary = captured.worksheets[0]
+      expect(dictionary.sheet_name).to eq('Dictionary')
+      expect(dictionary[0].cells.map(&:value)).to eq(
+        ['Variable', 'Code', 'Attribute', 'Question', 'Mean', 'Min', 'Max', 'Nulls', '% Nulls', 'Zeros', '', '', 'Answer Options']
+      )
+      expect(dictionary[1].cells.map(&:value)[0..3]).to eq(['Q1', 'F1', 'Pergunta', 'Texto de la pregunta'])
+      # El compile a .sav escribe "data_relabeled.sps" en el MISMO
+      # @work_dir -- si la metadata volviera a globear *.sps DESPUES de
+      # compilar, ese archivo (con los labels ya reescritos en formato
+      # "codigo | atributo | pregunta") se colaria como un loop aparte,
+      # duplicando Q1 en una seccion espuria. Dictionary tiene que tener
+      # SOLO 2 filas (header + Q1), nada mas.
+      expect(dictionary.sheet_data.rows.length).to eq(2)
+    end
+
+    it 'agrega una hoja Quotas cuando el lookup resuelve cuotas, contando contra las filas reales del .dat' do
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:answer_options).and_return([])
+      allow(lookup).to receive(:variable_type).with('Q1').and_return('Single')
+      allow(lookup).to receive(:quotas).and_return(
+        [{ name: 'quota1', cells: [{ limit: 10, fields: [{ name: 'Q1', precode: nil, value: '1' }] }] }]
+      )
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
+      stub_pspp_success
+
+      captured = nil
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, includes_quotas:, completed_quotas:, **|
+        captured = { workbook: captured_metadata_workbook(output_paths), includes_quotas: includes_quotas, completed_quotas: completed_quotas }
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
+
+      described_class.new.perform(zip_path_con_status, 'p123456', ['destino@cliente.com'])
+
+      quotas_sheet = captured[:workbook].worksheets[1]
+      expect(quotas_sheet.sheet_name).to eq('Quotas')
+      expect(quotas_sheet[1].cells.map(&:value)).to eq(['quota1', 'Q1', '1', 10, 1, 9])
+      expect(captured[:includes_quotas]).to be true
+      expect(captured[:completed_quotas]).to eq([])
+    end
+
+    it 'parsea Quotas:/Report: del cuerpo del mail (email_body), igual que Excel' do
+      stub_pspp_success
+      captured = nil
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, includes_quotas:, **|
+        captured = { workbook: captured_metadata_workbook(output_paths), includes_quotas: includes_quotas }
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
+
+      described_class.new.perform(zip_path_con_status, 'p123456', ['destino@cliente.com'], "Quotas:\nQ1: 1=1")
+
+      # Una cuota manual (ver ManualQuotaRequestParser) no tiene nombre
+      # propio -- el "Quota" de la fila es la variable misma ("Q1").
+      quotas_sheet = captured[:workbook].worksheets[1]
+      expect(quotas_sheet.sheet_name).to eq('Quotas')
+      expect(quotas_sheet[1].cells.map(&:value)).to eq(['Q1', 'Q1', '1', 1, 1, 0])
+      expect(captured[:includes_quotas]).to be true
+    end
+
+    it 'si falla la lectura del DATA LIST para la metadata, igual manda los .sav (la planilla se omite, no el envio)' do
+      allow(ExportRelabeling::SpssDataListReader).to receive(:call).and_raise(StandardError, 'DATA LIST inesperado')
+      stub_pspp_success
+
+      captured = {}
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, relabeled:, includes_dictionary:, **|
+        captured[:output_paths] = output_paths
+        captured[:relabeled] = relabeled
+        captured[:includes_dictionary] = includes_dictionary
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
+
+      expect { described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com']) }.not_to raise_error
+
+      expect(captured[:output_paths].map { |p| File.basename(p) }).to eq(['data.sav'])
+      expect(captured[:relabeled]).to be true
+      expect(captured[:includes_dictionary]).to be false
+    end
   end
 end

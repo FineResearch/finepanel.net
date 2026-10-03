@@ -12,6 +12,18 @@ require 'zip'
 # Un zip puede traer mas de un par .sps+.asc (los loops de la encuesta se
 # exportan como archivos separados, ej. "..._def_X.sps"/"..._def_X_fichas.sps")
 # -- se procesan todos los que haya, un .sav por par, sin fusionarlos.
+#
+# Ademas de los .sav, arma una planilla "<project_id>_metadata.xlsx" con
+# Dictionary/Quotas/Report (sin los datos -- Diego: "se puede obtener estos
+# datos para crear el excel si el envio incluye los .dat y sps?") -- la
+# misma info que ya arma RelabelExcelExportWorker, reusando
+# ExportRelabeling::ExportMetadataBuilder (compartido entre los 2
+# workers) sobre un Sheet armado por ExportRelabeling::SpssDataListReader
+# en vez de ExportRelabeling::ExcelReader (el .sps trae las posiciones de
+# columna del .dat via DATA LIST, suficiente para leer filas/columnas sin
+# pasar por PSPP). Esto es una mejora OPCIONAL, separada del compile a
+# .sav -- si falla, se sigue mandando los .sav igual, solo sin la planilla
+# (ver #build_metadata_excel).
 class RelabelSpssExportWorker
   include Sidekiq::Worker
   sidekiq_options retry: 3
@@ -49,16 +61,18 @@ class RelabelSpssExportWorker
   # tests contra datos reales, pero es barato subirlo preventivamente.
   MXWARNS_DIRECTIVE = "SET MXWARNS=100000.\n"
 
-  def perform(zip_path, project_id, recipients, project_title = nil, interview_status_filter = nil)
+  def perform(zip_path, project_id, recipients, email_body = nil, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
     @permission_denied = false
 
-    output_paths, relabeled = build_output_paths(zip_path, project_id)
+    output_paths, relabeled, metadata_info = build_output_paths(zip_path, project_id, email_body)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
-      project_title: project_title, interview_status_filter: interview_status_filter
+      project_title: project_title, interview_status_filter: interview_status_filter,
+      includes_quotas: metadata_info[:includes_quotas], includes_report: metadata_info[:includes_report],
+      includes_dictionary: metadata_info[:includes_dictionary], completed_quotas: metadata_info[:completed_quotas]
     ).deliver_now
 
     ExportRelabeling::ProcessingAlertNotifier.call(
@@ -76,18 +90,97 @@ class RelabelSpssExportWorker
   # seguro seria que si algo falla se envie lo mismo que se recibio... asi
   # cubrimos el riesgo de que los datos se enviaron aunque el formato no
   # fuera perfecto". A diferencia de Excel (que separa base + mejoras
-  # opcionales), aca todo el pipeline (reescribir sintaxis + compilar con
-  # PSPP) ES el producto -- no hay una version "mas simple" intermedia a la
-  # que degradar, asi que cualquier fallo cae directo al zip original tal
-  # cual llego. Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?].
-  def build_output_paths(zip_path, project_id)
+  # opcionales), el compile a .sav ES el producto -- no hay una version
+  # "mas simple" intermedia a la que degradar, asi que un fallo ahi cae
+  # directo al zip original tal cual llego. La planilla de metadata
+  # (Dictionary/Quotas/Report) SI es una mejora opcional aparte -- si
+  # falla, los .sav igual se mandan (ver #build_metadata_excel).
+  # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, metadata_info].
+  def build_output_paths(zip_path, project_id, email_body)
     lookup = build_lookup(project_id)
     extract_zip(zip_path, @work_dir)
-    sav_paths = sps_files.map { |sps_path| build_sav(sps_path, lookup) }
-    [sav_paths, true]
+    # Capturado ANTES de compilar a proposito: #build_sav escribe un
+    # "..._relabeled.sps" por cada archivo, en el MISMO @work_dir -- si
+    # #build_metadata_excel volviera a globear *.sps despues, agarraria
+    # tambien esos (y los procesaria como si fueran loops aparte, con los
+    # labels ya reescritos en formato "codigo | atributo | pregunta").
+    original_sps_files = sps_files
+    sav_paths = original_sps_files.map { |sps_path| build_sav(sps_path, lookup) }
+
+    metadata_path, metadata_info = build_metadata_excel(original_sps_files, project_id, email_body, lookup)
+    output_paths = metadata_path ? sav_paths + [metadata_path] : sav_paths
+
+    [output_paths, true, metadata_info]
   rescue StandardError => e
     Rails.logger.error("[RelabelSpssExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
-    [[zip_path], false]
+    [[zip_path], false, blank_metadata_info]
+  end
+
+  # Mejora OPCIONAL (igual criterio que RelabelExcelExportWorker): si algo
+  # aca rompe (un .sps con un DATA LIST que no matchea el patron esperado,
+  # etc.) se omite la planilla entera en vez de tirar abajo el envio de
+  # los .sav ya compilados.
+  def build_metadata_excel(sps_files, project_id, email_body, lookup)
+    sheets = sps_files.map { |sps_path| metadata_sheet_for(sps_path) }.compact
+    return [nil, blank_metadata_info] if sheets.empty?
+
+    metadata = ExportRelabeling::ExportMetadataBuilder.call(sheets: sheets, lookup: lookup, email_body: email_body)
+    return [nil, blank_metadata_info] if metadata[:dictionary_rows].blank? && metadata[:quota_rows].blank? && metadata[:report_rows].blank?
+
+    [write_metadata_excel(project_id, metadata), metadata_info_from(metadata)]
+  rescue StandardError => e
+    Rails.logger.error("[RelabelSpssExportWorker] no se pudo armar la planilla de Dictionary/Quotas/Report, se omite: #{e.class} #{e.message}")
+    [nil, blank_metadata_info]
+  end
+
+  def metadata_sheet_for(sps_path)
+    original = File.read(sps_path, encoding: 'bom|utf-8')
+    data_path = resolve_data_file_path(original)
+    return nil unless File.exist?(data_path)
+
+    [sps_path, ExportRelabeling::SpssDataListReader.call(sps_text: original, data_path: data_path)]
+  rescue StandardError => e
+    Rails.logger.error("[RelabelSpssExportWorker] no se pudo leer #{sps_path} para la planilla de metadata, se omite ese archivo: #{e.class} #{e.message}")
+    nil
+  end
+
+  def write_metadata_excel(project_id, metadata)
+    output_path = @work_dir.join("#{project_id}_metadata.xlsx").to_s
+    extra_sheets = {}
+    extra_sheets['Quotas'] = highlighted_sheet(metadata[:quota_rows]) if metadata[:quota_rows].present?
+    extra_sheets['Report'] = highlighted_sheet(metadata[:report_rows]) if metadata[:report_rows].present?
+
+    ExportRelabeling::ExcelWriter.call(
+      sheet_name: 'Dictionary',
+      header_rows: [],
+      data_rows: metadata[:dictionary_rows] || [],
+      extra_sheets: extra_sheets,
+      output_path: output_path
+    )
+
+    output_path
+  end
+
+  # quota_rows/report_rows llegan como { rows:, header_indices: } (ver
+  # QuotaProgressBuilder/CrosstabBuilder) -- mismo formato que espera
+  # ExcelWriter para resaltar en negrita + fondo amarillo los encabezados
+  # repetidos de cada bloque/titulo (ver RelabelExcelExportWorker, mismo
+  # helper).
+  def highlighted_sheet(result)
+    { rows: result[:rows], highlighted_rows: result[:header_indices] }
+  end
+
+  def metadata_info_from(metadata)
+    {
+      includes_quotas: metadata[:includes_quotas],
+      includes_report: metadata[:includes_report],
+      includes_dictionary: metadata[:includes_dictionary],
+      completed_quotas: metadata[:completed_quotas]
+    }
+  end
+
+  def blank_metadata_info
+    { includes_quotas: false, includes_report: false, includes_dictionary: false, completed_quotas: [] }
   end
 
   def build_lookup(project_id)

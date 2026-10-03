@@ -157,7 +157,7 @@ class MailerController < ApplicationController
     entry_names = Zip::File.open(zip_path) { |zip_file| zip_file.entries.map(&:name) }
 
     if entry_names.any? { |name| name.end_with?('.sps') }
-      RelabelSpssExportWorker.perform_async(zip_path, project_id, recipients, metadata[:project_title], metadata[:interview_status_filter])
+      RelabelSpssExportWorker.perform_async(zip_path, project_id, recipients, body_text, metadata[:project_title], metadata[:interview_status_filter])
       Rails.logger.info('export_sync: RelabelSpssExportWorker enqueued')
     elsif entry_names.any? { |name| name.end_with?('.xlsx') }
       RelabelExcelExportWorker.perform_async(zip_path, project_id, recipients, body_text, metadata[:project_title], metadata[:interview_status_filter])

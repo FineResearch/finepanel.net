@@ -64,7 +64,7 @@ RSpec.describe ExportDeliveryMailer do
     end
   end
 
-  it 'con export_type: :excel, agrega la linea de diccionario (no la de SPSS)' do
+  it 'con includes_dictionary: true, agrega la linea de diccionario (sin importar el export_type -- SPSS tambien puede traer un Dictionary, ver RelabelSpssExportWorker)' do
     Dir.mktmpdir do |dir|
       xlsx_path = File.join(dir, 'p123456_def.xlsx')
       File.write(xlsx_path, 'contenido xlsx de prueba')
@@ -72,11 +72,39 @@ RSpec.describe ExportDeliveryMailer do
       sent_mail = nil
       allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
 
-      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [xlsx_path], export_type: :excel)
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [xlsx_path], export_type: :excel, includes_dictionary: true)
 
       json = sent_json(sent_mail)
       expect(json['personalizations'].first['subject']).to eq('p123456 - Excel Export')
       expect(json['content'].first['value']).to include('* Data dictionary, including variable names, labels and response codes')
+    end
+  end
+
+  it 'con export_type: :spss e includes_dictionary: true, tambien agrega la linea de diccionario' do
+    Dir.mktmpdir do |dir|
+      sav_path = File.join(dir, 'p123456_def.sav')
+      File.write(sav_path, 'x')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [sav_path], export_type: :spss, includes_dictionary: true)
+
+      expect(sent_json(sent_mail)['content'].first['value']).to include('* Data dictionary, including variable names, labels and response codes')
+    end
+  end
+
+  it 'sin includes_dictionary, no agrega esa linea (ni para Excel)' do
+    Dir.mktmpdir do |dir|
+      xlsx_path = File.join(dir, 'p123456_def.xlsx')
+      File.write(xlsx_path, 'x')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [xlsx_path], export_type: :excel)
+
+      expect(sent_json(sent_mail)['content'].first['value']).not_to include('Data dictionary')
     end
   end
 
