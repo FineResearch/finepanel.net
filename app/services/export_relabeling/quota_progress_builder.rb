@@ -250,7 +250,7 @@ module ExportRelabeling
       source[:rows].count do |data_row|
         next false if status_idx && !complete?(data_row[status_idx], source)
 
-        fields.each_with_index.all? { |f, i| data_row[indices[i]].to_s == match_value(f).to_s }
+        fields.each_with_index.all? { |f, i| normalize(data_row[indices[i]]) == normalize(match_value(f)) }
       end
     end
 
@@ -259,13 +259,26 @@ module ExportRelabeling
 
       field_idx = header_index(source, field_name)
       status_idx = header_index(source, source[:status_variable])
-      accepted = values.map(&:to_s)
+      accepted = values.map { |v| normalize(v) }
 
       source[:rows].count do |data_row|
         next false if status_idx && !complete?(data_row[status_idx], source)
 
-        accepted.include?(data_row[field_idx].to_s)
+        accepted.include?(normalize(data_row[field_idx]))
       end
+    end
+
+    # Confirmado contra un proyecto real (p573989981944, cuota
+    # "quotaestado"): el texto de algunas respuestas viene con un espacio
+    # final en los datos exportados que el label resuelto por la API NO
+    # tiene (ej. "1º Linha - SUDESTE " vs "1º Linha - SUDESTE") -- la
+    # comparacion exacta sin normalizar hacia que esas celdas SIEMPRE
+    # dieran 0 conseguidos, a pesar de tener filas reales que matcheaban
+    # a simple vista. Quitar espacios en las puntas antes de comparar
+    # (nunca en el medio -- un espacio interno real nunca deberia ser
+    # ignorado, solo el padding inconsistente de Confirmit en las puntas).
+    def normalize(value)
+      value.to_s.strip
     end
 
     def complete?(status_value, source)

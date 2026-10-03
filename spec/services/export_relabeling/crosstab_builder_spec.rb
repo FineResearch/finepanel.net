@@ -49,6 +49,35 @@ RSpec.describe ExportRelabeling::CrosstabBuilder do
     expect(result[:header_indices]).to eq([0])
   end
 
+  # Mismo bug real que en QuotaProgressBuilder (p573989981944): un valor
+  # con espacio final cuenta hoy como distinto del mismo valor sin ese
+  # espacio -- sin normalizar, apareceria como 2 filas separadas
+  # ("Sudeste" y "Sudeste ") en vez de una sola.
+  it 'no separa en 2 filas un valor que viene con espacio final inconsistente en los datos' do
+    source_con_espacio = {
+      headers: [header_class.new('status', 'status'), header_class.new('quotareg', 'quotareg'), header_class.new('s0', 's0')],
+      rows: [
+        %w[complete Sudeste 1],
+        ['complete', 'Sudeste ', '1'], # mismo valor, con espacio final
+        %w[complete Sul 2]
+      ],
+      status_variable: 'status',
+      complete_value: 'complete'
+    }
+
+    result = described_class.call(crosses: [{ variable_a: 'quotareg', variable_b: 's0' }], sources: [source_con_espacio])
+
+    expect(result[:rows]).to eq(
+      [
+        ['quotareg x s0'],
+        [nil, '1', '2', 'Total'],
+        ['Sudeste', 2, 0, 2],
+        ['Sul', 0, 1, 1],
+        ['Total', 2, 1, 3]
+      ]
+    )
+  end
+
   it 'funciona igual para 2 variables que viven en el loop' do
     result = described_class.call(crosses: [{ variable_a: 'fichaestado', variable_b: 'tipoficha' }], sources: sources)
 

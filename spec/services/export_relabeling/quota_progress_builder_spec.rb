@@ -77,6 +77,31 @@ RSpec.describe ExportRelabeling::QuotaProgressBuilder do
     )
   end
 
+  # Bug real encontrado por Diego en un export real (p573989981944, cuota
+  # "quotaestado"): el texto de algunas respuestas viene con un espacio
+  # final en los datos exportados ("1º Linha - SUDESTE ") que el label
+  # resuelto por la API via match_value NO tiene ("1º Linha - SUDESTE") --
+  # antes de este fix, la comparacion exacta hacia que esas celdas
+  # SIEMPRE dieran 0 conseguidos a pesar de tener filas reales que
+  # matcheaban a simple vista.
+  it 'no se pierde el match si el dato exportado tiene un espacio final que el label de la API no tiene' do
+    source_con_espacio = {
+      headers: [header_class.new('status', 'status'), header_class.new('quotareg', 'quotareg')],
+      rows: [
+        ['complete', 'Sudeste '],
+        ['complete', 'Sudeste '],
+        ['complete', 'Sul']
+      ],
+      status_variable: 'status',
+      complete_value: 'complete'
+    }
+    quotas = [{ name: 'quota9', cells: [{ limit: 10, fields: [{ name: 'quotareg', precode: nil, value: 'Sudeste' }] }] }]
+
+    result = described_class.call(quotas: quotas, sources: [source_con_espacio])
+
+    expect(result[:rows]).to eq([described_class::HEADER, ['quota9', 'quotareg', 'Sudeste', 10, 2, 8]])
+  end
+
   it 'una variable del loop SI colapsa -- una sola fila, meta de la primera linea, cuenta cualquiera de los valores' do
     quotas = [
       {

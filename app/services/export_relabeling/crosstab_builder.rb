@@ -86,11 +86,15 @@ module ExportRelabeling
       [header_row] + body_rows + [total_row]
     end
 
+    # normalize (ver QuotaProgressBuilder, mismo problema real
+    # confirmado): un valor con espacio final distinto al mismo valor sin
+    # ese espacio contaria como 2 filas/columnas separadas en la tabla en
+    # vez de una sola.
     def distinct_values(source, idx, status_idx)
       source[:rows]
         .select { |data_row| status_idx.nil? || complete?(data_row[status_idx], source) }
-        .map { |data_row| data_row[idx] }
-        .compact
+        .map { |data_row| normalize(data_row[idx]) }
+        .reject(&:empty?)
         .uniq
         .sort
     end
@@ -99,8 +103,12 @@ module ExportRelabeling
       source[:rows].count do |data_row|
         next false if status_idx && !complete?(data_row[status_idx], source)
 
-        data_row[idx_a] == value_a && data_row[idx_b] == value_b
+        normalize(data_row[idx_a]) == value_a && normalize(data_row[idx_b]) == value_b
       end
+    end
+
+    def normalize(value)
+      value.to_s.strip
     end
 
     def complete?(status_value, source)
