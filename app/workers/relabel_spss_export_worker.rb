@@ -66,13 +66,14 @@ class RelabelSpssExportWorker
     FileUtils.mkdir_p(@work_dir)
     @permission_denied = false
 
-    output_paths, relabeled, metadata_info = build_output_paths(zip_path, project_id, email_body)
+    output_paths, relabeled, metadata_info, delivery_zip_name = build_output_paths(zip_path, project_id, email_body)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
       project_title: project_title, interview_status_filter: interview_status_filter,
       includes_quotas: metadata_info[:includes_quotas], includes_report: metadata_info[:includes_report],
-      includes_dictionary: metadata_info[:includes_dictionary], completed_quotas: metadata_info[:completed_quotas]
+      includes_dictionary: metadata_info[:includes_dictionary], completed_quotas: metadata_info[:completed_quotas],
+      delivery_zip_name: delivery_zip_name
     ).deliver_now
 
     ExportRelabeling::ProcessingAlertNotifier.call(
@@ -105,32 +106,66 @@ class RelabelSpssExportWorker
     # tambien esos (y los procesaria como si fueran loops aparte, con los
     # labels ya reescritos en formato "codigo | atributo | pregunta").
     original_sps_files = sps_files
+    delivery_zip_name = main_file_basename(original_sps_files)
     sav_paths = original_sps_files.map { |sps_path| build_sav(sps_path, lookup) }
 
-    metadata_path, metadata_info = build_metadata_excel(original_sps_files, project_id, email_body, lookup)
+    metadata_path, metadata_info = build_metadata_excel(original_sps_files, email_body, lookup)
     output_paths = metadata_path ? sav_paths + [metadata_path] : sav_paths
 
-    [output_paths, true, metadata_info]
+    [output_paths, true, metadata_info, delivery_zip_name]
   rescue StandardError => e
     Rails.logger.error("[RelabelSpssExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
-    [[zip_path], false, blank_metadata_info]
+    [[zip_path], false, blank_metadata_info, nil]
+  end
+
+  # Diego: el zip de entrega final (ver ExportDeliveryMailer) tiene que
+  # llamarse igual que el archivo PRINCIPAL, nunca el de loop (ej.
+  # fichas) -- mismo criterio ya usado para detectar el principal en
+  # #loop_section_title (el nombre del archivo de loop siempre EXTIENDE
+  # al del principal, nunca al reves, asi que el basename mas corto es
+  # el principal). Se calcula solo con el filename (sin depender de que
+  # el schema/parseo de metadata funcione) para que el nombre del zip
+  # nunca dependa de una mejora opcional que puede fallar sola.
+  def main_file_basename(sps_files)
+    return nil if sps_files.blank?
+
+    main = sps_files.min_by { |path| File.basename(path).length }
+    "#{File.basename(main, File.extname(main))}_relabeled"
   end
 
   # Mejora OPCIONAL (igual criterio que RelabelExcelExportWorker): si algo
   # aca rompe (un .sps con un DATA LIST que no matchea el patron esperado,
   # etc.) se omite la planilla entera en vez de tirar abajo el envio de
   # los .sav ya compilados.
-  def build_metadata_excel(sps_files, project_id, email_body, lookup)
+  def build_metadata_excel(sps_files, email_body, lookup)
     sheets = sps_files.map { |sps_path| metadata_sheet_for(sps_path) }.compact
     return [nil, blank_metadata_info] if sheets.empty?
 
     metadata = ExportRelabeling::ExportMetadataBuilder.call(sheets: sheets, lookup: lookup, email_body: email_body)
     return [nil, blank_metadata_info] if metadata[:dictionary_rows].blank? && metadata[:quota_rows].blank? && metadata[:report_rows].blank?
 
-    [write_metadata_excel(project_id, metadata), metadata_info_from(metadata)]
+    [write_metadata_excel(main_sps_path(sheets), metadata), metadata_info_from(metadata)]
   rescue StandardError => e
     Rails.logger.error("[RelabelSpssExportWorker] no se pudo armar la planilla de Dictionary/Quotas/Report, se omite: #{e.class} #{e.message}")
     [nil, blank_metadata_info]
+  end
+
+  # Diego: "a veces el archivo puede venir con otro nombre que no sea el
+  # estandard con pxxxx... en todos los casos es importante... que el
+  # nombre del archivo se mantenga" -- el nombre de esta planilla nunca
+  # debe depender de project_id (que puede venir de un fallback, el
+  # "Survey ID" del cuerpo del mail, cuando el nombre del archivo no trae
+  # el patron estandard) sino del nombre ORIGINAL del archivo PRINCIPAL
+  # de SPSS tal cual llego (Diego: "usemos el mismo nombre del archivo
+  # principal en spss"). "Principal" = el que tiene la variable de
+  # sistema "status" (mismo criterio que ExportMetadataBuilder usa para
+  # elegir main_path); sin loop de por medio, sheets solo tiene un
+  # elemento.
+  def main_sps_path(sheets)
+    main = sheets.find do |_path, sheet|
+      sheet.headers.any? { |h| h.variable_name.to_s.casecmp?(ExportRelabeling::ExportMetadataBuilder::STATUS_VARIABLE) }
+    end
+    (main || sheets.first).first
   end
 
   def metadata_sheet_for(sps_path)
@@ -144,8 +179,12 @@ class RelabelSpssExportWorker
     nil
   end
 
-  def write_metadata_excel(project_id, metadata)
-    output_path = @work_dir.join("#{project_id}_metadata.xlsx").to_s
+  def write_metadata_excel(main_sps_path, metadata)
+    # Diego: "anteponiendo 'Progress_report_'" -- prefijo, no sufijo, y
+    # sobre el nombre del .sps principal tal cual llego (ver
+    # #main_sps_path), nunca sobre project_id.
+    base_name = File.basename(main_sps_path, File.extname(main_sps_path))
+    output_path = @work_dir.join("Progress_report_#{base_name}.xlsx").to_s
     extra_sheets = {}
     extra_sheets['Quotas'] = highlighted_sheet(metadata[:quota_rows]) if metadata[:quota_rows].present?
     extra_sheets['Report'] = highlighted_sheet(metadata[:report_rows]) if metadata[:report_rows].present?
@@ -216,7 +255,11 @@ class RelabelSpssExportWorker
     relabeled_sps_path = sps_path.sub(/\.sps\z/, '_relabeled.sps')
     File.write(relabeled_sps_path, rewritten)
 
-    sav_path = sps_path.sub(/\.sps\z/, '.sav')
+    # Diego: mismo criterio que ya usa Excel (ver #relabel en
+    # RelabelExcelExportWorker) -- el nombre de salida se basa SIEMPRE en
+    # el nombre ORIGINAL del archivo que llego, nunca en project_id,
+    # agregando "_relabeled" para distinguirlo del original.
+    sav_path = sps_path.sub(/\.sps\z/, '_relabeled.sav')
     ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: clean_data_path, output_path: sav_path)
 
     sav_path

@@ -2,19 +2,17 @@
 
 # Shared introspection endpoint for internal tools that live outside this
 # app (e.g. Automated Transcripts, on its own AWS infra -- see that repo's
-# api/auth.py). Same jti-against-InternalUser check as
-# Internal::FinePanelSetup::SetupController#authenticate_via_jwt!, exposed
-# as a standalone endpoint so another service can reuse the Wizard's login
-# without needing this app's JWT signing secret or DB access.
+# api/auth.py). Same token check as the Wizard and the WhatsApp inbox (see
+# InternalJwtAuthentication), exposed as a standalone endpoint so another
+# service can reuse the shared login without needing this app's JWT signing
+# secret or DB access.
 class Internal::AuthController < ApplicationController
+  include InternalJwtAuthentication
+
   skip_before_action :verify_authenticity_token
 
   def whoami
-    return render json: { error: 'Unauthorized' }, status: :unauthorized unless request.authorization.present?
-
-    token = request.authorization.to_s.split('Bearer ').last
-    jti = JWT.decode(token, nil, false).first['jti'] rescue nil
-    user = InternalUser.active.find_by(jti: jti)
+    user = internal_user_from_bearer
 
     return render json: { error: 'Unauthorized' }, status: :unauthorized unless user
 

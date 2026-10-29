@@ -1,9 +1,26 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
-const ENV_INTERNAL_USER_EMAIL = import.meta.env.VITE_INTERNAL_USER_EMAIL || "";
+// Login comun de las herramientas internas (pagina /internal): el token vive en
+// la misma clave de localStorage que usa el Wizard.
+const AUTH_TOKEN_KEY = "fpSetupAuthToken";
+const LOGIN_PATH = "/internal";
 
-function currentInternalUserEmail() {
-  const fromQuery = new URLSearchParams(window.location.search).get("internal_user_email");
-  return fromQuery || ENV_INTERNAL_USER_EMAIL || "";
+function getAuthToken() {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function redirectToLogin() {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch (error) {
+    // sin localStorage no hay nada que limpiar
+  }
+
+  const next = encodeURIComponent(window.location.pathname);
+  window.location.replace(`${LOGIN_PATH}?next=${next}`);
 }
 
 function buildHeaders(extraHeaders = {}) {
@@ -12,10 +29,10 @@ function buildHeaders(extraHeaders = {}) {
     ...extraHeaders
   };
 
-  const internalUserEmail = currentInternalUserEmail();
+  const token = getAuthToken();
 
-  if (internalUserEmail) {
-    headers["X-Internal-User-Email"] = internalUserEmail;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   return headers;
@@ -40,6 +57,11 @@ async function request(path, options = {}) {
     ...options,
     headers: buildHeaders(options.headers || {})
   });
+
+  if (response.status === 401) {
+    redirectToLogin();
+    throw new Error("Sesión vencida. Redirigiendo al login...");
+  }
 
   const data = await parseJsonSafe(response);
 
@@ -143,25 +165,39 @@ export async function fetchProjectMetrics() {
 }
 
 
-export function exportConversations(filters = {}) {
+export async function exportConversations(filters = {}) {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([k, v]) => {
     if (v) params.append(k, v);
   });
 
-  const internalUserEmail = currentInternalUserEmail();
-  if (internalUserEmail) {
-    params.append("internal_user_email", internalUserEmail);
-  }
-
   const query = params.toString();
   const url = query
-    ? `/internal/whatsapp/conversations/export?${query}`
-    : `/internal/whatsapp/conversations/export`;
+    ? `${API_BASE_URL}/internal/whatsapp/conversations/export?${query}`
+    : `${API_BASE_URL}/internal/whatsapp/conversations/export`;
 
-  window.open(url, "_blank");
+  const response = await fetch(url, { headers: buildHeaders() });
+
+  if (response.status === 401) {
+    redirectToLogin();
+    throw new Error("Sesión vencida. Redirigiendo al login...");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Error HTTP ${response.status} al exportar conversaciones`);
+  }
+
+  const blob = await response.blob();
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "conversaciones.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
 }
+
 export async function exportConversationsAsync(filters = {}, email) {
   const body = {
     ...filters,

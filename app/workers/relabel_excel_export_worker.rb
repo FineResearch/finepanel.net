@@ -71,14 +71,14 @@ class RelabelExcelExportWorker
     FileUtils.mkdir_p(@work_dir)
     @permission_denied = false
 
-    output_paths, relabeled, includes_quotas, includes_report, includes_dictionary, completed_quotas =
+    output_paths, relabeled, includes_quotas, includes_report, includes_dictionary, completed_quotas, delivery_zip_name =
       build_output_paths(zip_path, project_id, email_body)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :excel, relabeled: relabeled,
       includes_quotas: includes_quotas, includes_report: includes_report, includes_dictionary: includes_dictionary,
       project_title: project_title, interview_status_filter: interview_status_filter,
-      completed_quotas: completed_quotas
+      completed_quotas: completed_quotas, delivery_zip_name: delivery_zip_name
     ).deliver_now
 
     ExportRelabeling::ProcessingAlertNotifier.call(
@@ -100,14 +100,15 @@ class RelabelExcelExportWorker
   # mejoras opcionales de ExportMetadataBuilder, que ya degradan solas sin
   # llegar aca -- se manda el zip original TAL CUAL LLEGO en vez de no
   # mandar nada.
-  # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, incluye_cuotas?, incluye_report?, incluye_dictionary?, cuotas_completas].
+  # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, incluye_cuotas?, incluye_report?, incluye_dictionary?, cuotas_completas, delivery_zip_name].
   def build_output_paths(zip_path, project_id, email_body)
     extract_zip(zip_path, @work_dir)
-    output_paths, includes_quotas, includes_report, includes_dictionary, completed_quotas = relabel_all(project_id, email_body)
-    [output_paths, true, includes_quotas, includes_report, includes_dictionary, completed_quotas]
+    output_paths, includes_quotas, includes_report, includes_dictionary, completed_quotas, delivery_zip_name =
+      relabel_all(project_id, email_body)
+    [output_paths, true, includes_quotas, includes_report, includes_dictionary, completed_quotas, delivery_zip_name]
   rescue StandardError => e
     Rails.logger.error("[RelabelExcelExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
-    [[zip_path], false, false, false, false, []]
+    [[zip_path], false, false, false, false, [], nil]
   end
 
   def relabel_all(project_id, email_body)
@@ -119,7 +120,19 @@ class RelabelExcelExportWorker
     output_paths = sheets.map do |path, sheet|
       relabel(path, sheet, metadata[:parsed_by_path][path], metadata[:quota_rows], metadata[:report_rows], metadata[:dictionary_rows], lookup)
     end
-    [output_paths, metadata[:includes_quotas], metadata[:includes_report], metadata[:includes_dictionary], metadata[:completed_quotas]]
+    delivery_zip_name = main_file_basename(sheets)
+    [output_paths, metadata[:includes_quotas], metadata[:includes_report], metadata[:includes_dictionary], metadata[:completed_quotas], delivery_zip_name]
+  end
+
+  # Diego: mismo criterio que RelabelSpssExportWorker -- el zip de
+  # entrega final (ver ExportDeliveryMailer) tiene que llamarse igual
+  # que el archivo PRINCIPAL (el que tiene la variable de sistema
+  # "status"), nunca uno de loop (ej. fichas).
+  def main_file_basename(sheets)
+    return nil if sheets.blank?
+
+    main_path, = sheets.find { |path, sheet| variable?(sheet, STATUS_VARIABLE) } || sheets.first
+    "#{File.basename(main_path, File.extname(main_path))}_relabeled"
   end
 
   def build_lookup(project_id)
@@ -197,11 +210,25 @@ class RelabelExcelExportWorker
   # por columna. Una variable sin codigo/atributo detectable (sistema, o
   # sin el patron "codigo - pregunta") deja esas 2 filas vacias y el
   # texto tal cual en la fila de pregunta.
+  #
+  # Diego: en un archivo de loop (ej. fichas), el codigo de CADA variable
+  # trae pegado un piping sin resolver que Confirmit agrega como
+  # referencia al loop (ej. "Q0A // ^f('hidden_ficha_nom')^", identico en
+  # TODA fila) -- en el Dictionary eso queda tal cual a proposito (ver
+  # ExportMetadataBuilder/LabelParser, "no molesta"), pero en el
+  # encabezado de la tabla de DATOS se ve mejor separado en su propia
+  # fila en vez de pisar la fila de Codigo. Se agrega esa 4ta fila SOLO
+  # cuando aparece (nunca para el archivo principal, que no tiene este
+  # patron en ninguna columna) -- ver LabelParser.split_loop_reference.
   def build_header_rows(parsed)
-    [
-      parsed.map { |p| p[:code] },
-      parsed.map { |p| p[:attribute] },
-      parsed.map { |p| p[:question] }
-    ]
+    codes_and_refs = parsed.map { |p| ExportRelabeling::LabelParser.split_loop_reference(p[:code]) }
+    codes = codes_and_refs.map(&:first)
+    loop_refs = codes_and_refs.map(&:last)
+
+    rows = [codes]
+    rows << loop_refs if loop_refs.any?(&:present?)
+    rows << parsed.map { |p| p[:attribute] }
+    rows << parsed.map { |p| p[:question] }
+    rows
   end
 end

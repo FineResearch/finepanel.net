@@ -198,10 +198,11 @@ module ExportRelabeling
     # toma el limite de la primera celda del grupo tal cual, sin promediar
     # ni exigir que las demas coincidan.
     def build_collapsed_row(quota_name, field_name, group, source)
-      values = group.map { |cell| match_value(cell[:fields].first) }
-      count = count_any(source, field_name, values)
+      target_fields = group.map { |cell| cell[:fields].first }
+      display_values = target_fields.map { |f| match_value(f) }
+      count = count_any(source, field_name, target_fields)
 
-      row(quota_name, field_name, values.join(', '), group.first[:limit], count)
+      row(quota_name, field_name, display_values.join(', '), group.first[:limit], count)
     end
 
     def build_crossed_row(quota_name, cell)
@@ -250,22 +251,37 @@ module ExportRelabeling
       source[:rows].count do |data_row|
         next false if status_idx && !complete?(data_row[status_idx], source)
 
-        fields.each_with_index.all? { |f, i| normalize(data_row[indices[i]]) == normalize(match_value(f)) }
+        fields.each_with_index.all? { |f, i| field_matches?(data_row[indices[i]], f) }
       end
     end
 
-    def count_any(source, field_name, values)
+    def count_any(source, field_name, target_fields)
       return nil unless source
 
       field_idx = header_index(source, field_name)
       status_idx = header_index(source, source[:status_variable])
-      accepted = values.map { |v| normalize(v) }
 
       source[:rows].count do |data_row|
         next false if status_idx && !complete?(data_row[status_idx], source)
 
-        accepted.include?(normalize(data_row[field_idx]))
+        target_fields.any? { |f| field_matches?(data_row[field_idx], f) }
       end
+    end
+
+    # Confirmado contra un export real de SPSS (p573989981944): a
+    # diferencia del Data Template de Excel (que exporta el TEXTO
+    # resuelto, ver comentario de la clase), el .dat de SPSS exporta el
+    # PRECODE numerico crudo para la misma variable logica -- la
+    # comparacion exacta contra field[:label] (lo que prioriza
+    # match_value) nunca matcheaba nada, dando "Achieved: 0" en TODAS las
+    # filas de una cuota de loop sin ningun error/excepcion (la fila
+    # simplemente no calificaba). Se acepta un match contra CUALQUIERA de
+    # las 3 representaciones que puede traer un QuotaField (label
+    # resuelto, precode explicito, o value) para no depender de que
+    # formato use el Data Template de turno.
+    def field_matches?(data_value, field)
+      candidates = [field[:label], field[:precode], field[:value]].compact
+      candidates.any? { |candidate| values_match?(data_value, candidate) }
     end
 
     # Confirmado contra un proyecto real (p573989981944, cuota
@@ -281,8 +297,40 @@ module ExportRelabeling
       value.to_s.strip
     end
 
+    # Confirmado contra un .sav real compilado de produccion
+    # (p573989981944, respid 587405543, cuota manual "quotaestado"): el
+    # .dat de ancho fijo de Confirmit rellena los precodes de 1 digito
+    # con un CERO a la izquierda para ocupar el ancho de columna reservado
+    # para el precode mas largo (ej. "09" en vez de "9", porque esa
+    # variable llega hasta el precode 15) -- #normalize (strip) no toca
+    # ceros, asi que "09" nunca igualaba al "9" declarado en la cuota
+    # (manual o automatica). Confirmado el patron exacto: de las 14
+    # celdas reales de esa cuota, SOLO las 5 de 2 digitos (10-14)
+    # matcheaban -- las 9 de 1 digito (1-9) daban 0 a pesar de tener
+    # filas reales. Si ambos lados son puramente numericos, se comparan
+    # como entero (ademas de la comparacion de texto normal, que sigue
+    # cubriendo los casos no numericos).
+    def values_match?(data_value, candidate)
+      a = normalize(data_value)
+      b = normalize(candidate)
+      return true if a.casecmp?(b)
+
+      numeric?(a) && numeric?(b) && a.to_i == b.to_i
+    end
+
+    def numeric?(value)
+      value.match?(/\A-?\d+\z/)
+    end
+
+    # Mismo problema de precode-vs-texto que #field_matches? -- en SPSS
+    # la columna de estado del loop (ej. "fichaestado") trae el precode
+    # numerico crudo, no el texto "completa" que resuelve
+    # answer_label_matching. source[:complete_precode] (ver
+    # ExportMetadataBuilder#status_config) es el candidato numerico
+    # correspondiente a ese mismo texto, cuando se pudo resolver.
     def complete?(status_value, source)
-      status_value.to_s.casecmp?(source[:complete_value].to_s)
+      candidates = [source[:complete_value], source[:complete_precode]].compact
+      candidates.any? { |candidate| values_match?(status_value, candidate) }
     end
 
     def header_index(source, variable_name)

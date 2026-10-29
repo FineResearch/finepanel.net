@@ -1,13 +1,21 @@
 require 'sidekiq/web'
 
 Rails.application.routes.draw do
+  # '*path' no matchea la raiz -- y la raiz es justo lo que abre el
+  # frontend (NewsCard/NewsFeedFooter) para validar la sesion de DynaMed
+  # (EBSCO no acepta un destino posterior sin login previo, por eso el
+  # flujo es en 2 pasos). Sin la ruta '/', caia a la raiz normal de la app
+  # con host dynamed y devolvia 500.
   constraints(lambda { |req| req.host.to_s =~ %r{^dynamed} }) do
-    match '*path',
-          to: redirect { |_params, _req| ENV['SERVICE_URL'].presence || '/' },
-          via: :all
+    dynamed_redirect = redirect { |_params, _req| ENV['SERVICE_URL'].presence || '/' }
+    match '/', to: dynamed_redirect, via: :all
+    match '*path', to: dynamed_redirect, via: :all
   end
 
 namespace :internal do
+  # Ingreso comun (login unico + menu de herramientas internas).
+  get '/', to: 'home#index'
+
   namespace :whatsapp do
     get 'inbox', to: 'inbox#index'
 
@@ -41,6 +49,16 @@ end
     post 'apply_emails', to: 'setup#apply_emails'
     post 'add_fnp_redirect', to: 'setup#add_fnp_redirect'
     post 'upload_client_links', to: 'setup#upload_client_links'
+    post 'clear_client_links', to: 'setup#clear_client_links'
+    post 'client_links_status', to: 'setup#client_links_status'
+    post 'append_respondents', to: 'setup#append_respondents'
+    post 'update_respondent_links', to: 'setup#update_respondent_links'
+    post 'read_respondents_links', to: 'setup#read_respondents_links'
+    post 'team_contacts_list', to: 'setup#team_contacts_index'
+    post 'team_contacts_create', to: 'setup#team_contacts_create'
+    post 'team_contacts_destroy', to: 'setup#team_contacts_destroy'
+    post 'incentive_rates_list', to: 'setup#incentive_rates_index'
+    post 'incentive_rates_update', to: 'setup#incentive_rates_bulk_update'
   end
 
   get 'auth/whoami', to: 'auth#whoami'

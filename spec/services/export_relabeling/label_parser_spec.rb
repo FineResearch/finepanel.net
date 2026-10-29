@@ -102,6 +102,23 @@ RSpec.describe ExportRelabeling::LabelParser do
     )
   end
 
+  # Confirmado contra el schema real (p573989981944, archivo de loop
+  # "fichas"): Confirmit agrega este mismo sufijo de piping sin resolver
+  # al codigo de CADA variable del loop -- #call/#format lo dejan intacto
+  # a proposito (Diego: en el Dictionary no molesta). Ver
+  # '.split_loop_reference' mas abajo para donde SI se separa (encabezado
+  # de datos de Excel).
+  it 'deja el sufijo de referencia al loop ("// ^...^") tal cual dentro del codigo' do
+    label = 'CÂNCER EPITELIAL DE OVÁRIO, TUBA UTERINA OU PERITÔNIO PRIMÁRIO ' \
+            "(Q0A // ^f('hidden_ficha_nom')^ - O(a) Dr.(a) confirma que essa paciente: )"
+
+    expect(described_class.call(label)).to eq(
+      code: "Q0A // ^f('hidden_ficha_nom')^",
+      attribute: 'CÂNCER EPITELIAL DE OVÁRIO, TUBA UTERINA OU PERITÔNIO PRIMÁRIO',
+      question: 'O(a) Dr.(a) confirma que essa paciente:'
+    )
+  end
+
   it 'deja intactas las variables de sistema sin patron codigo/atributo' do
     expect(described_class.call('responseid')).to eq(code: nil, attribute: nil, question: 'responseid')
   end
@@ -112,6 +129,26 @@ RSpec.describe ExportRelabeling::LabelParser do
       attribute: nil,
       question: '1ª linha'
     )
+  end
+
+  describe '.split_loop_reference' do
+    # Diego: en el encabezado de la tabla de datos de Excel (a diferencia
+    # del Dictionary) si quiere el piping separado, en su propia fila --
+    # RelabelExcelExportWorker#build_header_rows usa esto para esa fila
+    # extra, sin tocar como se arma `code` en #call/#format.
+    it 'separa el codigo limpio de la referencia al loop cuando el sufijo esta presente' do
+      expect(described_class.split_loop_reference("Q0A // ^f('hidden_ficha_nom')^")).to eq(
+        ['Q0A', "// ^f('hidden_ficha_nom')^"]
+      )
+    end
+
+    it 'devuelve la referencia nil cuando el codigo no tiene el sufijo' do
+      expect(described_class.split_loop_reference('F4')).to eq(['F4', nil])
+    end
+
+    it 'devuelve nil, nil cuando el codigo mismo es nil' do
+      expect(described_class.split_loop_reference(nil)).to eq([nil, nil])
+    end
   end
 
   describe '.reformat' do

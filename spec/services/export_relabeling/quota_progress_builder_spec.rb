@@ -102,6 +102,57 @@ RSpec.describe ExportRelabeling::QuotaProgressBuilder do
     expect(result[:rows]).to eq([described_class::HEADER, ['quota9', 'quotareg', 'Sudeste', 10, 2, 8]])
   end
 
+  # Bug real encontrado por Diego contra un .sav compilado de produccion
+  # (p573989981944, respid 587405543, cuota manual "quotaestado"): el .dat
+  # de ancho fijo de Confirmit rellena los precodes de 1 digito con un
+  # CERO a la izquierda para ocupar el ancho de columna reservado para el
+  # precode mas largo de esa variable (ej. "09" en vez de "9", porque esa
+  # variable llega hasta el precode 15) -- confirmado el patron exacto:
+  # de 14 celdas reales, SOLO las 5 de 2 digitos (10-14) matcheaban, las
+  # 9 de 1 digito (1-9) daban 0 a pesar de tener filas reales.
+  it 'no se pierde el match si el dato exportado tiene un cero a la izquierda que el value declarado no tiene' do
+    source_con_cero = {
+      headers: [header_class.new('fichaestado', 'fichaestado'), header_class.new('quotaestado', 'quotaestado')],
+      rows: [
+        %w[completa 09],
+        %w[completa 09],
+        %w[completa 10]
+      ],
+      status_variable: 'fichaestado',
+      complete_value: 'completa'
+    }
+    quotas = [{ name: 'quotaestado', cells: [{ limit: 5, fields: [{ name: 'quotaestado', precode: nil, value: '9' }] }] }]
+
+    result = described_class.call(quotas: quotas, sources: [source_con_cero])
+
+    expect(result[:rows]).to eq([described_class::HEADER, ['quotaestado', 'quotaestado', '9', 5, 2, 3]])
+  end
+
+  # Bug real encontrado por Diego: a diferencia de Excel (que exporta el
+  # TEXTO resuelto de la columna de estado), el .dat de SPSS exporta el
+  # PRECODE numerico crudo -- source[:complete_precode] (ver
+  # ExportMetadataBuilder#status_config) es el candidato numerico que
+  # corresponde al mismo "completa" textual, para no perder el filtro de
+  # completitud cuando los datos vienen asi.
+  it 'el filtro de completitud matchea por precode cuando la columna de estado trae el precode crudo (SPSS), no el texto' do
+    source_con_precode = {
+      headers: [header_class.new('fichaestado', 'fichaestado'), header_class.new('qestado_1', 'qestado_1')],
+      rows: [
+        %w[2 1],
+        %w[2 1],
+        %w[1 1] # precode 1 = "incompleta", no cuenta
+      ],
+      status_variable: 'fichaestado',
+      complete_value: 'completa',
+      complete_precode: '2'
+    }
+    quotas = [{ name: 'quota5', cells: [{ limit: 5, fields: [{ name: 'qestado_1', precode: nil, value: '1' }] }] }]
+
+    result = described_class.call(quotas: quotas, sources: [source_con_precode])
+
+    expect(result[:rows]).to eq([described_class::HEADER, ['quota5', 'qestado_1', '1', 5, 2, 3]])
+  end
+
   it 'una variable del loop SI colapsa -- una sola fila, meta de la primera linea, cuenta cualquiera de los valores' do
     quotas = [
       {

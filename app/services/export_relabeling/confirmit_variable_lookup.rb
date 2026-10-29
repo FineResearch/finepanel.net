@@ -181,7 +181,31 @@ module ExportRelabeling
     # una ficha completa, sin hardcodear ni el string ni el numero de
     # precode.
     def answer_label_matching(variable_name, candidates)
-      answer_labels(variable_name).find { |text| candidates.any? { |candidate| text.casecmp?(candidate) } }
+      answer_option_matching(variable_name, candidates)&.last
+    end
+
+    # Igual que #answer_label_matching pero sin descartar el precode --
+    # confirmado contra un export real de SPSS (p573989981944) que la
+    # columna de estado del loop ("fichaestado") trae el PRECODE numerico
+    # crudo en el .dat, no el texto "completa" que esto resuelve (a
+    # diferencia del Data Template de Excel, que ya exporta el texto). El
+    # llamador (ver QuotaProgressBuilder#complete?) necesita poder
+    # comparar contra cualquiera de los dos segun que represente la
+    # columna de verdad.
+    def answer_option_matching(variable_name, candidates)
+      return nil if variable_name.blank?
+
+      node = find_question_node(variable_name.to_s.downcase)
+      return nil unless node
+
+      config = DIRECT_ANSWER_CONTAINERS[node.name]
+      return nil unless config
+
+      container_node = node.at_xpath(".//#{config[:container]}")
+      return nil unless container_node
+
+      collect_answer_options(container_node, config[:answer_tag])
+        .find { |_precode, text| candidates.any? { |candidate| text.casecmp?(candidate) } }
     end
 
     # Opciones de respuesta (precode + texto) de una pregunta Single --

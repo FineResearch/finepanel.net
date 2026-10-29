@@ -81,6 +81,21 @@ module FinePanelSetup
       'https://ws.us.confirmit.com/confirmit/webservices/current/surveydesign.asmx'
     )
 
+    # Servicio "surveydata" (GetRespondents/UpdateRespondents) -- lee/escribe
+    # directo sobre las filas de respondientes de la Active Database, a
+    # diferencia de SurveyDesign que trabaja sobre el SurveySchema (nodos
+    # Script/Email/variables). Endpoint NO confirmado todavia por Forsta
+    # soporte -- inferido por el mismo patron de host/carpeta que Authoring/
+    # SurveyDesign (Sam solo mando ejemplos del body del sobre SOAP, sin la
+    # URL real, 2026-09-08). El namespace SI esta confirmado por la muestra
+    # de Sam: viene versionado ("8.5/"), a diferencia del resto de los
+    # servicios que usan el namespace sin version.
+    SURVEYDATA_ENDPOINT = ENV.fetch(
+      'CONFIRMIT_SURVEYDATA_ENDPOINT',
+      'https://ws.us.confirmit.com/confirmit/webservices/current/surveydata.asmx'
+    )
+    SURVEYDATA_NAMESPACE = 'http://firmglobal.com/Confirmit/webservices/8.5/'
+
     def duplicate_project(source_project_id:, new_project_name:)
       key = log_on
 
@@ -115,6 +130,200 @@ module FinePanelSetup
       else
         { ok: false, error: "Respuesta inesperada: #{response_body[0, 300]}" }
       end
+    end
+
+    # Trae las filas de respondientes de la Active Database (Production) de un
+    # proyecto via el servicio surveydata. generate_survey_link: true pide que
+    # Confirmit devuelva tambien el link real de encuesta por fila (campo
+    # "surveylink", no es una columna del schema -- se computa al pedirlo).
+    # Devuelve un array de hashes {nombre_campo => valor_texto}, uno por
+    # respondiente -- mismos campos que trae AllFields="true" (respid, sid,
+    # samplenumber, clientlink, clientlinkid, equipo, etc.)
+    def get_respondents(project_id:, generate_survey_link: false, key: nil)
+      key ||= log_on
+
+      envelope = <<~XML
+        <?xml version="1.0" encoding="utf-8"?>
+        <soap:Envelope #{SOAP_ENVELOPE_NAMESPACES}>
+          <soap:Body>
+            <GetRespondents xmlns="#{SURVEYDATA_NAMESPACE}">
+              <key>#{xml_escape(key)}</key>
+              <respondentTransferDef AllFields="true" OnlySchema="false">
+                <ProjectId>#{xml_escape(project_id)}</ProjectId>
+                <DatabaseType>Production</DatabaseType>
+                <GenerateSurveyLink>#{generate_survey_link}</GenerateSurveyLink>
+              </respondentTransferDef>
+            </GetRespondents>
+          </soap:Body>
+        </soap:Envelope>
+      XML
+
+      response_body = post_soap(
+        endpoint: SURVEYDATA_ENDPOINT,
+        soap_action: "#{SURVEYDATA_NAMESPACE}GetRespondents",
+        envelope: envelope
+      )
+
+      parse_respondents_dataset(response_body)
+    end
+
+    # Copiado tal cual de la muestra real de Sam (Forsta soporte, 2026-09-08,
+    # UpdateRespondents_surveydata_request.xml) -- declara los mismos campos
+    # que ya vimos en el response de GetRespondents (AllFields="true"). No se
+    # confirmo si Confirmit lo exige para aceptar el Update o si alcanzaria
+    # con el diffgram solo, pero se incluye igual para no arriesgar una
+    # diferencia de compatibilidad no probada.
+    RESPONDENT_DATASET_SCHEMA_XML = <<~XML.freeze
+      <xs:schema id="NewDataSet" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xs:element name="NewDataSet" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+          <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+              <xs:element name="respondent">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="respid" type="xs:int" minOccurs="0"/>
+                    <xs:element name="sid" type="xs:string" minOccurs="0"/>
+                    <xs:element name="tries" type="xs:int" minOccurs="0"/>
+                    <xs:element name="noOfEmailsSent" type="xs:int" minOccurs="0"/>
+                    <xs:element name="userid" type="xs:string" minOccurs="0"/>
+                    <xs:element name="LastUpdated" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="smtpstatus" type="xs:string" minOccurs="0"/>
+                    <xs:element name="smtpcode" type="xs:string" minOccurs="0"/>
+                    <xs:element name="smtpStatusDate" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="smtpTaskId" type="xs:int" minOccurs="0"/>
+                    <xs:element name="CapiInterviewerId" type="xs:int" minOccurs="0"/>
+                    <xs:element name="rowguid" msdata:DataType="System.Guid, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" type="xs:string" minOccurs="0"/>
+                    <xs:element name="username" type="xs:string" minOccurs="0"/>
+                    <xs:element name="OptOut" type="xs:short" minOccurs="0"/>
+                    <xs:element name="OptOutDate" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="CreatedDate" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="FailedLoginAttempts" type="xs:int" minOccurs="0"/>
+                    <xs:element name="FirstEmailedDate" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="FilterStatus" type="xs:short" minOccurs="0"/>
+                    <xs:element name="FilterStatusDate" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="FilteredBySurveyId" type="xs:string" minOccurs="0"/>
+                    <xs:element name="capi_interviewer_name" type="xs:string" minOccurs="0"/>
+                    <xs:element name="capi_interviewer_assign_date" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="StatusProyecto1" type="xs:string" minOccurs="0"/>
+                    <xs:element name="orden" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Panelistid" type="xs:string" minOccurs="0"/>
+                    <xs:element name="samplenumber" type="xs:string" minOccurs="0"/>
+                    <xs:element name="equipo" type="xs:string" minOccurs="0"/>
+                    <xs:element name="cc" type="xs:string" minOccurs="0"/>
+                    <xs:element name="orden1" type="xs:string" minOccurs="0"/>
+                    <xs:element name="orden2" type="xs:string" minOccurs="0"/>
+                    <xs:element name="orden3" type="xs:string" minOccurs="0"/>
+                    <xs:element name="orden4" type="xs:string" minOccurs="0"/>
+                    <xs:element name="orden5" type="xs:string" minOccurs="0"/>
+                    <xs:element name="idprevio" type="xs:string" minOccurs="0"/>
+                    <xs:element name="email2" type="xs:string" minOccurs="0"/>
+                    <xs:element name="clientlink" type="xs:string" minOccurs="0"/>
+                    <xs:element name="idbac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="clientlinkid" type="xs:string" minOccurs="0"/>
+                    <xs:element name="equipolink" type="xs:string" minOccurs="0"/>
+                    <xs:element name="equipopais" type="xs:string" minOccurs="0"/>
+                    <xs:element name="espbac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="emailbac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="namebac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="apellidobac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="titulobac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="algoritmobac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="regionbac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="lugarbac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="pais1bac" type="xs:string" minOccurs="0"/>
+                    <xs:element name="pais1bac_7_other" type="xs:string" minOccurs="0"/>
+                    <xs:element name="panelid" type="xs:string" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+      </xs:schema>
+    XML
+
+    # Inserta/actualiza filas de respondientes via UpdateRespondents (merge by
+    # uniqueKey, ver muestra de Sam 2026-09-08). rows: array de hashes
+    # {nombre_campo => valor} -- SOLO los campos que se quieren setear por
+    # fila (no hace falta repetir los que ya trae el modelo del schema).
+    # Cada fila se manda con diffgr:hasChanges="inserted" -- confirmado en la
+    # muestra real que asi se agrega una fila nueva; no se probo el caso de
+    # actualizar una fila EXISTENTE sin ese atributo (Sam solo mostro el
+    # caso de insertar).
+    # Alta (append) de filas de respondientes NUEVAS -- no depende de merge/
+    # uniqueKey para nada, porque no hay ninguna fila existente con la que
+    # resolver conflicto: Confirmit le asigna un respid nuevo a cada una.
+    # merge/uniqueKey son conceptos de UPDATE, no de alta (ver
+    # update_respondents_by_respid) -- usarlos aca (con "email2" como
+    # uniqueKey) fallaba con "Specified key 'email2' is not unique" incluso
+    # en un proyecto recien duplicado sin ninguna fila propia todavia
+    # (confirmado por el usuario 2026-09-08, que conoce el servicio real).
+    def append_respondents(project_id:, rows:, key: nil)
+      key ||= log_on
+      rows_xml = build_respondent_rows_xml(rows, 'inserted')
+      send_update_respondents(project_id: project_id, key: key, rows_xml: rows_xml, merge: false, unique_key: '')
+    end
+
+    # Actualiza filas YA EXISTENTES, identificadas por su respid real (el
+    # unico campo genuinamente unico de Confirmit -- lo asigna el servidor).
+    # Cada hash en rows DEBE incluir :respid, traido de un get_respondents
+    # anterior. hasChanges="modified" (no "inserted"): esto SI es un update.
+    #
+    # IMPORTANTE: cada row tiene que traer TODOS los campos que le interesan
+    # a esa fila, no solo los que cambiaron -- confirmado 2026-09-09 que un
+    # "modified" con solo un par de campos (ej. respid+equipolink) hace que
+    # Confirmit trate eso como el estado COMPLETO de la fila y borre
+    # cualquier otro campo que ya tuviera cargado (equipo/email2/clientlink/
+    # etc.). No es un patch parcial.
+    def update_respondents_by_respid(project_id:, rows:, key: nil)
+      key ||= log_on
+      rows_xml = build_respondent_rows_xml(rows, 'modified')
+      send_update_respondents(project_id: project_id, key: key, rows_xml: rows_xml, merge: true, unique_key: 'respid')
+    end
+
+    def build_respondent_rows_xml(rows, has_changes)
+      rows.each_with_index.map do |row, i|
+        fields_xml = row.map { |field, value| "<#{field}>#{xml_escape(value.to_s)}</#{field}>" }.join
+        "<respondent diffgr:id=\"respondent#{i + 1}\" msdata:rowOrder=\"#{i}\" diffgr:hasChanges=\"#{has_changes}\">#{fields_xml}</respondent>"
+      end.join
+    end
+
+    def send_update_respondents(project_id:, key:, rows_xml:, merge:, unique_key:)
+      envelope = <<~XML
+        <?xml version="1.0" encoding="utf-8"?>
+        <soap:Envelope #{SOAP_ENVELOPE_NAMESPACES}>
+          <soap:Body>
+            <UpdateRespondents xmlns="#{SURVEYDATA_NAMESPACE}">
+              <key>#{xml_escape(key)}</key>
+              <projectId>#{xml_escape(project_id)}</projectId>
+              <ds>
+                #{RESPONDENT_DATASET_SCHEMA_XML}
+                <diffgr:diffgram xmlns:diffgr="urn:schemas-microsoft-com:xml-diffgram-v1" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+                  <NewDataSet xmlns="">#{rows_xml}</NewDataSet>
+                </diffgr:diffgram>
+              </ds>
+              <validate>false</validate>
+              <merge>#{merge}</merge>
+              <uniqueKey>#{xml_escape(unique_key)}</uniqueKey>
+              <inTransaction>false</inTransaction>
+              <transactionKey>-1</transactionKey>
+            </UpdateRespondents>
+          </soap:Body>
+        </soap:Envelope>
+      XML
+
+      response_body = post_soap(
+        endpoint: SURVEYDATA_ENDPOINT,
+        soap_action: "#{SURVEYDATA_NAMESPACE}UpdateRespondents",
+        envelope: envelope
+      )
+
+      doc = Nokogiri::XML(response_body)
+      doc.remove_namespaces!
+      fault = doc.at_xpath('//Fault')
+      raise "Confirmit UpdateRespondents fault: #{fault.at_xpath('.//faultstring')&.text || fault.text}" if fault
+
+      true
     end
 
     # El nodo de script "definiciones" tiene dos partes: todo lo que esta antes de
@@ -354,6 +563,38 @@ module FinePanelSetup
     # write_script_node para el detalle de como se arma el request.
     def write_definitions_script(project_id:, script_code:)
       write_script_node(project_id: project_id, script_name: DEFINITIONS_SCRIPT_NAME, new_script_code: script_code)
+    end
+
+    # Lee las lineas "if(f('Pais')==...) {f('primerid').set(...);}" que HOY
+    # tiene el bloque C4 del proyecto en vivo. Usado para agregar un pais a
+    # un proyecto YA lanzado sin tocar las lineas de los demas paises --
+    # a diferencia de pisar primerid_lines entero con lo que recalcula el
+    # formulario (buildPrimerIdLinesText), que puede correr el bloque de un
+    # pais que ya esta en produccion si el orden de paises tildados cambio
+    # desde el lanzamiento original. Devuelve '' si no encuentra el bloque
+    # (proyecto "Fine en Confirmit", que no usa C4). Pedido del usuario
+    # 2026-09-14.
+    def read_current_primerid_lines(project_id:)
+      key = log_on
+      response_body = get_questionnaire(key: key, project_id: project_id, endpoint: AUTHORING_ENDPOINT)
+      current_script_code = extract_definitions_script_code(response_body)
+      tail = extract_preserved_tail(current_script_code)
+      extract_primerid_lines(tail) || ''
+    end
+
+    # Combina el bloque C4 actual del proyecto con UNA linea nueva -- si ya
+    # existe una linea para el mismo f('Pais')=="X" (resubida del mismo
+    # pais), la reemplaza en su lugar en vez de duplicarla; si no, la agrega
+    # al final. No escribe nada en Confirmit -- ver write_definitions, que
+    # usa el resultado como primerid_lines. Pedido del usuario 2026-09-14.
+    def merged_primerid_lines(project_id:, new_line:)
+      current_lines = read_current_primerid_lines(project_id: project_id)
+      code_match = new_line.match(/f\('Pais'\)=="([^"]+)"/)
+      return [current_lines, new_line].reject(&:blank?).join("\n") unless code_match
+
+      code = code_match[1]
+      kept = current_lines.to_s.split("\n").reject { |line| line.include?("f('Pais')==\"#{code}\"") }
+      (kept + [new_line]).join("\n")
     end
 
     # No es una llamada SOAP -- es el link generico publico de la encuesta
@@ -655,6 +896,15 @@ module FinePanelSetup
     EMAIL_LANGUAGE_ES = 2058
     EMAIL_LANGUAGE_PT = 1046
 
+    # Proyecto de referencia conocido (mismo que documenta EMAIL_EXISTING_NAMES
+    # en el frontend) usado como fuente de la plantilla de un nodo Email cuando
+    # el modelo elegido para duplicar no trae ese nodo con el nombre esperado
+    # -- pasa con modelos viejos/distintos al de referencia (confirmado
+    # 2026-09-02, proyecto p981703253709 no tenia "Brasil Pimera 2026"). Sin
+    # esto, aplicar cartas fallaba directo con "No se encontro el nodo Email"
+    # para cualquier modelo que no fuera exactamente el de referencia.
+    REFERENCE_EMAIL_PROJECT_ID = 'p774756690265'
+
     # Sobreescribe el Subject/BodyHtml (para el idioma dado) de un nodo Email
     # existente y lo renombra. Pensado para el PRIMER pais de cada idioma en un
     # proyecto (ej. "ESP Primera 2026" -> "SetUpAR-Primera-2026") -- reusa el
@@ -718,6 +968,19 @@ module FinePanelSetup
       renamed_source = {}
       applied = []
       next_entity_id = -1
+      reference_inner = nil # fetchado solo si algun modelo no trae el nodo esperado
+
+      # Preventivo: si el proyecto ya tiene un nodo Email con alguno de los
+      # nombres que se van a crear/renombrar (pasa con modelos viejos
+      # reutilizados para mas de una campaña, que dejan cartas de una
+      # corrida anterior con el mismo esquema de nombres "SetUpXX-Tipo-2026"),
+      # Confirmit rechaza el Update ENTERO con "An item with the same key
+      # has already been added." -- se borran esos nodos viejos antes de
+      # armar los nuevos, asi el nombre queda libre (confirmado 2026-09-02
+      # contra p981703253709, un modelo reusado varias veces).
+      cartas.each do |carta|
+        inner = remove_email_node_by_name_from_inner(inner, carta[:name])
+      end
 
       cartas.each do |carta|
         lang = carta[:lang]
@@ -725,14 +988,33 @@ module FinePanelSetup
         source_key = [carta[:tipo], lang]
 
         if carta[:is_first_of_language]
-          inner = apply_overwrite_and_rename_email_in_inner(
-            inner,
-            current_name: carta[:existing_name],
-            new_name: carta[:name],
-            subject: carta[:subject],
-            body_html: carta[:body_html],
-            language_id: language_id
-          )
+          if inner.include?("<Name>#{carta[:existing_name]}</Name>")
+            inner = apply_overwrite_and_rename_email_in_inner(
+              inner,
+              current_name: carta[:existing_name],
+              new_name: carta[:name],
+              subject: carta[:subject],
+              body_html: carta[:body_html],
+              language_id: language_id
+            )
+          else
+            # El modelo duplicado no trae este nodo con el nombre esperado (ej.
+            # modelo viejo/distinto al de referencia) -- se trae la plantilla
+            # del proyecto de referencia y se inserta como nodo nuevo, en vez
+            # de fallar. reference_inner se pide una sola vez y se reusa.
+            reference_inner ||= get_raw_survey_schema(project_id: REFERENCE_EMAIL_PROJECT_ID)[:inner]
+            inner = apply_insert_email_from_reference_in_inner(
+              inner,
+              reference_inner: reference_inner,
+              reference_name: carta[:existing_name],
+              new_name: carta[:name],
+              subject: carta[:subject],
+              body_html: carta[:body_html],
+              language_id: language_id,
+              new_entity_id: next_entity_id
+            )
+            next_entity_id -= 1
+          end
           renamed_source[source_key] = carta[:name]
         else
           source_name = renamed_source[source_key]
@@ -804,6 +1086,16 @@ module FinePanelSetup
       removed_ids, kept_ids = existing_ids.partition { |a| a[:precode].to_i.between?(primer_id, block_end) }
       removed_real_ids = removed_ids.map { |a| a[:label] }
 
+      # Si alguno de los IDs nuevos ya existe FUERA de este bloque (o sea le
+      # pertenece a otro pais), abortar sin escribir nada -- pasa cuando se
+      # agrega un pais a un proyecto YA lanzado y el primer_id calculado
+      # choca con el bloque de un pais que ya esta en produccion. Confirmado
+      # por el usuario 2026-09-14.
+      colliding = (rows.map { |row| row[:id].to_s } & kept_ids.map { |a| a[:label] })
+      if colliding.any?
+        raise "Los siguientes IDs ya existen en otro bloque de listadeids (posible superposición con otro país): #{colliding.join(', ')}"
+      end
+
       existing_links = parse_single_answers(inner[links_open...links_close])
       kept_links = existing_links.reject { |a| removed_real_ids.include?(a[:precode]) }
 
@@ -830,7 +1122,63 @@ module FinePanelSetup
       { added: rows.length, removed: removed_ids.length }
     end
 
+    # Lee las entradas actuales de listadeids (precode+label) -- usado para
+    # determinar el proximo bloque de 500 libre al agregar un pais a un
+    # proyecto YA lanzado (ver SetupController#client_links_status), sin
+    # depender del calculo por formula (computeCountryPrimerIds del
+    # frontend), que asume que el orden de paises tildados hoy coincide con
+    # el que se uso en el lanzamiento original. Pedido del usuario 2026-09-14.
+    def read_client_link_ids(project_id:)
+      schema = get_raw_survey_schema(project_id: project_id)
+      ids_open, ids_close = find_single_variable_bounds(schema[:inner], CLIENT_LINKS_IDS_VAR)
+      parse_single_answers(schema[:inner][ids_open...ids_close])
+    end
+
+    # Vacia por completo listadeids/listadelinks (ver upload_country_links
+    # arriba). Pensado para llamarse UNA sola vez, antes de subir el primer
+    # pais de la corrida -- si se llamara una vez por pais, cada subida
+    # borraria los paises ya subidos antes en la misma corrida.
+    def clear_client_links(project_id:)
+      schema = get_raw_survey_schema(project_id: project_id)
+      inner = schema[:inner]
+
+      ids_open, ids_close = find_single_variable_bounds(inner, CLIENT_LINKS_IDS_VAR)
+      links_open, links_close = find_single_variable_bounds(inner, CLIENT_LINKS_URLS_VAR)
+
+      ids_block_cleared = replace_single_answers_content(inner[ids_open...ids_close], [])
+      links_block_cleared = replace_single_answers_content(inner[links_open...links_close], [])
+
+      # Aplicar el reemplazo que esta mas adelante en el documento primero,
+      # para no invalidar los indices del otro (mismo motivo que en
+      # upload_country_links).
+      if ids_open < links_open
+        inner = inner[0...links_open] + links_block_cleared + inner[links_close..-1]
+        inner = inner[0...ids_open] + ids_block_cleared + inner[ids_close..-1]
+      else
+        inner = inner[0...ids_open] + ids_block_cleared + inner[ids_close..-1]
+        inner = inner[0...links_open] + links_block_cleared + inner[links_close..-1]
+      end
+
+      send_schema_update(project_id: project_id, key: schema[:key], attrs: schema[:attrs], updated_inner: inner)
+      true
+    end
+
     private
+
+    # Parsea la respuesta de GetRespondents/UpdateRespondents (un DataSet de
+    # .NET serializado como diffgram) a un array de hashes {campo => texto}.
+    # No usa xpath con namespace -- remove_namespaces! ya aplano todo, y
+    # "respondent" solo aparece dentro de NewDataSet en este documento.
+    def parse_respondents_dataset(response_body)
+      doc = Nokogiri::XML(response_body)
+      doc.remove_namespaces!
+      fault = doc.at_xpath('//Fault')
+      raise "Confirmit surveydata fault: #{fault.at_xpath('.//faultstring')&.text || fault.text}" if fault
+
+      doc.xpath('//NewDataSet/respondent').map do |node|
+        node.element_children.each_with_object({}) { |el, hash| hash[el.name] = el.text }
+      end
+    end
 
     def get_questionnaire(key:, project_id:, endpoint: AUTHORING_ENDPOINT)
       envelope = <<~XML
@@ -960,6 +1308,24 @@ module FinePanelSetup
       inner[0...email_open_start] + new_xml + inner[email_close..-1]
     end
 
+    # Borra (excluye del schema) el nodo Email con este nombre, si existe --
+    # usado como paso preventivo en apply_email_cartas antes de crear/
+    # renombrar nodos, para que un nombre reciclado de una campaña anterior
+    # no choque con Confirmit al armar el Update. No-op si el nombre no
+    # existe (caso normal, la gran mayoria de las veces).
+    def remove_email_node_by_name_from_inner(inner, name)
+      name_needle = "<Name>#{name}</Name>"
+      name_idx = inner.index(name_needle)
+      return inner unless name_idx
+
+      email_open_start = inner.rindex('<Email ', name_idx)
+      email_close = inner.index('</Email>', name_idx) + '</Email>'.length
+      return inner unless email_open_start
+
+      Rails.logger.error("[FinePanelSetup] Ya existia un nodo Email llamado #{name.inspect} -- se borra antes de crear el nuevo")
+      inner[0...email_open_start] + inner[email_close..-1]
+    end
+
     # Version "pura" (sin fetch/send propios) de duplicate_email -- ver
     # apply_overwrite_and_rename_email_in_inner arriba, mismo motivo.
     # new_entity_id: "0" funciona para un unico nodo nuevo por Update (caso
@@ -976,12 +1342,53 @@ module FinePanelSetup
       raise "No se pudo delimitar el nodo Email \"#{source_name}\"" unless email_open_start
 
       source_xml = inner[email_open_start...email_close]
-      clone_xml = source_xml.sub(/EntityId="\d+"/, "EntityId=\"#{new_entity_id}\"")
+      # -?: el nodo fuente puede ser uno recien injertado desde la referencia
+      # (ver apply_insert_email_from_reference_in_inner), que ya tiene un
+      # EntityId NEGATIVO -- sin el signo opcional el regex no matcheaba y el
+      # clon se quedaba con el mismo EntityId negativo que su fuente, dos
+      # nodos nuevos compartiendo clave en el mismo Update (confirmado
+      # 2026-09-02/03 via logging temporal).
+      clone_xml = source_xml.sub(/EntityId="-?\d+"/, "EntityId=\"#{new_entity_id}\"")
       clone_xml = clone_xml.sub(name_needle, "<Name>#{new_name}</Name>")
       clone_xml = replace_email_language_field(clone_xml, field: 'Subject', language_id: language_id, new_value: subject)
       clone_xml = replace_email_language_field(clone_xml, field: 'BodyHtml', language_id: language_id, new_value: body_html)
 
       inner[0...email_close] + clone_xml + inner[email_close..-1]
+    end
+
+    # Trae la plantilla de un nodo Email desde reference_inner (schema del
+    # proyecto de referencia, ver REFERENCE_EMAIL_PROJECT_ID) y la inserta como
+    # nodo NUEVO en inner (schema del proyecto que se esta armando) -- usado
+    # cuando el modelo duplicado no trae el nodo esperado con el nombre exacto
+    # que se necesita para poder renombrarlo/duplicarlo in-place (ver
+    # apply_email_cartas). Misma logica de reemplazo de EntityId/Name/Subject/
+    # BodyHtml que apply_duplicate_email_in_inner, pero la fuente es el string
+    # de OTRO proyecto -- por eso el nodo se ancla al final de la lista de
+    # Emails existente en inner (ultimo "</Email>"), no al lado del nodo
+    # original (que ni siquiera existe ahi).
+    def apply_insert_email_from_reference_in_inner(inner, reference_inner:, reference_name:, new_name:, subject:, body_html:, language_id:, new_entity_id:)
+      name_needle = "<Name>#{reference_name}</Name>"
+      name_idx = reference_inner.index(name_needle)
+      raise "No se encontro el nodo Email de referencia \"#{reference_name}\" en el proyecto de referencia #{REFERENCE_EMAIL_PROJECT_ID}" unless name_idx
+
+      email_open_start = reference_inner.rindex('<Email ', name_idx)
+      email_close = reference_inner.index('</Email>', name_idx) + '</Email>'.length
+      raise "No se pudo delimitar el nodo Email de referencia \"#{reference_name}\"" unless email_open_start
+
+      template_xml = reference_inner[email_open_start...email_close]
+      # gsub por las dudas (confirmado via logging temporal 2026-09-02 que
+      # cada nodo Email de referencia trae un solo EntityId, pero no cuesta
+      # nada cubrir el caso de que algun tipo tenga mas de uno).
+      new_xml = template_xml.gsub(/EntityId="\d+"/, "EntityId=\"#{new_entity_id}\"")
+      new_xml = new_xml.sub(name_needle, "<Name>#{new_name}</Name>")
+      new_xml = replace_email_language_field(new_xml, field: 'Subject', language_id: language_id, new_value: subject)
+      new_xml = replace_email_language_field(new_xml, field: 'BodyHtml', language_id: language_id, new_value: body_html)
+
+      insert_at = inner.rindex('</Email>')
+      raise 'El proyecto no tiene ningun nodo Email existente para anclar la insercion' unless insert_at
+
+      insert_at += '</Email>'.length
+      inner[0...insert_at] + new_xml + inner[insert_at..-1]
     end
 
     # Reemplaza el valor de un campo por-idioma dentro de un nodo Email (ej.
@@ -1049,8 +1456,20 @@ module FinePanelSetup
     # Reemplaza el contenido de <SingleAnswers>...</SingleAnswers> dentro del
     # XML de una variable Single por la lista de answers dada (array de
     # {precode:, label:}), preservando el tag de apertura tal cual (con su
-    # EntityId="" original).
+    # EntityId="" original). Cuando la variable queda vacia (0 respuestas),
+    # Confirmit la devuelve la proxima vez como tag autocerrado
+    # ("<SingleAnswers ... />", sin "</SingleAnswers>" separado) -- confirmado
+    # 2026-09-08 justo despues de clear_client_links, que la deja en 0. Ambas
+    # formas se soportan.
     def replace_single_answers_content(single_xml, answers)
+      new_answers_xml = answers.map { |a| build_single_answer_xml(a[:precode], a[:label]) }.join
+
+      self_closing = single_xml.match(/<SingleAnswers\b([^>]*)\/>/)
+      if self_closing
+        open_tag = "<SingleAnswers#{self_closing[1]}>"
+        return single_xml[0...self_closing.begin(0)] + open_tag + new_answers_xml + '</SingleAnswers>' + single_xml[self_closing.end(0)..-1]
+      end
+
       open_idx = single_xml.index('<SingleAnswers')
       raise 'No se encontro <SingleAnswers> en la variable' unless open_idx
 
@@ -1058,7 +1477,6 @@ module FinePanelSetup
       close_tag_idx = single_xml.index('</SingleAnswers>', open_idx)
       raise 'No se pudo delimitar <SingleAnswers>' unless close_tag_idx
 
-      new_answers_xml = answers.map { |a| build_single_answer_xml(a[:precode], a[:label]) }.join
       single_xml[0..tag_close_idx] + new_answers_xml + single_xml[close_tag_idx..-1]
     end
 
@@ -1128,6 +1546,23 @@ module FinePanelSetup
       return tail unless block_end
 
       tail[0...block_start] + primerid_lines.strip + "\n\n\n" + tail[block_end..-1]
+    end
+
+    # Contraparte de lectura de replace_primerid_block -- mismos marcadores,
+    # devuelve el contenido actual del bloque C4 en vez de reemplazarlo. nil
+    # si no encuentra los marcadores (ver read_current_primerid_lines).
+    def extract_primerid_lines(tail)
+      marker_index = tail.index(PRIMERID_BLOCK_MARKER)
+      return nil unless marker_index
+
+      block_start = tail.index("\n\n", marker_index)
+      return nil unless block_start
+
+      block_start += 2
+      block_end = tail.index(PRIMERID_BLOCK_END_MARKER, block_start)
+      return nil unless block_end
+
+      tail[block_start...block_end].strip
     end
 
     def extract_definitions_script_code(response_body)

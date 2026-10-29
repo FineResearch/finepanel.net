@@ -1,4 +1,6 @@
 class Internal::Whatsapp::ConversationsController < ApplicationController
+  include InternalJwtAuthentication
+
   skip_before_action :verify_authenticity_token
   before_action :authenticate_internal_access!
   before_action :set_internal_user
@@ -478,30 +480,19 @@ end
 
   private
 
+  # Solo el login comun (Bearer token verificado, ver InternalJwtAuthentication).
   def authenticate_internal_access!
-    return if current_user.present?
-    return if header_internal_user_present_and_active?
+    return if internal_user_from_bearer.present?
 
-    authenticate_user!
-  end
-
-  def header_internal_user_present_and_active?
-    email =
-      request.headers['X-Internal-User-Email'].presence ||
-      params[:internal_user_email].presence
-
-    return false if email.blank?
-
-    InternalUser.active.exists?(email: email.to_s.strip.downcase)
+    render json: {
+      success: false,
+      error_code: 'unauthorized',
+      message: 'Unauthorized'
+    }, status: :unauthorized
   end
 
   def set_internal_user
-    email =
-      current_user&.email.presence ||
-      request.headers['X-Internal-User-Email'].presence ||
-      params[:internal_user_email].presence
-
-    @internal_user = InternalUser.active.find_by(email: email.to_s.strip.downcase)
+    @internal_user = internal_user_from_bearer
 
     return if @internal_user.present?
 

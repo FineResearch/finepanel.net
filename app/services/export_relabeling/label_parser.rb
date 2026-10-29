@@ -35,12 +35,35 @@ module ExportRelabeling
     # mitad de un parrafo largo.
     MAX_CODE_MARKER_POSITION = 30
 
+    # Confirmado contra un archivo de loop real (p573989981944, "fichas"):
+    # Confirmit agrega este mismo sufijo de piping sin resolver a CADA
+    # variable del loop (ej. "Q0A // ^f('hidden_ficha_nom')^"), identico en
+    # TODA fila del archivo. #call/#format lo DEJAN intacto dentro de
+    # `code` a proposito (Diego: en el Dictionary no molesta, hasta ayuda a
+    # ver la logica) -- #split_loop_reference es un helper APARTE, que el
+    # encabezado de datos de Excel usa para separarlo en su propia fila (ver
+    # RelabelExcelExportWorker#build_header_rows), sin afectar como se arma
+    # `code` en ningun otro lado (Dictionary, SPSS VALUE LABELS, etc).
+    LOOP_REFERENCE_PATTERN = %r{\s*(//\s*\^[^^]*\^)\s*\z}.freeze
+
     def self.call(raw_label)
       new(raw_label).call
     end
 
     def self.reformat(raw_label)
       format(call(raw_label))
+    end
+
+    # [codigo_limpio, referencia_al_loop] -- referencia_al_loop es nil
+    # cuando el codigo no tiene el sufijo "// ^...^" (el caso normal, fuera
+    # de un archivo de loop). Ver comentario de LOOP_REFERENCE_PATTERN.
+    def self.split_loop_reference(code)
+      return [code, nil] if code.nil?
+
+      match = LOOP_REFERENCE_PATTERN.match(code)
+      return [code, nil] unless match
+
+      [code[0...match.begin(0)].strip.presence, match[1].strip]
     end
 
     # Separado de reformat para que quien ya tenga un {code:, attribute:,

@@ -238,6 +238,52 @@ RSpec.describe ExportDeliveryMailer do
     end
   end
 
+  # Bug real (Diego): cuando el archivo de entrada no trae el patron
+  # pXXXXX en el nombre Y tampoco se pudo resolver el "Survey ID:" del
+  # cuerpo del mail, project_id llega vacio -- "#{project_id}.zip" daba
+  # literalmente ".zip", un archivo SIN nombre que varios dispositivos no
+  # reconocian ni dejaban abrir.
+  it 'con project_id vacio y sin delivery_zip_name, cae al nombre del primer archivo adjunto (nunca ".zip" sin nombre)' do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'export_personalizado_relabeled.sav')
+      File.write(path, 'contenido')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(['a@cliente.com'], nil, [path], export_type: :spss)
+
+      json = sent_json(sent_mail)
+      expect(json['attachments'].first['filename']).to eq('export_personalizado_relabeled.zip')
+    end
+  end
+
+  # Diego: "el zip deberia aparecer con el mismo nombre del archivo
+  # principal (no de loops)" -- delivery_zip_name ya viene resuelto asi
+  # desde cada worker (ver RelabelSpssExportWorker/
+  # RelabelExcelExportWorker#main_file_basename) y tiene prioridad sobre
+  # project_id, que puede ser mas generico (compartido por el principal y
+  # todos sus loops).
+  it 'con delivery_zip_name presente, el zip final usa ese nombre en vez del project_id' do
+    Dir.mktmpdir do |dir|
+      main_path = File.join(dir, 'p123456_def_relabeled.sav')
+      loop_path = File.join(dir, 'p123456_def_fichas_relabeled.sav')
+      File.write(main_path, 'contenido principal')
+      File.write(loop_path, 'contenido del loop')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(
+        ['a@cliente.com'], 'p123456', [main_path, loop_path], export_type: :spss,
+        delivery_zip_name: 'p123456_def_relabeled'
+      )
+
+      json = sent_json(sent_mail)
+      expect(json['attachments'].first['filename']).to eq('p123456_def_relabeled.zip')
+    end
+  end
+
   describe 'Completed Quotas' do
     it 'con completed_quotas presentes, agrega la seccion antes de "Best regards"' do
       Dir.mktmpdir do |dir|

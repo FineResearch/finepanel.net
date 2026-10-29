@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2026_08_28_000000) do
+ActiveRecord::Schema.define(version: 2026_09_23_090000) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -35,6 +35,26 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
     t.datetime "updated_at", null: false
     t.index ["post_id"], name: "index_comments_on_post_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
+  end
+
+  create_table "device_tokens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token", null: false
+    t.string "platform", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token"], name: "index_device_tokens_on_token", unique: true
+    t.index ["user_id"], name: "index_device_tokens_on_user_id"
+  end
+
+  create_table "incentive_rates", force: :cascade do |t|
+    t.string "category", null: false
+    t.integer "max_minutes", null: false
+    t.string "currency", default: "", null: false
+    t.decimal "value", precision: 12, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category", "max_minutes", "currency"], name: "index_incentive_rates_on_key", unique: true
   end
 
   create_table "internal_user_project_accesses", force: :cascade do |t|
@@ -82,6 +102,18 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
     t.index ["whatsapp_number"], name: "index_invalid_whatsapp_numbers_on_whatsapp_number"
   end
 
+  create_table "news_comment_reactions", force: :cascade do |t|
+    t.bigint "user_id"
+    t.bigint "news_comment_id"
+    t.jsonb "user_info"
+    t.string "reaction_type", default: "agree", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["news_comment_id"], name: "index_news_comment_reactions_on_news_comment_id"
+    t.index ["user_id", "news_comment_id"], name: "index_news_comment_reactions_on_user_and_comment", unique: true
+    t.index ["user_id"], name: "index_news_comment_reactions_on_user_id"
+  end
+
   create_table "news_comments", force: :cascade do |t|
     t.string "text"
     t.bigint "user_id"
@@ -89,7 +121,9 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
     t.jsonb "user_info"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "parent_comment_id"
     t.index ["news_feed_id"], name: "index_news_comments_on_news_feed_id"
+    t.index ["parent_comment_id"], name: "index_news_comments_on_parent_comment_id"
     t.index ["user_id"], name: "index_news_comments_on_user_id"
   end
 
@@ -114,6 +148,21 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
     t.index ["news_feed_id"], name: "index_news_feed_translations_on_news_feed_id"
   end
 
+  create_table "news_feed_views", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "news_feed_id", null: false
+    t.bigint "specialty_id"
+    t.string "respid"
+    t.string "email"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["news_feed_id", "user_id"], name: "index_news_feed_views_on_news_feed_and_user", unique: true
+    t.index ["news_feed_id"], name: "index_news_feed_views_on_news_feed_id"
+    t.index ["specialty_id", "user_id", "created_at"], name: "index_news_feed_views_on_specialty_user_and_created_at"
+    t.index ["specialty_id"], name: "index_news_feed_views_on_specialty_id"
+    t.index ["user_id"], name: "index_news_feed_views_on_user_id"
+  end
+
   create_table "news_feeds", force: :cascade do |t|
     t.text "text"
     t.string "link"
@@ -133,14 +182,31 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
     t.index ["specialty_id"], name: "index_news_feeds_on_specialty_id"
   end
 
+  create_table "news_social_discovery_campaigns", force: :cascade do |t|
+    t.bigint "news_feed_id", null: false
+    t.datetime "triggered_at", null: false
+    t.integer "useful_count_at_trigger", null: false
+    t.integer "comment_count_at_trigger", null: false
+    t.integer "eligible_recipient_count"
+    t.integer "recipient_count"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["news_feed_id"], name: "index_news_social_discovery_campaigns_on_news_feed", unique: true
+    t.index ["news_feed_id"], name: "index_news_social_discovery_campaigns_on_news_feed_id"
+  end
+
   create_table "notifications", force: :cascade do |t|
     t.bigint "user_id"
     t.bigint "news_feed_id"
     t.string "notification_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "news_comment_id"
+    t.index ["news_comment_id"], name: "index_notifications_on_news_comment_id"
     t.index ["news_feed_id"], name: "index_notifications_on_news_feed_id"
-    t.index ["user_id", "news_feed_id", "notification_type"], name: "index_notifications_on_user_news_feed_and_type", unique: true
+    t.index ["notification_type", "created_at"], name: "index_notifications_on_type_and_created_at"
+    t.index ["user_id", "news_feed_id", "notification_type", "news_comment_id"], name: "index_notifications_on_user_news_feed_type_and_comment", unique: true
+    t.index ["user_id", "news_feed_id"], name: "index_notifications_on_user_and_news_feed_for_social_discovery", unique: true, where: "((notification_type)::text = 'news_social_discovery'::text)"
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
@@ -188,6 +254,15 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
     t.index ["project_id", "resp_id", "spanel", "link", "variables"], name: "unique_survey_links", unique: true
   end
 
+  create_table "team_contacts", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "pais1_rec_code", null: false
+    t.boolean "paga_fine", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pais1_rec_code", "name"], name: "index_team_contacts_on_pais1_rec_code_and_name", unique: true
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "encrypted_email", default: "", null: false
     t.string "hash_respid", default: "", null: false
@@ -208,6 +283,8 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
     t.boolean "whatsapp_opt_in", default: false, null: false
     t.datetime "whatsapp_opt_in_at"
     t.string "whatsapp_opt_in_source"
+    t.boolean "comment_notifications_opt_out", default: false, null: false
+    t.datetime "comment_notifications_opt_out_at"
     t.index ["encrypted_email"], name: "index_users_on_encrypted_email", unique: true
     t.index ["jti"], name: "index_users_on_jti", unique: true
     t.index ["spanel"], name: "index_users_on_spanel"
@@ -361,14 +438,23 @@ ActiveRecord::Schema.define(version: 2026_08_28_000000) do
   end
 
   add_foreign_key "articles", "specialties"
+  add_foreign_key "device_tokens", "users"
   add_foreign_key "internal_user_project_accesses", "internal_users"
+  add_foreign_key "news_comment_reactions", "news_comments"
+  add_foreign_key "news_comment_reactions", "users"
+  add_foreign_key "news_comments", "news_comments", column: "parent_comment_id", on_delete: :cascade
   add_foreign_key "news_comments", "news_feeds"
   add_foreign_key "news_comments", "users"
   add_foreign_key "news_feed_reactions", "news_feeds"
   add_foreign_key "news_feed_reactions", "users"
   add_foreign_key "news_feed_translations", "news_feeds"
+  add_foreign_key "news_feed_views", "news_feeds"
+  add_foreign_key "news_feed_views", "specialties"
+  add_foreign_key "news_feed_views", "users"
   add_foreign_key "news_feeds", "articles"
   add_foreign_key "news_feeds", "specialties"
+  add_foreign_key "news_social_discovery_campaigns", "news_feeds"
+  add_foreign_key "notifications", "news_comments", on_delete: :nullify
   add_foreign_key "notifications", "news_feeds"
   add_foreign_key "notifications", "users"
   add_foreign_key "whatsapp_conversations", "internal_users", column: "resolved_by_user_id"

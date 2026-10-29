@@ -98,6 +98,41 @@
   </div>
 </header>
 
+<div style="margin:14px 0;">
+  <button type="button" id="teamContactsToggleBtn" class="btn-small" style="background:#6b7280;">👥 Ver/editar proveedores y equipos</button>
+  <div id="teamContactsPanel" style="display:none; margin-top:10px; padding:14px; border:1px solid #ddd; border-radius:6px; background:#fafafa;">
+    <div class="hint" style="margin-bottom:10px;">
+      Proveedores/equipos por país. "PagaFine" ON = entra en el script A7 (incentivo equipo) del país del proyecto. La generación de links para equipos externos usa TODOS los proveedores del país, tengan PagaFine ON o OFF.
+    </div>
+    <div id="teamContactsList"></div>
+    <div style="display:flex; gap:8px; align-items:flex-end; margin-top:12px; flex-wrap:wrap;">
+      <div>
+        <label for="teamContactNewPais" style="margin-top:0;">País</label>
+        <select id="teamContactNewPais"></select>
+      </div>
+      <div>
+        <label for="teamContactNewName" style="margin-top:0;">Proveedor</label>
+        <input type="text" id="teamContactNewName" placeholder="ej: MARIAROSA" style="text-transform:uppercase;">
+      </div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:0 0 8px;">
+        <input type="checkbox" id="teamContactNewPagaFine" checked> PagaFine
+      </label>
+      <button type="button" id="teamContactAddBtn" class="btn-small">➕ Agregar</button>
+    </div>
+    <div id="teamContactsError" style="color:#b00020; font-size:12px; margin-top:8px;"></div>
+  </div>
+
+  <button type="button" id="incentiveRatesToggleBtn" class="btn-small" style="background:#6b7280; margin-left:8px;">💰 Ver/editar incentivos por default</button>
+  <div id="incentiveRatesPanel" style="display:none; margin-top:10px; padding:14px; border:1px solid #ddd; border-radius:6px; background:#fafafa;">
+    <div class="hint" style="margin-bottom:10px;">
+      Valores por default de incentivo para panel (por moneda, según especialidad y duración) y del incentivo de equipo especial de Brasil. Un ajuste manual por proyecto ("Setear valores diferentes") sigue pisando estos valores para ese proyecto puntual -- esto solo cambia el default. Base compartida entre todos los usuarios.
+    </div>
+    <div id="incentiveRatesTables" style="overflow-x:auto;"></div>
+    <button type="button" id="incentiveRatesSaveBtn" class="btn-small" style="margin-top:8px;">💾 Guardar cambios</button>
+    <div id="incentiveRatesError" style="font-size:12px; margin-top:8px;"></div>
+  </div>
+</div>
+
 <div class="layout">
   <div class="panel">
     <label for="projectCode">Código de proyecto</label>
@@ -108,9 +143,18 @@
     <input type="text" id="forstaModeloId" placeholder="p774756690265">
     <div class="hint">ID del proyecto Forsta/Confirmit que se va a duplicar como base (siempre arranca con "p", ej: p774756690265). Importante: el usuario de la API (api_fineresearch) necesita tener acceso otorgado a este proyecto en Confirmit antes de duplicar — eso se hace a mano en Confirmit, no desde acá.</div>
 
+    <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:normal; text-transform:none; letter-spacing:0; margin:6px 0 6px;">
+      <input type="checkbox" id="overwriteModelCheck"> Aplicar ajustes en el mismo modelo en lugar de duplicar
+    </label>
+    <div class="hint" style="margin-bottom:14px;">Salta la duplicación: usa el ID de arriba como proyecto destino directamente. No genera una clave nueva (se preserva la que ya tiene el proyecto). Esta casilla nunca queda guardada tildada -- se resetea sola al guardar o al volver a entrar.</div>
+
     <label for="emailPm">Email del PM</label>
     <input type="text" id="emailPm" value="@fine-research.com">
     <div class="hint">Escribí el usuario antes de "@fine-research.com". Se usa en el Generador de Script (A8, alertas de calidad al DP).</div>
+
+    <label for="clientProjectName">Nombre del Proyecto para el cliente</label>
+    <input type="text" id="clientProjectName" placeholder="ej: spark">
+    <div class="hint">Se agrega al nombre del proyecto nuevo al duplicar (ej. código "FP-1234" + este nombre "spark" = "FP-1234 spark").</div>
 
     <label for="scriptTopico">Tópico</label>
     <select id="scriptTopico"></select>
@@ -234,11 +278,18 @@
 
     <button type="button" id="launchSetupBtn" class="btn-small" style="margin-top:14px;">🚀 Lanzar Set Up</button>
     <div id="launchSetupStatus" class="hint" style="margin-top:6px; white-space:pre-wrap; font-size:14px; font-weight:bold; color:#14415E;"></div>
-    <div class="hint" style="margin-top:2px;">Duplica el modelo, lo lanza, busca la clave, escribe "definiciones", aplica las cartas y, si la programación es externa, agrega el redirect y sube los links de cliente -- todo en una sola corrida.</div>
+    <div class="hint" style="margin-top:2px;">Duplica el modelo, lo lanza, busca la clave, escribe "definiciones", aplica las cartas, si la programación es externa agrega el redirect y sube los links de cliente, y genera los links para equipos externos (si hay algo cargado) -- todo en una sola corrida.</div>
 
     <label for="targetProjectId" style="margin-top:10px;">ID del proyecto destino (duplicado)</label>
     <input type="text" id="targetProjectId" placeholder="Se completa solo al Lanzar Set Up, o pegalo a mano">
     <div class="hint" style="margin-top:2px;">Se completa solo al lanzar -- pegalo a mano acá solo si querés apuntar a un proyecto ya existente.</div>
+
+    <button type="button" id="projectAnalysisBtn" class="btn-small" style="margin-top:6px; background:#6b7280;">📊 Análisis del Proyecto</button>
+    <div id="projectAnalysisPanel" style="display:none; margin-top:10px; padding:14px; border:1px solid #ddd; border-radius:6px; background:#fafafa;">
+      <div class="hint" style="margin-bottom:10px;">Solo lectura -- lee la base de respondents del proyecto de arriba (GetRespondents), no escribe nada.</div>
+      <div id="projectAnalysisContent"></div>
+      <div id="projectAnalysisError" style="color:#b00020; font-size:12px; margin-top:8px;"></div>
+    </div>
 
     <label for="projectKeyField" style="margin-top:10px;">Clave del proyecto</label>
     <input type="text" id="projectKeyField" placeholder="Se completa sola al Lanzar Set Up" readonly>
@@ -454,7 +505,13 @@ const CURRENCIES = {
 
 const HARD_SPECIALTY_KEYWORDS = ['oncolog', 'neurolog', 'urolog', 'hematolog'];
 
-const SUGGESTED_VALUE_TABLE = {
+// Valores iniciales de fallback (por si la base todavia no cargo o el
+// fetch fallo) -- loadIncentiveRates() los pisa con lo que haya en la base
+// compartida (tabla incentive_rates) al arrancar. "let" (no "const") para
+// poder reasignar los valores adentro sin tocar el resto del codigo que
+// referencia SUGGESTED_VALUE_TABLE.hard/.other. Pedido del usuario
+// 2026-09-10 (antes eran fijos en el codigo, sin forma de editarlos).
+let SUGGESTED_VALUE_TABLE = {
   hard: [
     { maxMinutes: 10, values: { 'R$': 50, 'MX$': 300, 'AR$': 15000, 'COL$': 60000, 'US$': 30, 'S/': 80, 'CL$': 30000, 'UY$': 1200 } },
     { maxMinutes: 15, values: { 'R$': 110, 'MX$': 400, 'AR$': 20000, 'COL$': 100000, 'US$': 30, 'S/': 80, 'CL$': 30000, 'UY$': 1200 } },
@@ -521,7 +578,8 @@ function getAnyHardSpecialtySelected() {
   });
 }
 
-const TEAM_INCENTIVE_TABLE_BRASIL = {
+// Idem SUGGESTED_VALUE_TABLE -- fallback inicial, pisado por loadIncentiveRates().
+let TEAM_INCENTIVE_TABLE_BRASIL = {
   easy: [
     { maxMinutes: 15, value: 170 },
     { maxMinutes: 25, value: 200 },
@@ -536,25 +594,173 @@ const TEAM_INCENTIVE_TABLE_BRASIL = {
   ],
 };
 
-const TEAM_CONTACTS = [
-  { name: 'LAURA', pais1RecCode: '3' },
-  { name: 'SABRINA', pais1RecCode: '3' },
-  { name: 'ELIANA', pais1RecCode: '1' },
-  { name: 'ROSE', pais1RecCode: '1' },
-  { name: 'TANIA', pais1RecCode: '1' },
-  { name: 'KELLY', pais1RecCode: '1' },
-  { name: 'GEOVANA', pais1RecCode: '1' },
-  { name: 'MAISA', pais1RecCode: '1' },
-  { name: 'TELMA', pais1RecCode: '1' },
-  { name: 'NADIA', pais1RecCode: '1' },
-  { name: 'NATALIA', pais1RecCode: '1' },
-  { name: 'MAGALY', pais1RecCode: '1' },
-  { name: 'MARIAROSA', pais1RecCode: '1' },
-  { name: 'SONIA', pais1RecCode: '5' },
-  { name: 'FLAVIA', pais1RecCode: '4' },
-  { name: 'PIVA', pais1RecCode: '2' },
-  { name: 'BRIZU', pais1RecCode: '1' },
-];
+const INCENTIVE_CURRENCIES = ['R$', 'MX$', 'AR$', 'COL$', 'US$', 'S/', 'CL$', 'UY$'];
+
+// Base compartida (tabla incentive_rates) para los valores de arriba --
+// misma motivacion que TeamContact: antes eran fijos en el codigo, sin
+// forma de editarlos ni compartir un ajuste entre usuarios. Se cargan al
+// arrancar (ver showAppContent) y pisan SUGGESTED_VALUE_TABLE/
+// TEAM_INCENTIVE_TABLE_BRASIL en el lugar -- el resto del codigo
+// (getSuggestedAmountForCurrency, buildIncentivoEquipoLines, etc) no se
+// entera del cambio, sigue leyendo esas mismas tablas. Pedido del usuario
+// 2026-09-10.
+let INCENTIVE_RATES = [];
+
+function loadIncentiveRates() {
+  return postJson('/internal/fine_panel_setup/incentive_rates_list', {}).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    INCENTIVE_RATES = result.data.rates.map(function (r) {
+      return { category: r.category, maxMinutes: r.max_minutes, currency: r.currency || '', value: parseFloat(r.value) };
+    });
+    applyIncentiveRatesToTables();
+    renderIncentiveRatesPanel();
+  }).catch(function (err) {
+    console.error('No se pudieron cargar los incentivos por default:', err.message);
+  });
+}
+
+// Si la base no trae algun valor puntual (no deberia pasar salvo problema
+// de seed), se conserva el fallback hardcodeado en vez de dejarlo en
+// blanco/0.
+function applyIncentiveRatesToTables() {
+  ['hard', 'other'].forEach(function (category) {
+    SUGGESTED_VALUE_TABLE[category].forEach(function (band) {
+      INCENTIVE_CURRENCIES.forEach(function (currency) {
+        const found = INCENTIVE_RATES.find(function (r) {
+          return r.category === category && r.maxMinutes === band.maxMinutes && r.currency === currency;
+        });
+        if (found) band.values[currency] = found.value;
+      });
+    });
+  });
+
+  [['easy', 'brasil_easy'], ['hardOrNational', 'brasil_hard_or_national']].forEach(function (pair) {
+    const key = pair[0];
+    const category = pair[1];
+    TEAM_INCENTIVE_TABLE_BRASIL[key].forEach(function (band) {
+      const found = INCENTIVE_RATES.find(function (r) { return r.category === category && r.maxMinutes === band.maxMinutes; });
+      if (found) band.value = found.value;
+    });
+  });
+}
+
+// Pinta las 3 tablas editables del panel (ver #incentiveRatesPanel) a
+// partir de SUGGESTED_VALUE_TABLE/TEAM_INCENTIVE_TABLE_BRASIL (ya
+// actualizadas por applyIncentiveRatesToTables). Cada <input> lleva
+// data-category/data-max-minutes/data-currency para que el boton "Guardar
+// cambios" pueda juntarlos todos y mandarlos en un solo POST.
+function renderIncentiveRatesPanel() {
+  const container = document.getElementById('incentiveRatesTables');
+  if (!container) return;
+
+  function buildCurrencyTable(title, category, bands) {
+    let html = '<div style="margin-bottom:14px;"><div style="font-weight:bold; font-size:13px; margin-bottom:4px;">' + title + '</div>';
+    html += '<table style="border-collapse:collapse; font-size:12px;"><thead><tr><th style="padding:3px 6px; text-align:left;">Hasta (min)</th>';
+    INCENTIVE_CURRENCIES.forEach(function (c) { html += '<th style="padding:3px 6px;">' + c + '</th>'; });
+    html += '</tr></thead><tbody>';
+    bands.forEach(function (band) {
+      html += '<tr><td style="padding:3px 6px;">' + band.maxMinutes + '</td>';
+      INCENTIVE_CURRENCIES.forEach(function (c) {
+        html += '<td style="padding:3px 6px;"><input type="number" step="any" value="' + band.values[c] +
+          '" data-category="' + category + '" data-max-minutes="' + band.maxMinutes + '" data-currency="' + c + '" style="width:80px;"></td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  function buildBrasilTable() {
+    const easyByMinutes = {};
+    TEAM_INCENTIVE_TABLE_BRASIL.easy.forEach(function (b) { easyByMinutes[b.maxMinutes] = b.value; });
+    let html = '<div style="margin-bottom:14px;"><div style="font-weight:bold; font-size:13px; margin-bottom:4px;">Incentivo equipo Brasil</div>';
+    html += '<table style="border-collapse:collapse; font-size:12px;"><thead><tr><th style="padding:3px 6px; text-align:left;">Hasta (min)</th><th style="padding:3px 6px;">Fácil</th><th style="padding:3px 6px;">Difícil / Nacional</th></tr></thead><tbody>';
+    TEAM_INCENTIVE_TABLE_BRASIL.hardOrNational.forEach(function (band) {
+      html += '<tr><td style="padding:3px 6px;">' + band.maxMinutes + '</td>' +
+        '<td style="padding:3px 6px;"><input type="number" step="any" value="' + easyByMinutes[band.maxMinutes] +
+        '" data-category="brasil_easy" data-max-minutes="' + band.maxMinutes + '" data-currency="" style="width:80px;"></td>' +
+        '<td style="padding:3px 6px;"><input type="number" step="any" value="' + band.value +
+        '" data-category="brasil_hard_or_national" data-max-minutes="' + band.maxMinutes + '" data-currency="" style="width:80px;"></td></tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  container.innerHTML =
+    buildCurrencyTable('Panel — especialidades "difíciles" (oncología, neurología, urología, hematología)', 'hard', SUGGESTED_VALUE_TABLE.hard) +
+    buildCurrencyTable('Panel — resto de especialidades', 'other', SUGGESTED_VALUE_TABLE.other) +
+    buildBrasilTable();
+}
+
+// Antes era un array fijo -- ahora se carga de una tabla real (TeamContact,
+// endpoint /team_contacts) para que se pueda editar (agregar/borrar
+// proveedores) desde la UI y quede compartido entre todos los usuarios sin
+// perderse en cada deploy (decision del usuario, 2026-09-09). Se llena via
+// loadTeamContacts() al arrancar la app (ver showAppContent).
+let TEAM_CONTACTS = [];
+
+function loadTeamContacts() {
+  return postJson('/internal/fine_panel_setup/team_contacts_list', {}).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    TEAM_CONTACTS = result.data.contacts.map(function (c) {
+      return { id: c.id, name: c.name, pais1RecCode: c.pais1_rec_code, pagaFine: !!c.paga_fine };
+    });
+    renderTeamContactsPanel();
+  }).catch(function (err) {
+    console.error('No se pudieron cargar los proveedores/equipos:', err.message);
+  });
+}
+
+// Pinta la tabla del panel de proveedores/equipos (ver #teamContactsPanel) y
+// el <select> de pais del mini-formulario de alta -- se llama cada vez que
+// TEAM_CONTACTS cambia (carga inicial, alta, baja).
+function renderTeamContactsPanel() {
+  const list = document.getElementById('teamContactsList');
+  if (!list) return;
+
+  if (TEAM_CONTACTS.length === 0) {
+    list.innerHTML = '<div class="hint">No hay proveedores cargados todavía.</div>';
+  } else {
+    const rows = TEAM_CONTACTS.map(function (c) {
+      const country = findCountryByPais1Code(c.pais1RecCode);
+      const countryLabel = country ? country.label : ('País ' + c.pais1RecCode);
+      return '<tr>' +
+        '<td style="padding:4px 8px;">' + countryLabel + '</td>' +
+        '<td style="padding:4px 8px;">' + c.name + '</td>' +
+        '<td style="padding:4px 8px;">' + (c.pagaFine ? 'ON' : 'OFF') + '</td>' +
+        '<td style="padding:4px 8px;"><button type="button" class="btn-small teamContactDeleteBtn" data-id="' + c.id + '" style="background:#b00020; padding:2px 8px; font-size:12px;">Borrar</button></td>' +
+        '</tr>';
+    }).join('');
+    list.innerHTML = '<table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr>' +
+      '<th style="text-align:left; padding:4px 8px;">País</th><th style="text-align:left; padding:4px 8px;">Proveedor</th>' +
+      '<th style="text-align:left; padding:4px 8px;">PagaFine</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+    list.querySelectorAll('.teamContactDeleteBtn').forEach(function (btn) {
+      btn.addEventListener('click', function () { deleteTeamContact(btn.dataset.id); });
+    });
+  }
+
+  const paisSelect = document.getElementById('teamContactNewPais');
+  if (paisSelect && paisSelect.options.length === 0) {
+    SCRIPT_COUNTRIES.forEach(function (c) {
+      const opt = document.createElement('option');
+      opt.value = c.pais1Code;
+      opt.textContent = c.label;
+      paisSelect.appendChild(opt);
+    });
+  }
+}
+
+function deleteTeamContact(id) {
+  if (!confirm('¿Borrar este proveedor/equipo?')) return;
+
+  postJson('/internal/fine_panel_setup/team_contacts_destroy', { id: id }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    return loadTeamContacts();
+  }).catch(function (err) {
+    document.getElementById('teamContactsError').textContent = 'Error: ' + err.message;
+  });
+}
 
 // Codigos de 3 letras (ISO 3166-1 alpha-3) usados solo para el modo "link
 // generico" de la carga de links de cliente: ID generado = codigo + 4 digitos
@@ -680,20 +886,20 @@ const PROGRAMACION_LABELS = {
 };
 
 const CLIENT_CODES = [
-  { code: '34', label: 'EXCEL FIELDWORK / A+A' },
+  { code: '34', label: 'EXCEL FIELDWORK' },
   { code: '45', label: 'IMS - IQVIA' },
-  { code: '47', label: 'IPSOS / FIELDWORK INTERNATIONAL' },
+  { code: '47', label: 'Ipsos' },
   { code: '50', label: 'KANTAR HEALTH' },
   { code: '53', label: 'M3' },
   { code: '55', label: 'M360 ex MANTHAN SERVICES PVT LTD' },
-  { code: '56', label: 'MEDEFIELD/DOCTOR GUIDE/PSL' },
-  { code: '67', label: 'RECKNER / J RECKNER ASSOCIATES INC' },
+  { code: '56', label: 'MEDEFIELD' },
+  { code: '67', label: 'RECKNER' },
   { code: '76', label: 'THE RESEARCH PARTNERSHIP LTD' },
   { code: '79', label: 'TRILATIONS NV' },
-  { code: '80', label: 'SERMO / ex WORLD ONE' },
+  { code: '80', label: 'SERMO' },
   { code: '81', label: 'ZS Associates' },
-  { code: '82', label: 'Sago / ex Schelsinger' },
-  { code: '83', label: 'Survey Healthcare Global / SHG / Apollo / In CRowd' },
+  { code: '82', label: 'Sago' },
+  { code: '83', label: 'Konovo' },
   { code: '84', label: 'ALL GLOBAL' },
   { code: '85', label: 'P&G' },
   { code: '96', label: 'Atlas Primary' },
@@ -969,6 +1175,10 @@ function buildIncentivoEquipoLines(selected) {
   const lines = ['f("incentivoequipovalor").set(0)', ''];
   TEAM_CONTACTS.forEach(function (contact) {
     if (selectedPais1Codes.indexOf(contact.pais1RecCode) === -1) return;
+    // Solo entran al A7 los proveedores con PagaFine=ON -- para la
+    // generacion de links de equipos externos entran todos (ver
+    // getProvidersForCountry). Decision del usuario, 2026-09-09.
+    if (!contact.pagaFine) return;
 
     let value;
     if (isFicha) {
@@ -1224,11 +1434,35 @@ function renderScript() {
   updateClientLinksPanel();
 }
 
-// Mismo orden/formula que buildPrimerIdLines (A11): bloques de 500 sin
-// superponer, en el orden de los países seleccionados.
+// Cantidad de IDs/links reservados para el panel de cada pais -- 500 por
+// default, pero el usuario puede pedir otra cantidad (checkbox "Modificar
+// cantidad..." en el bloque del pais, ver updateClientLinksPanel), hasta
+// 9999 (limite para mantener el formato de 4 digitos de los IDs
+// fabricados, ver generateGenericLinkRows). Se guarda aca aparte del DOM
+// porque updateClientLinksPanel() reconstruye el HTML de cero en cada
+// render (renderScript se llama en casi cualquier tecleo del formulario) --
+// sin esto el valor personalizado se perderia en el proximo render.
+// Pedido del usuario 2026-09-10.
+const DEFAULT_PANEL_COUNT = 500;
+const countryPanelCountOverrides = {};
+
+function getCountryPanelCount(country) {
+  const override = countryPanelCountOverrides[country.code];
+  return (override && override >= 1) ? Math.min(override, 9999) : DEFAULT_PANEL_COUNT;
+}
+
+// Bloques consecutivos, en el orden de los países seleccionados -- el
+// primerId de cada país arranca justo donde termina la cantidad reservada
+// del anterior (ver getCountryPanelCount). Antes era un bloque fijo de 500
+// por país; con la cantidad personalizable (hasta 9999) un país que
+// reserva más de 500 invadiría el bloque del siguiente si el espaciado
+// quedara fijo -- recálculo automático pedido por el usuario 2026-09-10.
 function computeCountryPrimerIds() {
-  return getSelectedScriptCountries().map(function (country, index) {
-    return { country: country, primerId: index * 500 + 1 };
+  let nextPrimerId = 1;
+  return getSelectedScriptCountries().map(function (country) {
+    const primerId = nextPrimerId;
+    nextPrimerId += getCountryPanelCount(country);
+    return { country: country, primerId: primerId };
   });
 }
 
@@ -1276,9 +1510,49 @@ function parseClientLinksFile(text) {
   }).filter(function (row) { return row.id && row.link; });
 }
 
+// Linea C4 ("if(f('Pais')==...) {f('primerid').set(...);}") para UN pais --
+// mismo formato que buildPrimerIdLinesText, para poder agregar/actualizar
+// solo la linea de este pais sin regenerar el bloque entero (ver
+// merged_primerid_lines en el backend).
+function buildPrimerIdLineForCountry(country, primerId) {
+  return 'if(f(\'Pais\')=="' + country.pais1Code + '") {f("primerid").set("' + primerId + '");}  // ' + country.label;
+}
+
+// Determina el primerId REAL a usar para este pais, leyendo lo que ya hay
+// en listadeids (ver client_links_status) en vez de confiar en el calculo
+// por formula (computeCountryPrimerIds), que asume que el orden de paises
+// tildados hoy coincide con el que se uso originalmente -- no es cierto si
+// se agrega un pais nuevo a un proyecto YA lanzado. Regla: si alguno de los
+// IDs que se estan por subir YA existe en la base (resubida de un pais que
+// ya tiene links), se reusa el bloque de 500 que ya ocupa (para
+// reemplazarlo en su lugar); si no, se usa el proximo bloque libre despues
+// del mas alto ocupado. Pedido del usuario 2026-09-14.
+function determineActualPrimerId(rows, existingIds, nextPrimerId, blockSize) {
+  const existingPrecodeByLabel = {};
+  existingIds.forEach(function (e) { existingPrecodeByLabel[e.label] = parseInt(e.precode, 10); });
+
+  const matches = rows
+    .map(function (r) { return existingPrecodeByLabel[r.id]; })
+    .filter(function (p) { return p !== undefined && !isNaN(p); });
+
+  if (matches.length === 0) return nextPrimerId;
+
+  const minPrecode = Math.min.apply(null, matches);
+  return Math.floor((minPrecode - 1) / blockSize) * blockSize + 1;
+}
+
 // Nucleo compartido por los dos modos de carga (archivo .txt y link
-// generico) -- valida y manda el POST, actualiza el log del pais.
-function submitCountryLinks(country, primerId, rows) {
+// generico). Pensado tanto para el lanzamiento inicial como para agregar un
+// pais a un proyecto YA lanzado (pedido del usuario 2026-09-14): no borra
+// nada (ver upload_country_links, ya es aditivo por pais), determina el
+// primerId real leyendo la base en vivo (ver determineActualPrimerId),
+// sube el bloque del panel, agrega/actualiza la linea de "definiciones"
+// para este pais (sin tocar las de los demas), y por ultimo genera los
+// links de equipos externos de la MISMA tanda -- ver
+// generateExternalTeamLinksForCountry. mode: 'uploaded' (archivo real de
+// cliente) o 'unique' (link generico, IDs fabricados) -- define como arma
+// buildExternalTeamRows los extras.
+function submitCountryLinks(country, rows, mode, genericLinkBase) {
   const projectId = document.getElementById('targetProjectId').value.trim();
   if (!projectId) {
     appendClientLinksLog(country.code, 'Completá el "ID del proyecto destino" (arriba) antes de subir.');
@@ -1288,29 +1562,61 @@ function submitCountryLinks(country, primerId, rows) {
     appendClientLinksLog(country.code, 'No hay filas válidas para subir.');
     return;
   }
-  if (rows.length > 500) {
-    appendClientLinksLog(country.code, 'Hay ' + rows.length + ' filas -- el máximo es 500 por país.');
-    return;
-  }
 
-  appendClientLinksLog(country.code, 'Subiendo ' + rows.length + ' links (bloque desde ' + primerId + ')...');
+  const panelCount = getCountryPanelCount(country);
 
-  postJson('/internal/fine_panel_setup/upload_client_links', {
-    project_id: projectId,
-    primer_id: primerId,
-    rows: rows,
-  }).then(function (result) {
-    if (!result.data.ok) {
-      appendClientLinksLog(country.code, 'Error: ' + result.data.error);
-      return;
+  appendClientLinksLog(country.code, 'Chequeando estado actual de listadeids...');
+
+  postJson('/internal/fine_panel_setup/client_links_status', { project_id: projectId }).then(function (statusResult) {
+    if (!statusResult.data.ok) throw new Error(statusResult.data.error);
+
+    const primerId = determineActualPrimerId(rows, statusResult.data.existing_ids, statusResult.data.next_primer_id, 500);
+
+    const panelRows = rows.slice(0, panelCount);
+    if (rows.length > panelCount) {
+      appendClientLinksLog(country.code, 'Hay ' + rows.length + ' filas -- las primeras ' + panelCount + ' van al panel, el resto (' + (rows.length - panelCount) + ') se reparte entre equipos externos.');
     }
-    appendClientLinksLog(country.code, 'Listo -- ' + result.data.added + ' links cargados (' + result.data.removed + ' anteriores reemplazados).');
+
+    appendClientLinksLog(country.code, 'Subiendo ' + panelRows.length + ' links al panel (bloque desde ' + primerId + ')...');
+
+    return postJson('/internal/fine_panel_setup/upload_client_links', {
+      project_id: projectId,
+      primer_id: primerId,
+      rows: panelRows,
+    }).then(function (result) {
+      if (!result.data.ok) throw new Error(result.data.error);
+      appendClientLinksLog(country.code, 'Panel listo -- ' + result.data.added + ' links cargados (' + result.data.removed + ' anteriores reemplazados).');
+
+      appendClientLinksLog(country.code, 'Agregando la línea de ' + country.label + ' en "definiciones"...');
+      return postJson('/internal/fine_panel_setup/write_definitions', {
+        project_id: projectId,
+        generated_script: buildScriptOutput(),
+        append_primerid_line: buildPrimerIdLineForCountry(country, primerId),
+      });
+    }).then(function (result) {
+      if (!result.data.ok) throw new Error(result.data.error);
+      appendClientLinksLog(country.code, '"definiciones" actualizado.');
+
+      return generateExternalTeamLinksForCountry(projectId, country, primerId, mode, rows, function (line) {
+        appendClientLinksLog(country.code, line);
+      }, genericLinkBase, panelCount);
+    }).then(function () {
+      // Los cambios a listadeids/listadelinks y "definiciones" se compilan
+      // recien en el Launch (confirmado con los logs de tareas de Forsta,
+      // 2026-09-12: "Generating code.../Compiling code...") -- sin
+      // relanzar, el pais nuevo puede quedar escrito pero no en vivo.
+      appendClientLinksLog(country.code, 'Relanzando el proyecto para publicar los cambios...');
+      return postJson('/internal/fine_panel_setup/launch', { project_id: projectId });
+    }).then(function (result) {
+      if (!result.data.ok) throw new Error(result.data.error);
+      appendClientLinksLog(country.code, 'Proyecto relanzado (TaskID ' + result.data.task_id + ', estado: ' + result.data.status + '). ' + country.label + ' listo.');
+    });
   }).catch(function (err) {
-    appendClientLinksLog(country.code, 'Error de red: ' + err.message);
+    appendClientLinksLog(country.code, 'Error: ' + err.message);
   });
 }
 
-function uploadCountryLinksFile(country, primerId, fileInput) {
+function uploadCountryLinksFile(country, fileInput) {
   const file = fileInput.files[0];
   if (!file) {
     appendClientLinksLog(country.code, 'Elegí un archivo .txt primero.');
@@ -1324,7 +1630,7 @@ function uploadCountryLinksFile(country, primerId, fileInput) {
       appendClientLinksLog(country.code, 'No se encontraron filas válidas (ID + Link) en el archivo.');
       return;
     }
-    submitCountryLinks(country, primerId, rows);
+    submitCountryLinks(country, rows, 'uploaded');
   };
   reader.readAsText(file, 'UTF-8');
 }
@@ -1333,23 +1639,214 @@ function uploadCountryLinksFile(country, primerId, fileInput) {
 // pegado directo despues -- generamos los 500 IDs (codigo de 3 letras +
 // 4 digitos, ej. BRA0001..BRA0500) y sus links (link generico + ID),
 // sin pedir ningun archivo. Confirmado con el usuario 2026-08-26.
-function generateGenericLinkRows(countryCode, genericLink) {
+function generateGenericLinkRows(countryCode, genericLink, count) {
   const iso3 = COUNTRY_ISO3_CODES[countryCode] || countryCode;
+  const n = count || DEFAULT_PANEL_COUNT;
   const rows = [];
-  for (let i = 1; i <= 500; i++) {
+  for (let i = 1; i <= n; i++) {
     const id = iso3 + String(i).padStart(4, '0');
     rows.push({ id: id, link: genericLink + id });
   }
   return rows;
 }
 
-function uploadCountryGenericLink(country, primerId, genericLinkInput) {
+// --- Links para equipos externos (2026-09-08) ---
+// Los proveedores/equipos por pais son los mismos que ya usa el A6
+// (incentivo por equipo, TEAM_CONTACTS) -- si un pais no tiene ninguno
+// definido ahi, se genera un solo set usando el nombre del pais como
+// proveedor (confirmado con el usuario).
+function normalizeProviderName(name) {
+  return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function getProvidersForCountry(country) {
+  const known = TEAM_CONTACTS.filter(function (c) { return c.pais1RecCode === country.pais1Code; }).map(function (c) { return c.name; });
+  return known.length > 0 ? known : [normalizeProviderName(country.label)];
+}
+
+// Bloques de 500 IDs por proveedor, corridos +1000 respecto al primerId del
+// panel de ese pais (ej. panel BR1-BR500, proveedor 1 BR1001-BR1500,
+// proveedor 2 BR1501-BR2000...). Confirmado con el usuario 2026-09-08.
+const EXTERNAL_TEAM_ID_OFFSET = 1000;
+const EXTERNAL_TEAM_BLOCK_SIZE = 500;
+
+// Si el pais reservo mas de 1000 casos para el panel (cantidad
+// personalizada, ver getCountryPanelCount -- hasta 9999), el offset fijo de
+// siempre (+1000) invadiria esos IDs. Se redondea hacia arriba al proximo
+// millar para mantener la convencion de "IDs redondos" para equipos
+// externos y evitar la colision. Con el default de 500 da exactamente el
+// mismo +1000 de siempre (sin cambios de comportamiento). Pedido del
+// usuario 2026-09-10.
+function externalBlockOffsetFor(panelCount) {
+  const count = panelCount || DEFAULT_PANEL_COUNT;
+  return Math.max(EXTERNAL_TEAM_ID_OFFSET, Math.ceil(count / EXTERNAL_TEAM_ID_OFFSET) * EXTERNAL_TEAM_ID_OFFSET);
+}
+
+// Arma las filas a escribir en Confirmit (via append_respondents) para los
+// equipos externos de un pais. Dos modos, mismo criterio que el resto del
+// wizard para decidir cual aplica (link generico vs archivo subido):
+// - "unique": IDs fabricados nuevos (bloques de 500 por proveedor).
+// - "uploaded": uploadedRows es TODO lo que se subio para ese pais: las
+//   primeras 500 quedan para el panel (ver stepUploadClientLinksIfAny), el
+//   resto (si hay) se reparte en partes iguales entre los proveedores.
+// clientlink/clientlinkid arrancan con un valor provisorio -- el link
+// definitivo (con &l=/&contacto=) se pisa despues en
+// generateExternalTeamLinksForCountry, una vez que Confirmit genera el
+// "surveylink" real de cada fila nueva.
+// runToken: sufijo que identifica esta corrida puntual (ver
+// generateExternalTeamLinksForCountry) -- sin esto "email2" saldria
+// determinístico (mismo pais+samplenumber+id siempre arma el mismo valor),
+// y un reintento sobre el mismo proyecto chocaria con las filas que ya
+// insertamos la vez anterior ("Specified key 'email2' is not unique",
+// confirmado 2026-09-08). Con el token, un reintento simplemente agrega
+// filas nuevas en vez de chocar -- las viejas quedan (inofensivas, se
+// identifican por el token viejo en email2).
+// genericLinkBase: SOLO para mode 'unique' -- el mismo link generico que el
+// pais tiene cargado para el panel (ver clientLinksGenericInput_<codigo>).
+// clientlink de cada fila nueva se arma igual que las del panel
+// (generateGenericLinkRows): genericLinkBase + id. Antes se mandaba el id
+// pelado como clientlink por no tener este valor a mano -- corregido
+// 2026-09-09 (el usuario esperaba el link real ahi, no el id repetido).
+function buildExternalTeamRows(country, primerId, mode, uploadedRows, runToken, genericLinkBase, panelCount) {
+  const providers = getProvidersForCountry(country);
+  const samplenumber = String(1000 + parseInt(country.pais1Code, 10));
+  const rows = [];
+  // mode 'no_client_link': proyectos "Fine en Confirmit" (ver
+  // scriptProgramacion) no usan client links en absoluto -- no hay
+  // clientlink/clientlinkid que subir, solo equipo/equipopais/equipolink.
+  // Pedido del usuario 2026-09-10.
+  const includeClientLink = mode !== 'no_client_link';
+
+  // NOTA: la causa real del bug de campos en blanco NO era el orden de
+  // estas propiedades (esa fue una hipotesis descartada) -- el alta
+  // (append_respondents) siempre escribio estos campos bien. El problema
+  // estaba en el UPDATE posterior (ver mas abajo en
+  // generateExternalTeamLinksForCountry), que solo mandaba respid+equipolink
+  // y Confirmit trataba eso como "asi queda la fila completa", borrando el
+  // resto. Se mantiene igual el orden (coincide con el xs:sequence del
+  // schema) por prolijidad, no porque sea necesario.
+  function pushRow(id, link, provider) {
+    const row = {
+      samplenumber: samplenumber,
+      equipo: provider,
+      email2: 'ext-' + country.code + '-' + samplenumber + '-' + id + '-' + runToken,
+      equipopais: country.label,
+    };
+    if (includeClientLink) {
+      row.clientlink = link;
+      row.clientlinkid = id;
+    }
+    rows.push(row);
+  }
+
+  if (mode === 'unique' || mode === 'no_client_link') {
+    const idOffset = mode === 'no_client_link' ? EXTERNAL_TEAM_ID_OFFSET : externalBlockOffsetFor(panelCount);
+    providers.forEach(function (provider, providerIndex) {
+      const blockStart = primerId + idOffset + providerIndex * EXTERNAL_TEAM_BLOCK_SIZE;
+      for (let i = 0; i < EXTERNAL_TEAM_BLOCK_SIZE; i++) {
+        const id = country.code + (blockStart + i);
+        pushRow(id, genericLinkBase + id, provider);
+      }
+    });
+    return rows;
+  }
+
+  const extra = uploadedRows.slice(panelCount || DEFAULT_PANEL_COUNT);
+  if (extra.length === 0) return rows;
+
+  const perProvider = Math.floor(extra.length / providers.length);
+  if (perProvider === 0) return rows;
+
+  providers.forEach(function (provider, providerIndex) {
+    const start = providerIndex * perProvider;
+    extra.slice(start, start + perProvider).forEach(function (row) {
+      pushRow(row.id, row.link, provider);
+    });
+  });
+
+  return rows;
+}
+
+function langCodeForCountry(country) {
+  return country.lang === 'pt' ? '1046' : '2058';
+}
+
+// Escribe en Confirmit los links de equipos externos de un pais, en dos
+// pasos bien distintos (confirmado por el usuario 2026-09-08 -- alta y
+// update NO son lo mismo en este servicio):
+// 1. ALTA (append_respondents): inserta las filas nuevas. No depende de
+//    ningun campo unico -- Confirmit asigna un respid nuevo a cada una.
+// 2. UPDATE (update_respondent_links): una vez insertadas, se lee de vuelta
+//    con GetRespondents (GenerateSurveyLink=true) para obtener el respid
+//    real y el "surveylink" que genero Confirmit por fila, se arma el link
+//    final (surveylink + "&l="+idioma + "&contacto="+proveedor), y se
+//    escribe en un campo APARTE, "equipolink" -- "clientlink"/"clientlinkid"
+//    quedan intactos con el link/ID original del cliente, no se pisan
+//    (decision del usuario 2026-09-08). Se identifica cada fila por su
+//    respid (el unico campo genuinamente unico -- "email2" NO sirve como
+//    uniqueKey para esto).
+// Asi, cuando el usuario exporte despues desde Forsta (Respondents >
+// Export...), "equipolink" ya tiene el link listo para cada proveedor -- no
+// armamos tabla de descarga propia. Se corre SIEMPRE junto con la subida de
+// links al panel (mismo dato de entrada), sin checkbox.
+function generateExternalTeamLinksForCountry(projectId, country, primerId, mode, sourceRows, logFn, genericLinkBase, panelCount) {
+  const runToken = Date.now().toString(36);
+  const rows = buildExternalTeamRows(country, primerId, mode, sourceRows, runToken, genericLinkBase, panelCount);
+  if (rows.length === 0) {
+    logFn('Equipos externos ' + country.label + ': no hay links extra para generar.');
+    return Promise.resolve(0);
+  }
+
+  logFn('Generando ' + rows.length + ' links de equipos externos para ' + country.label + '...');
+
+  return postJson('/internal/fine_panel_setup/append_respondents', { project_id: projectId, rows: rows })
+    .then(function (result) {
+      if (!result.data.ok) throw new Error(result.data.error);
+      return postJson('/internal/fine_panel_setup/read_respondents_links', { project_id: projectId });
+    })
+    .then(function (result) {
+      if (!result.data.ok) throw new Error(result.data.error);
+
+      const byEmail2 = {};
+      result.data.rows.forEach(function (r) { byEmail2[r.email2] = r; });
+
+      const langCode = langCodeForCountry(country);
+      // OJO: hay que reenviar TODOS los campos de la fila (no solo respid +
+      // equipolink) -- confirmado 2026-09-09 via logging que el alta escribe
+      // todo bien (samplenumber/equipo/email2/clientlink/clientlinkid/
+      // equipopais quedan perfectos), pero un update marcado
+      // diffgr:hasChanges="modified" con SOLO esos dos campos hace que
+      // Confirmit trate esa fila como "asi queda completa" y borra el resto.
+      const updateRows = rows.map(function (row) {
+        const fetched = byEmail2[row.email2];
+        if (!fetched || !fetched.respid) return null;
+
+        if (!fetched.SurveyLink) return null;
+
+        const equipoLink = fetched.SurveyLink + '&l=' + langCode + '&contacto=' + row.equipo;
+        return Object.assign({}, row, { respid: fetched.respid, equipolink: equipoLink });
+      }).filter(Boolean);
+
+      if (updateRows.length === 0) {
+        throw new Error('No se encontraron las filas recien insertadas al releer el proyecto.');
+      }
+
+      return postJson('/internal/fine_panel_setup/update_respondent_links', { project_id: projectId, rows: updateRows });
+    })
+    .then(function (result) {
+      if (!result.data.ok) throw new Error(result.data.error);
+      logFn('Links de equipos externos de ' + country.label + ' listos (' + rows.length + ').');
+      return rows.length;
+    });
+}
+
+function uploadCountryGenericLink(country, genericLinkInput) {
   const genericLink = genericLinkInput.value.trim();
   if (!genericLink) {
     appendClientLinksLog(country.code, 'Escribí el link genérico primero.');
     return;
   }
-  submitCountryLinks(country, primerId, generateGenericLinkRows(country.code, genericLink));
+  submitCountryLinks(country, generateGenericLinkRows(country.code, genericLink, getCountryPanelCount(country)), 'unique', genericLink);
 }
 
 function updateClientLinksPanel() {
@@ -1360,7 +1857,8 @@ function updateClientLinksPanel() {
   entries.forEach(function (entry) {
     const country = entry.country;
     const primerId = entry.primerId;
-    const blockEnd = primerId + 499;
+    const panelCount = getCountryPanelCount(country);
+    const blockEnd = primerId + panelCount - 1;
     const iso3 = COUNTRY_ISO3_CODES[country.code] || country.code;
 
     const wrapper = document.createElement('div');
@@ -1370,6 +1868,43 @@ function updateClientLinksPanel() {
     label.style.cssText = 'font-size:13px; font-weight:bold; margin-bottom:6px;';
     label.textContent = country.label + ' — IDs esperados ' + primerId + ' a ' + blockEnd;
     wrapper.appendChild(label);
+
+    // Cantidad reservada para panel -- 500 por default, editable (ver
+    // getCountryPanelCount/countryPanelCountOverrides). El re-render
+    // completo en 'change' es necesario para recalcular el primerId de los
+    // paises siguientes (computeCountryPrimerIds es acumulativo) y su
+    // rango mostrado -- mismo patron de re-render que ya usa el resto del
+    // wizard (renderScript corre en casi cualquier tecleo del formulario).
+    const panelCountCheckLabel = document.createElement('label');
+    panelCountCheckLabel.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:12px; font-weight:normal; text-transform:none; letter-spacing:0; margin:0 0 6px;';
+    const panelCountCheck = document.createElement('input');
+    panelCountCheck.type = 'checkbox';
+    panelCountCheck.checked = Object.prototype.hasOwnProperty.call(countryPanelCountOverrides, country.code);
+    panelCountCheck.style.width = 'auto';
+    panelCountCheckLabel.appendChild(panelCountCheck);
+    panelCountCheckLabel.appendChild(document.createTextNode('Modificar cantidad de links reservados para panel (default 500)'));
+    wrapper.appendChild(panelCountCheckLabel);
+
+    const panelCountInput = document.createElement('input');
+    panelCountInput.type = 'number';
+    panelCountInput.min = '1';
+    panelCountInput.max = '9999';
+    panelCountInput.value = String(panelCount);
+    panelCountInput.style.cssText = 'width:100px; margin-bottom:8px; display:' + (panelCountCheck.checked ? 'inline-block' : 'none') + ';';
+    wrapper.appendChild(panelCountInput);
+
+    panelCountCheck.addEventListener('change', function () {
+      if (panelCountCheck.checked) {
+        countryPanelCountOverrides[country.code] = parseInt(panelCountInput.value, 10) || DEFAULT_PANEL_COUNT;
+      } else {
+        delete countryPanelCountOverrides[country.code];
+      }
+      updateClientLinksPanel();
+    });
+    panelCountInput.addEventListener('change', function () {
+      countryPanelCountOverrides[country.code] = Math.max(1, Math.min(9999, parseInt(panelCountInput.value, 10) || DEFAULT_PANEL_COUNT));
+      updateClientLinksPanel();
+    });
 
     const genericCheckLabel = document.createElement('label');
     genericCheckLabel.style.cssText = 'display:flex; align-items:center; gap:6px; font-size:12px; font-weight:normal; text-transform:none; letter-spacing:0; margin:0 0 8px;';
@@ -1396,7 +1931,7 @@ function updateClientLinksPanel() {
     fileBtn.style.marginLeft = '8px';
     fileBtn.textContent = '📤 Subir ' + country.label;
     fileBtn.addEventListener('click', function () {
-      uploadCountryLinksFile(country, primerId, fileInput);
+      uploadCountryLinksFile(country, fileInput);
     });
     fileModeDiv.appendChild(fileBtn);
     wrapper.appendChild(fileModeDiv);
@@ -1408,7 +1943,7 @@ function updateClientLinksPanel() {
     const genericHint = document.createElement('div');
     genericHint.className = 'hint';
     genericHint.style.marginBottom = '4px';
-    genericHint.textContent = 'Se generan 500 IDs (' + iso3 + '0001 a ' + iso3 + '0500) y sus links (link genérico + ID).';
+    genericHint.textContent = 'Se generan ' + panelCount + ' IDs (' + iso3 + '0001 a ' + iso3 + String(panelCount).padStart(4, '0') + ') y sus links (link genérico + ID).';
     genericModeDiv.appendChild(genericHint);
     const genericInput = document.createElement('input');
     genericInput.type = 'text';
@@ -1421,7 +1956,7 @@ function updateClientLinksPanel() {
     genericBtn.style.marginTop = '6px';
     genericBtn.textContent = '📤 Generar y subir ' + country.label;
     genericBtn.addEventListener('click', function () {
-      uploadCountryGenericLink(country, primerId, genericInput);
+      uploadCountryGenericLink(country, genericInput);
     });
     genericModeDiv.appendChild(genericBtn);
     wrapper.appendChild(genericModeDiv);
@@ -2577,8 +3112,8 @@ const EMAIL_EXISTING_NAMES = {
 };
 
 // Etiqueta "linda" de cada tipo, usada para armar el nombre nuevo
-// ("SetUp"+pais+"-"+etiqueta+"-2026"). Distinta de los nombres de arriba a
-// proposito -- estos son consistentes, los de arriba no.
+// (pais+"-"+etiqueta+"-2026", ej. "MX-Primera-2026"). Distinta de los
+// nombres de arriba a proposito -- estos son consistentes, los de arriba no.
 const EMAIL_TYPE_LABELS = {
   invite1: 'Primera',
   reminder1: '1er Recordatorio',
@@ -2702,7 +3237,7 @@ function buildAllCartas() {
     groups.forEach(function (group) {
       const result = buildCartaForGroup(tipo, group);
       const existingName = EMAIL_EXISTING_NAMES[tipo][group.lang];
-      const newName = 'SetUp' + group.groupCode + '-' + EMAIL_TYPE_LABELS[tipo] + '-2026';
+      const newName = group.groupCode + '-' + EMAIL_TYPE_LABELS[tipo] + '-2026';
 
       cartas.push({
         tipo: tipo,
@@ -2768,6 +3303,8 @@ function showLoginOverlay() {
 function showAppContent() {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appContent').style.display = 'block';
+  loadTeamContacts();
+  loadIncentiveRates();
 }
 
 function postJson(url, payload) {
@@ -2865,7 +3402,9 @@ function stepWriteDefinitions(projectId, projectKey) {
       throw new Error(result.data.error);
     }
 
-    appendLaunchSetupLog('Script "definiciones" escrito con la clave ' + projectKey + '.');
+    appendLaunchSetupLog(projectKey
+      ? 'Script "definiciones" escrito con la clave ' + projectKey + '.'
+      : 'Script "definiciones" escrito (se preservó la clave que ya tenía el proyecto).');
   });
 }
 
@@ -2936,6 +3475,28 @@ function readFileAsText(file) {
   });
 }
 
+// Chequeo sincronico (sin leer el archivo) de si un pais tiene algo cargado
+// -- usado para decidir si hace falta el paso de limpieza previa, sin pagar
+// el costo de leer todos los archivos antes de saber si hace falta.
+function countryHasLinksSource(country) {
+  const genericCheck = document.getElementById('clientLinksGenericCheck_' + country.code);
+  if (genericCheck && genericCheck.checked) {
+    const genericInput = document.getElementById('clientLinksGenericInput_' + country.code);
+    return !!(genericInput && genericInput.value.trim());
+  }
+
+  const fileInput = document.getElementById('clientLinksFile_' + country.code);
+  return !!(fileInput && fileInput.files[0]);
+}
+
+// 'unique' (link generico, IDs fabricados) o 'uploaded' (archivo real del
+// cliente) -- mismo criterio que countryHasLinksSource/getCountryLinksRows,
+// usado para saber como generar los links de equipos externos de este pais.
+function getCountryLinksMode(country) {
+  const genericCheck = document.getElementById('clientLinksGenericCheck_' + country.code);
+  return (genericCheck && genericCheck.checked) ? 'unique' : 'uploaded';
+}
+
 // Devuelve una Promise que resuelve con las filas {id, link} cargadas para
 // un pais (del modo link generico si esta tildado, o del archivo .txt si
 // hay uno elegido), o null si no se cargo nada para ese pais -- en cuyo
@@ -2946,7 +3507,7 @@ function getCountryLinksRows(country) {
     const genericInput = document.getElementById('clientLinksGenericInput_' + country.code);
     const genericLink = genericInput ? genericInput.value.trim() : '';
     if (!genericLink) return Promise.resolve(null);
-    return Promise.resolve(generateGenericLinkRows(country.code, genericLink));
+    return Promise.resolve(generateGenericLinkRows(country.code, genericLink, getCountryPanelCount(country)));
   }
 
   const fileInput = document.getElementById('clientLinksFile_' + country.code);
@@ -2955,6 +3516,30 @@ function getCountryLinksRows(country) {
 
   return readFileAsText(file).then(function (text) {
     return parseClientLinksFile(text);
+  });
+}
+
+// Paso previo (solo si hay al menos un pais con algo cargado): vacia
+// listadeids/listadelinks por completo antes de subir nada. El modelo
+// duplicado puede ser un proyecto reusado de una campaña anterior con
+// entradas viejas fuera del rango de precode de esta corrida -- sin este
+// paso, un ID de cliente repetido entre campañas puede quedar duplicado en
+// listadelinks (confirmado 2026-09-03, links de una corrida aparecieron
+// duplicados). Se llama UNA sola vez, antes del loop por pais.
+function stepClearClientLinksIfNeeded(projectId, entries) {
+  const anyCountryHasSource = entries.some(function (entry) {
+    return countryHasLinksSource(entry.country);
+  });
+
+  if (!anyCountryHasSource) return Promise.resolve();
+
+  appendLaunchSetupLog('Vaciando listadeids/listadelinks antes de subir los links nuevos...');
+
+  return postJson('/internal/fine_panel_setup/clear_client_links', {
+    project_id: projectId,
+  }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    appendLaunchSetupLog('listadeids/listadelinks vaciados.');
   });
 }
 
@@ -2968,25 +3553,61 @@ function stepUploadClientLinksIfAny(projectId) {
   const entries = computeCountryPrimerIds();
   let uploadedCount = 0;
 
-  return entries.reduce(function (chain, entry) {
-    return chain.then(function () {
-      return getCountryLinksRows(entry.country).then(function (rows) {
-        if (!rows || rows.length === 0) return;
+  return stepClearClientLinksIfNeeded(projectId, entries).then(function () {
+    return entries.reduce(function (chain, entry) {
+      return chain.then(function () {
+        return getCountryLinksRows(entry.country).then(function (rows) {
+          if (!rows || rows.length === 0) return;
 
-        uploadedCount += 1;
-        appendLaunchSetupLog('Subiendo ' + rows.length + ' links de ' + entry.country.label + ' (bloque desde ' + entry.primerId + ')...');
+          uploadedCount += 1;
+          const mode = getCountryLinksMode(entry.country);
+          const panelCount = getCountryPanelCount(entry.country);
+          const panelRows = rows.slice(0, panelCount);
+          if (rows.length > panelCount) {
+            appendLaunchSetupLog('Links de ' + entry.country.label + ': hay ' + rows.length + ' filas -- las primeras ' + panelCount + ' van al panel, el resto (' + (rows.length - panelCount) + ') se reparte entre equipos externos.');
+          }
+          appendLaunchSetupLog('Subiendo ' + panelRows.length + ' links de ' + entry.country.label + ' al panel (bloque desde ' + entry.primerId + ')...');
 
-        return postJson('/internal/fine_panel_setup/upload_client_links', {
-          project_id: projectId,
-          primer_id: entry.primerId,
-          rows: rows,
-        }).then(function (result) {
-          if (!result.data.ok) throw new Error(result.data.error);
-          appendLaunchSetupLog('Links de ' + entry.country.label + ' cargados (' + result.data.added + ', ' + result.data.removed + ' reemplazados).');
+          return postJson('/internal/fine_panel_setup/upload_client_links', {
+            project_id: projectId,
+            primer_id: entry.primerId,
+            rows: panelRows,
+          }).then(function (result) {
+            if (!result.data.ok) throw new Error(result.data.error);
+            appendLaunchSetupLog('Panel: links de ' + entry.country.label + ' cargados (' + result.data.added + ', ' + result.data.removed + ' reemplazados).');
+
+            const genericInput = document.getElementById('clientLinksGenericInput_' + entry.country.code);
+            const genericLinkBase = genericInput ? genericInput.value.trim() : '';
+            return generateExternalTeamLinksForCountry(projectId, entry.country, entry.primerId, mode, rows, appendLaunchSetupLog, genericLinkBase, panelCount);
+          });
         });
       });
+    }, Promise.resolve());
+  }).then(function () { return uploadedCount; });
+}
+
+// Paso del wizard, SOLO para Programación = "Fine en Confirmit" (ver
+// scriptProgramacion/externalProgrammingPanel): estos proyectos no usan
+// client links en absoluto -- el panel de subida ni se muestra -- pero
+// igual pueden necesitar links de equipo con tracking por proveedor. Por
+// cada pais seleccionado genera un bloque de 500 links de equipo por
+// proveedor (mismo esquema de IDs/offset que el modo "unique"), pero SIN
+// clientlink/clientlinkid (no aplican, no hay link de cliente en este tipo
+// de proyecto) -- solo equipo/equipopais/equipolink. No es opt-in por pais
+// (a diferencia del flujo de client links, que se activa por pais con sus
+// propios botones): corre siempre que la programacion sea esta, para TODOS
+// los paises del proyecto, solo como parte del launch completo (no hay
+// boton individual por pais para este caso). Pedido del usuario 2026-09-10.
+function stepGenerateExternalTeamLinksOnlyIfNeeded(projectId) {
+  const entries = computeCountryPrimerIds();
+  let totalGenerated = 0;
+
+  return entries.reduce(function (chain, entry) {
+    return chain.then(function () {
+      return generateExternalTeamLinksForCountry(projectId, entry.country, entry.primerId, 'no_client_link', null, appendLaunchSetupLog, '')
+        .then(function (count) { totalGenerated += count; });
     });
-  }, Promise.resolve()).then(function () { return uploadedCount; });
+  }, Promise.resolve()).then(function () { return totalGenerated; });
 }
 
 // Ultimo paso, solo si se subio algun link de cliente: relanza el proyecto
@@ -3046,23 +3667,50 @@ function launchSetup() {
   const sourceProjectId = document.getElementById('forstaModeloId').value.trim();
   const projectCode = document.getElementById('projectCode').value.trim();
   const tema = getCurrentLetterTema();
-  const newProjectName = tema ? (projectCode + ' - ' + tema) : projectCode;
+  const clientProjectName = document.getElementById('clientProjectName').value.trim();
+  let newProjectName = tema ? (projectCode + ' - ' + tema) : projectCode;
+  if (clientProjectName) newProjectName += ' ' + clientProjectName;
+  const overwriteModel = document.getElementById('overwriteModelCheck').checked;
 
   const btn = document.getElementById('launchSetupBtn');
   btn.disabled = true;
 
   var launchedProjectId;
+  var chain;
 
-  stepDuplicate(sourceProjectId, newProjectName)
-    .then(function (projectId) { launchedProjectId = projectId; return stepLaunch(projectId); })
-    .then(function () { return stepFetchKey(launchedProjectId); })
-    .then(function (projectKey) { return stepWriteDefinitions(launchedProjectId, projectKey); })
+  if (overwriteModel) {
+    launchedProjectId = sourceProjectId;
+    document.getElementById('targetProjectId').value = launchedProjectId;
+    appendLaunchSetupLog('Modo "mismo modelo": se omite la duplicación, se aplican los ajustes directo sobre ' + launchedProjectId + '.');
+
+    chain = stepLaunch(launchedProjectId)
+      .then(function () {
+        appendLaunchSetupLog('Modo "mismo modelo": se omite la generación de clave -- se preserva la que ya tiene el proyecto.');
+        return stepWriteDefinitions(launchedProjectId, null);
+      });
+  } else {
+    chain = stepDuplicate(sourceProjectId, newProjectName)
+      .then(function (projectId) { launchedProjectId = projectId; return stepLaunch(projectId); })
+      .then(function () { return stepFetchKey(launchedProjectId); })
+      .then(function (projectKey) { return stepWriteDefinitions(launchedProjectId, projectKey); });
+  }
+
+  chain
     .then(function () { return stepApplyCartas(launchedProjectId); })
     .then(function () { return stepFnpRedirectIfNeeded(launchedProjectId); })
-    .then(function () { return stepUploadClientLinksIfAny(launchedProjectId); })
-    .then(function (uploadedCount) {
-      if (uploadedCount > 0) return stepFinalRelaunch(launchedProjectId);
-      appendLaunchSetupLog('No se cargaron links de cliente -- no hace falta relanzar de nuevo.');
+    .then(function () {
+      const programacion = document.getElementById('scriptProgramacion').value;
+      if (programacion === 'fine_confirmit') {
+        return stepGenerateExternalTeamLinksOnlyIfNeeded(launchedProjectId).then(function (count) {
+          appendLaunchSetupLog(count > 0
+            ? 'Links de equipos externos generados (' + count + ' en total, sin client links).'
+            : 'No hay proveedores/países para generar links de equipos externos.');
+        });
+      }
+      return stepUploadClientLinksIfAny(launchedProjectId).then(function (uploadedCount) {
+        if (uploadedCount > 0) return stepFinalRelaunch(launchedProjectId);
+        appendLaunchSetupLog('No se cargaron links de cliente -- no hace falta relanzar de nuevo.');
+      });
     })
     .then(function () {
       appendLaunchSetupLog('SET UP COMPLETO');
@@ -3077,6 +3725,381 @@ function launchSetup() {
 
 document.getElementById('launchSetupBtn').addEventListener('click', launchSetup);
 
+// Analisis del proyecto (solo lectura, base de respondents) -- lee
+// GetRespondents (sin generar survey links, no hace falta para esto) y
+// calcula metricas estandar de campo. Formulas dadas por el usuario
+// 2026-09-14/15, primera version (solo respondents, sin cuotas ni datos de
+// encuesta todavia):
+// - Unique panelists contacted: noOfEmailsSent > 0
+// - Total emails sent: suma de noOfEmailsSent
+// - Total Completes: StatusProyecto1 == 1
+// - Incidence: completes / (completes + StatusProyecto1==2) -- base 0 => "no attempts yet"
+// - Participation rate: (StatusProyecto1 en {1,2,3,66}) / contactados -- base 0 => "no attempts yet"
+// - Drop out rate: StatusProyecto1==66 / (StatusProyecto1==66 + completes) -- base 0 => "no attempts yet"
+// - Completes done in one attempt: StatusProyecto1==1 && intentos1==1
+// - Median survey time: mediana (no promedio) de timesurvey1 en las filas
+//   con intentos1==1 -- solo si el proyecto tiene ambas variables Y hay al
+//   menos 3 casos que cumplen, si no "Not enough cases" (o "No disponible"
+//   si el proyecto ni siquiera tiene esas variables).
+// - Panel completes: StatusProyecto1==1 && equipo vacio/ausente.
+// - Ad Hoc completes: StatusProyecto1==1 && equipo NO vacio.
+//   (ambas "No disponible" si el proyecto no tiene la variable equipo)
+// - % of panel completes: panelCompletes / (panelCompletes + adHocCompletes)
+// - Incidence per country: mismo calculo de Incidence, pero por cada codigo
+//   de pais1bac presente en la base (mismo codigo pais1Code que ya usa el
+//   resto del wizard, ver SCRIPT_COUNTRIES/findCountryByPais1Code).
+// - Incidence by specialty: mismo criterio que Incidence per country, pero
+//   agrupado por espbac (ver SPECIALTY_LABELS) -- solo se muestran los
+//   codigos que efectivamente tienen alguna fila en la base. Pedido del
+//   usuario 2026-09-17.
+// Todos los porcentajes redondeados sin decimales.
+
+const SPECIALTY_LABELS = {
+  '1': 'Cardiology', '2': 'Vascular and Cardiovascular Surgery and Angiology', '3': 'General Surgery',
+  '4': 'Plastic Surgery', '5': 'Dermatology', '6': 'Otorhinolaryngology', '7': 'Endocrinology',
+  '8': 'Nursing', '9': 'Pain Medicine', '10': 'Gastroenterology', '11': 'Gynecology and Obstetrics',
+  '12': 'General Medicine', '13': 'Nephrology', '14': 'Sexology', '15': 'Ophthalmology', '16': 'Oncology',
+  '17': 'Orthopedics', '18': 'Pediatrics', '19': 'Psychiatry', '20': 'Radiology', '21': 'Hepatology',
+  '22': 'Dentistry', '23': 'Hematology', '24': 'Rheumatology', '25': 'Neurology', '26': 'Urology',
+  '27': 'Infectious Diseases', '28': 'Pharmacy', '29': 'Internal Medicine', '30': 'Interventional Cardiology',
+  '31': 'Anesthesiology', '32': 'Allergy and Immunology', '33': 'Laboratory', '34': 'Pulmonology',
+  '36': 'Veterinary Medicine', '37': 'Nutrition', '38': 'HIV Specialist', '39': 'Geriatrics',
+  '40': 'Intensive Care Medicine', '41': 'Transplant Surgery', '42': 'Mastology', '43': 'Hospital Administration',
+  '44': 'Purchasing Agent', '45': 'Thoracic Surgery', '46': 'Maxillofacial Surgery', '47': 'Bariatric Surgery',
+  '48': 'Head and Neck Surgery', '49': 'Digestive System Surgery', '50': 'Palliative Care',
+  '51': 'Diabetes Education', '52': 'Electrophysiology', '53': 'Emergency Medicine', '54': 'Physiotherapy',
+  '55': 'Speech-Language Pathology', '56': 'Genetics', '57': 'Homeopathy and Acupuncture',
+  '58': 'Nuclear Medicine', '59': 'Microbiology', '60': 'Neonatology', '61': 'Neurosurgery', '62': 'Optician',
+  '63': 'Pathology', '64': 'Proctology', '65': 'Radiation Oncology', '66': 'Retina Specialist',
+  '99': 'Other', 'none': 'None',
+};
+
+function medianOf(values) {
+  const sorted = values.slice().sort(function (a, b) { return a - b; });
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Clasificacion semaforo de la seccion "Analysis" -- umbrales dados por el
+// usuario 2026-09-15. Primera posicion = verde, segunda = amarillo, tercera
+// (y cuarta, si hay) = rojo.
+const ANALYSIS_COLORS = { green: '#0a7a2f', yellow: '#b45309', red: '#b00020', gray: '#6b7280' };
+
+function classifyResponseRate(value) {
+  if (value === null) return { label: 'Sin datos suficientes', color: 'gray' };
+  if (value >= 10) return { label: 'Healthy', color: 'green' };
+  if (value >= 6) return { label: 'Somewhat low', color: 'yellow' };
+  return { label: 'Improve Targeting/Move to ad hoc', color: 'red' };
+}
+
+function classifyIncidenceRate(value) {
+  if (value === null) return { label: 'Sin datos suficientes', color: 'gray' };
+  if (value >= 50) return { label: 'Healthy', color: 'green' };
+  if (value >= 40) return { label: 'Somewhat low', color: 'yellow' };
+  if (value >= 20) return { label: 'Need to review specs or adjust cost', color: 'red' };
+  return { label: 'Not feasible for panel', color: 'red' };
+}
+
+function classifyDropOutRate(value) {
+  if (value === null) return { label: 'Sin datos suficientes', color: 'gray' };
+  if (value < 30) return { label: 'Healthy', color: 'green' };
+  if (value <= 50) return { label: 'Somewhat High', color: 'yellow' };
+  return { label: 'Very High/Needs checking', color: 'red' };
+}
+
+// dura1 (duracion estimada) tiene que estar presente en la base para poder
+// evaluar esto -- si no esta, o si la mediana real no se pudo calcular
+// (menos de 3 casos), "Not Rated" (no es un error, es que falta el dato de
+// referencia contra el que comparar).
+function classifySurveyLength(medianSurveyMinutes, medianDura1) {
+  if (medianSurveyMinutes === null || medianDura1 === null || medianDura1 === 0) {
+    return { label: 'Not Rated', color: 'gray' };
+  }
+  const pctHigher = ((medianSurveyMinutes - medianDura1) / medianDura1) * 100;
+  if (pctHigher <= 20) return { label: 'Healthy', color: 'green' };
+  if (pctHigher <= 40) return { label: 'Higher than estimated', color: 'yellow' };
+  return { label: 'Much higher than estimated/needs revision', color: 'red' };
+}
+
+function classifyPanelCoverage(value) {
+  if (value === null) return { label: 'Sin datos suficientes', color: 'gray' };
+  if (value >= 75) return { label: 'Healthy', color: 'green' };
+  if (value >= 50) return { label: 'Somewhat Low', color: 'yellow' };
+  return { label: 'Too Low', color: 'red' };
+}
+
+function analysisRow(label, classification) {
+  return '<tr><td style="padding:3px 10px 3px 0; font-weight:bold;">' + label + '</td>' +
+    '<td style="padding:3px 0; color:' + ANALYSIS_COLORS[classification.color] + '; font-weight:bold;">' + classification.label + '</td></tr>';
+}
+
+function runProjectAnalysis() {
+  const projectId = document.getElementById('targetProjectId').value.trim();
+  const contentEl = document.getElementById('projectAnalysisContent');
+  const errorEl = document.getElementById('projectAnalysisError');
+  errorEl.textContent = '';
+
+  if (!projectId) {
+    errorEl.textContent = 'Completá el "ID del proyecto destino" (arriba) primero.';
+    return;
+  }
+
+  contentEl.textContent = 'Leyendo respondents...';
+
+  postJson('/internal/fine_panel_setup/read_respondents_links', {
+    project_id: projectId,
+    generate_survey_link: false,
+  }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+
+    const rows = result.data.rows || [];
+
+    const contacted = rows.filter(function (r) { return (parseInt(r.noOfEmailsSent, 10) || 0) > 0; }).length;
+    const emailsSent = rows.reduce(function (sum, r) { return sum + (parseInt(r.noOfEmailsSent, 10) || 0); }, 0);
+
+    const completes = rows.filter(function (r) { return r.StatusProyecto1 === '1'; }).length;
+    const screenouts = rows.filter(function (r) { return r.StatusProyecto1 === '2'; }).length;
+    const terminates = rows.filter(function (r) { return r.StatusProyecto1 === '66'; }).length;
+    const participated = rows.filter(function (r) {
+      return r.StatusProyecto1 === '1' || r.StatusProyecto1 === '2' || r.StatusProyecto1 === '3' || r.StatusProyecto1 === '66';
+    }).length;
+
+    const incidenceBase = completes + screenouts;
+    const incidence = incidenceBase > 0 ? Math.round((completes / incidenceBase) * 100) : null;
+
+    const participationBase = contacted;
+    const participationRate = participationBase > 0 ? Math.round((participated / participationBase) * 100) : null;
+
+    const dropOutBase = terminates + completes;
+    const dropOutRate = dropOutBase > 0 ? Math.round((terminates / dropOutBase) * 100) : null;
+
+    function pct(value) {
+      return value === null ? 'no attempts yet' : value + '%';
+    }
+
+    const hasIntentos1 = rows.some(function (r) { return r.intentos1 !== undefined; });
+    const hasTimesurvey1 = rows.some(function (r) { return r.timesurvey1 !== undefined; });
+
+    const completesOneAttempt = hasIntentos1
+      ? rows.filter(function (r) { return r.StatusProyecto1 === '1' && r.intentos1 === '1'; }).length
+      : null;
+
+    let medianSurveyValue = null;
+    let medianTimeText;
+    if (!hasIntentos1 || !hasTimesurvey1) {
+      medianTimeText = 'No disponible (el proyecto no tiene las variables intentos1/timesurvey1)';
+    } else {
+      const times = rows
+        .filter(function (r) { return r.intentos1 === '1' && r.timesurvey1 !== undefined && r.timesurvey1 !== ''; })
+        .map(function (r) { return parseFloat(r.timesurvey1); })
+        .filter(function (v) { return !isNaN(v); });
+      if (times.length >= 3) {
+        medianSurveyValue = medianOf(times);
+        medianTimeText = medianSurveyValue + ' minutos';
+      } else {
+        medianTimeText = 'Not enough cases';
+      }
+    }
+
+    // dura1: duracion ESTIMADA del proyecto (variable de la base de
+    // respondents, distinta de la "duracion"/DURA del formulario del
+    // wizard) -- se compara contra la mediana real (medianSurveyValue) para
+    // el analisis de "Survey Length". Se toma la mediana de TODAS las filas
+    // que la tengan (no solo intentos1==1): si es un valor fijo por
+    // proyecto da lo mismo, y si variara por fila no hay ningun otro
+    // criterio de filtro indicado por el usuario. Pedido 2026-09-15.
+    const hasDura1 = rows.some(function (r) { return r.dura1 !== undefined; });
+    let medianDura1Value = null;
+    if (hasDura1) {
+      const duras = rows.map(function (r) { return parseFloat(r.dura1); }).filter(function (v) { return !isNaN(v); });
+      if (duras.length > 0) medianDura1Value = medianOf(duras);
+    }
+
+    const hasEquipo = rows.some(function (r) { return r.equipo !== undefined; });
+    const panelCompletes = hasEquipo
+      ? rows.filter(function (r) { return r.StatusProyecto1 === '1' && !r.equipo; }).length
+      : null;
+    const adHocCompletes = hasEquipo
+      ? rows.filter(function (r) { return r.StatusProyecto1 === '1' && !!r.equipo; }).length
+      : null;
+    const panelCompletesBase = hasEquipo ? (panelCompletes + adHocCompletes) : 0;
+    const panelCompletesPct = (hasEquipo && panelCompletesBase > 0) ? Math.round((panelCompletes / panelCompletesBase) * 100) : null;
+    const noEquipoText = 'No disponible (el proyecto no tiene la variable equipo)';
+
+    // Codigos de pais1bac presentes en la base, para Incidence per country.
+    // OJO: el campo real de Confirmit es todo minuscula ("pais1bac", ver
+    // GetRespondents_surveydata_response.xml de Sam) -- una version
+    // anterior de este codigo lo escribia "Pais1bac" (P mayuscula), que
+    // nunca matcheaba nada porque los nombres de campo XML son
+    // case-sensitive. Corregido 2026-09-17.
+    const hasPais1bac = rows.some(function (r) { return r.pais1bac !== undefined; });
+    let countryCodesSorted = [];
+    if (hasPais1bac) {
+      const codesPresent = {};
+      rows.forEach(function (r) { if (r.pais1bac) codesPresent[r.pais1bac] = true; });
+      countryCodesSorted = Object.keys(codesPresent).map(function (code) {
+        const country = findCountryByPais1Code(code);
+        return { code: code, label: country ? country.label : ('País ' + code) };
+      }).sort(function (a, b) { return a.label.localeCompare(b.label, 'es'); });
+    }
+
+    let incidencePerCountryHtml;
+    if (!hasPais1bac) {
+      incidencePerCountryHtml = row('Incidence per country', 'No disponible (el proyecto no tiene la variable pais1bac)');
+    } else {
+      incidencePerCountryHtml = row('Incidence per country', '') +
+        countryCodesSorted.map(function (c) {
+          const countryRows = rows.filter(function (r) { return r.pais1bac === c.code; });
+          const countryCompletes = countryRows.filter(function (r) { return r.StatusProyecto1 === '1'; }).length;
+          const countryScreenouts = countryRows.filter(function (r) { return r.StatusProyecto1 === '2'; }).length;
+          const base = countryCompletes + countryScreenouts;
+          const value = base > 0 ? (Math.round((countryCompletes / base) * 100) + '% (' + countryCompletes + ' / ' + base + ')') : 'no attempts yet';
+          return row('&nbsp;&nbsp;&nbsp;' + c.label, value);
+        }).join('');
+    }
+
+    // Incidence by specialty: mismo criterio que Incidence per country,
+    // agrupado por espbac (ver SPECIALTY_LABELS) -- solo se muestran los
+    // codigos que efectivamente tienen alguna fila en la base.
+    const hasEspbac = rows.some(function (r) { return r.espbac !== undefined; });
+    let incidenceBySpecialtyHtml;
+    if (!hasEspbac) {
+      incidenceBySpecialtyHtml = row('Incidence by specialty', 'No disponible (el proyecto no tiene la variable espbac)');
+    } else {
+      const specialtyCodesPresent = {};
+      rows.forEach(function (r) { if (r.espbac) specialtyCodesPresent[r.espbac] = true; });
+      const specialtyCodesSorted = Object.keys(specialtyCodesPresent).map(function (code) {
+        return { code: code, label: SPECIALTY_LABELS[code] || ('Especialidad ' + code) };
+      }).sort(function (a, b) { return a.label.localeCompare(b.label, 'es'); });
+
+      incidenceBySpecialtyHtml = row('Incidence by specialty', '') +
+        specialtyCodesSorted.map(function (s) {
+          const specialtyRows = rows.filter(function (r) { return r.espbac === s.code; });
+          const specialtyCompletes = specialtyRows.filter(function (r) { return r.StatusProyecto1 === '1'; }).length;
+          const specialtyScreenouts = specialtyRows.filter(function (r) { return r.StatusProyecto1 === '2'; }).length;
+          const base = specialtyCompletes + specialtyScreenouts;
+          const value = base > 0 ? (Math.round((specialtyCompletes / base) * 100) + '% (' + specialtyCompletes + ' / ' + base + ')') : 'no attempts yet';
+          return row('&nbsp;&nbsp;&nbsp;' + s.label, value);
+        }).join('');
+    }
+
+    // Emails sent per complete: emails/completes del subconjunto dado --
+    // "Not Contacted" si ese subconjunto no tiene completes (evita
+    // division por cero, y es mas claro que mostrar Infinity/NaN). Pedido
+    // del usuario 2026-09-15.
+    function emailsPerComplete(subsetRows) {
+      const subsetCompletes = subsetRows.filter(function (r) { return r.StatusProyecto1 === '1'; }).length;
+      if (subsetCompletes === 0) return 'Not Contacted';
+      const subsetEmails = subsetRows.reduce(function (sum, r) { return sum + (parseInt(r.noOfEmailsSent, 10) || 0); }, 0);
+      return (subsetEmails / subsetCompletes).toFixed(1);
+    }
+
+    const emailsPerCompleteOverall = emailsPerComplete(rows);
+
+    function row(label, value) {
+      return '<tr><td style="padding:3px 10px 3px 0; font-weight:bold;">' + label + '</td><td style="padding:3px 0;">' + value + '</td></tr>';
+    }
+
+    contentEl.innerHTML =
+      '<table style="border-collapse:collapse; font-size:13px;">' +
+      row('Unique panelists contacted', contacted) +
+      row('Total emails sent', emailsSent) +
+      row('Total Completes', completes) +
+      row('Panel completes', hasEquipo ? panelCompletes : noEquipoText) +
+      row('Ad Hoc completes', hasEquipo ? adHocCompletes : noEquipoText) +
+      row('% of panel completes', hasEquipo ? pct(panelCompletesPct) : noEquipoText) +
+      row('Incidence', pct(incidence) + (incidenceBase > 0 ? ' (' + completes + ' / ' + incidenceBase + ')' : '')) +
+      incidencePerCountryHtml +
+      incidenceBySpecialtyHtml +
+      row('Participation rate', pct(participationRate) + (participationBase > 0 ? ' (' + participated + ' / ' + participationBase + ')' : '')) +
+      row('Emails sent per complete', emailsPerCompleteOverall) +
+      row('Drop out rate', pct(dropOutRate) + (dropOutBase > 0 ? ' (' + terminates + ' / ' + dropOutBase + ')' : '')) +
+      row('Completes done in one attempt', hasIntentos1 ? completesOneAttempt : 'No disponible (el proyecto no tiene la variable intentos1)') +
+      row('Median survey time', medianTimeText) +
+      '</table>' +
+      '<div style="margin-top:14px; font-weight:bold; font-size:14px;">Analysis</div>' +
+      '<table style="border-collapse:collapse; font-size:13px; margin-top:4px;">' +
+      analysisRow('Response rate', classifyResponseRate(participationRate)) +
+      analysisRow('Incidence rate', classifyIncidenceRate(incidence)) +
+      analysisRow('Drop Out Rate', classifyDropOutRate(dropOutRate)) +
+      analysisRow('Survey Length', classifySurveyLength(medianSurveyValue, medianDura1Value)) +
+      analysisRow('Panel Coverage', classifyPanelCoverage((hasEquipo && completes > 0) ? Math.round((panelCompletes / completes) * 100) : null)) +
+      '</table>';
+  }).catch(function (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    contentEl.textContent = '';
+  });
+}
+
+document.getElementById('projectAnalysisBtn').addEventListener('click', function () {
+  const panel = document.getElementById('projectAnalysisPanel');
+  const wasHidden = panel.style.display === 'none';
+  panel.style.display = wasHidden ? 'block' : 'none';
+  if (wasHidden) runProjectAnalysis();
+});
+
+document.getElementById('teamContactsToggleBtn').addEventListener('click', function () {
+  const panel = document.getElementById('teamContactsPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('incentiveRatesToggleBtn').addEventListener('click', function () {
+  const panel = document.getElementById('incentiveRatesPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('incentiveRatesSaveBtn').addEventListener('click', function () {
+  const errorEl = document.getElementById('incentiveRatesError');
+  errorEl.style.color = '';
+  errorEl.textContent = '';
+
+  const inputs = document.querySelectorAll('#incentiveRatesTables input');
+  const rates = Array.prototype.map.call(inputs, function (input) {
+    return {
+      category: input.dataset.category,
+      max_minutes: parseInt(input.dataset.maxMinutes, 10),
+      currency: input.dataset.currency || '',
+      value: parseFloat(input.value),
+    };
+  });
+
+  postJson('/internal/fine_panel_setup/incentive_rates_update', { rates: rates }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    errorEl.style.color = '#0a7a2f';
+    errorEl.textContent = 'Guardado (' + result.data.count + ' valores) ✓';
+    return loadIncentiveRates();
+  }).catch(function (err) {
+    errorEl.style.color = '#b00020';
+    errorEl.textContent = 'Error: ' + err.message;
+  });
+});
+
+document.getElementById('teamContactAddBtn').addEventListener('click', function () {
+  const errorEl = document.getElementById('teamContactsError');
+  errorEl.textContent = '';
+
+  const name = document.getElementById('teamContactNewName').value.trim().toUpperCase();
+  const paisCode = document.getElementById('teamContactNewPais').value;
+  const pagaFine = document.getElementById('teamContactNewPagaFine').checked;
+
+  if (!name) {
+    errorEl.textContent = 'Escribí el nombre del proveedor/equipo.';
+    return;
+  }
+
+  postJson('/internal/fine_panel_setup/team_contacts_create', {
+    name: name,
+    pais1_rec_code: paisCode,
+    paga_fine: pagaFine,
+  }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    document.getElementById('teamContactNewName').value = '';
+    return loadTeamContacts();
+  }).catch(function (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+  });
+});
+
 document.getElementById('scriptIQVIAMSD').addEventListener('change', render);
 
 document.getElementById('scriptCliente').addEventListener('change', function () {
@@ -3089,6 +4112,16 @@ document.getElementById('scriptProgramacion').addEventListener('change', render)
 document.getElementById('fichaPaymentType').addEventListener('change', render);
 
 document.getElementById('fichaProjectCheck').addEventListener('change', render);
+
+document.getElementById('overwriteModelCheck').addEventListener('change', function (e) {
+  if (!e.target.checked) return;
+
+  const confirmed = window.confirm(
+    'Atención: esto sobreescribe el proyecto colocado como modelo (definiciones, links y cartas). ' +
+    'No crea la clave, así que verificar la misma manualmente y lanzar.'
+  );
+  if (!confirmed) e.target.checked = false;
+});
 
 document.getElementById('copyBtn').addEventListener('click', function () {
   const output = document.getElementById('output');
@@ -3136,7 +4169,7 @@ function collectFormState() {
   const state = {};
 
   const simpleFields = [
-    'projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'solidarioPt',
+    'projectCode', 'forstaModeloId', 'emailPm', 'clientProjectName', 'duracao', 'valor', 'bonusValor', 'solidario', 'solidarioPt',
     'moeda', 'moedaCustom', 'especialidadeCustom',
     'tipoEmail', 'idioma', 'clienteBrasil',
     'scriptAsuntoPt', 'scriptAsuntoEs',
@@ -3177,7 +4210,7 @@ function collectFormState() {
 function applyFormState(state) {
   if (!state) return;
 
-  ['projectCode', 'forstaModeloId', 'emailPm', 'duracao', 'valor', 'bonusValor', 'solidario', 'solidarioPt', 'moedaCustom', 'especialidadeCustom', 'clienteBrasil', 'scriptAsuntoPt', 'scriptAsuntoEs', 'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion', 'fichaPaymentType', 'fichaMin', 'fichaMax', 'wellbeingCustom'].forEach(function (id) {
+  ['projectCode', 'forstaModeloId', 'emailPm', 'clientProjectName', 'duracao', 'valor', 'bonusValor', 'solidario', 'solidarioPt', 'moedaCustom', 'especialidadeCustom', 'clienteBrasil', 'scriptAsuntoPt', 'scriptAsuntoEs', 'scriptTopico', 'scriptCliente', 'scriptClienteCustom', 'scriptProgramacion', 'fichaPaymentType', 'fichaMin', 'fichaMax', 'wellbeingCustom'].forEach(function (id) {
     if (state[id] === undefined) return;
     const el = document.getElementById(id);
     if (el) el.value = state[id];

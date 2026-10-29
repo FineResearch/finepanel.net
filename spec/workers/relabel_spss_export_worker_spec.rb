@@ -69,9 +69,35 @@ RSpec.describe RelabelSpssExportWorker do
       expect(project_id).to eq('p123456')
       # El .sav compilado + la planilla de metadata (Dictionary/Quotas/
       # Report, ver #metadata_sheet_for) -- 2 archivos, no 1.
-      expect(output_paths.map { |p| File.basename(p) }).to contain_exactly('data.sav', 'p123456_metadata.xlsx')
+      expect(output_paths.map { |p| File.basename(p) }).to contain_exactly('data_relabeled.sav', 'Progress_report_data.xlsx')
       expect(export_type).to eq(:spss)
     end
+  end
+
+  # Diego: "el zip deberia aparecer con el mismo nombre del archivo
+  # principal (no de loops)" -- mismo criterio que loop_section_title (el
+  # nombre del loop siempre EXTIENDE al del principal), asi que el
+  # basename mas corto gana sin importar el orden que devuelva Dir.glob.
+  it 'con un archivo de loop ademas del principal, delivery_zip_name usa el nombre del principal (el mas corto), nunca el del loop' do
+    dir = Dir.mktmpdir
+    zip_path_with_loop = File.join(dir, 'test_export_loop.zip')
+    Zip::File.open(zip_path_with_loop, Zip::File::CREATE) do |zip|
+      zip.get_output_stream('data.sps') { |f| f.write(sps_content) }
+      zip.get_output_stream('data.asc') { |f| f.write("1 \n") }
+      zip.get_output_stream('data_fichas.sps') { |f| f.write(sps_content) }
+      zip.get_output_stream('data_fichas.asc') { |f| f.write("1 \n") }
+    end
+
+    stub_pspp_success
+    captured = nil
+    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, _paths, delivery_zip_name:, **|
+      captured = delivery_zip_name
+      instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+    end
+
+    described_class.new.perform(zip_path_with_loop, 'p123456', ['destino@cliente.com'])
+
+    expect(captured).to eq('data_relabeled')
   end
 
   it 'reescribe el label compuesto y apunta el FILE HANDLE/SAVE OUTFILE a los paths fijos que espera la Lambda' do
@@ -223,11 +249,11 @@ RSpec.describe RelabelSpssExportWorker do
     end
 
     def captured_metadata_workbook(output_paths)
-      metadata_path = output_paths.find { |p| p.end_with?('_metadata.xlsx') }
+      metadata_path = output_paths.find { |p| p.end_with?('.xlsx') }
       RubyXL::Parser.parse(metadata_path)
     end
 
-    it 'arma <project_id>_metadata.xlsx con una hoja Dictionary (code/attribute/question + estadisticas, sin los datos)' do
+    it 'arma Progress_report_<nombre original>.xlsx con una hoja Dictionary (code/attribute/question + estadisticas, sin los datos)' do
       stub_pspp_success
       captured = nil
       allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, **|
@@ -310,7 +336,7 @@ RSpec.describe RelabelSpssExportWorker do
 
       expect { described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com']) }.not_to raise_error
 
-      expect(captured[:output_paths].map { |p| File.basename(p) }).to eq(['data.sav'])
+      expect(captured[:output_paths].map { |p| File.basename(p) }).to eq(['data_relabeled.sav'])
       expect(captured[:relabeled]).to be true
       expect(captured[:includes_dictionary]).to be false
     end

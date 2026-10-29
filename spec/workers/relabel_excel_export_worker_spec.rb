@@ -80,6 +80,55 @@ RSpec.describe RelabelExcelExportWorker do
     expect(sheet[3].cells.map(&:value)).to eq(%w[1 2])
   end
 
+  # Diego: en un archivo de loop, Confirmit agrega un piping sin resolver
+  # pegado al codigo de CADA variable (ej. "Q0A // ^f('hidden_ficha_nom')^")
+  # -- en el encabezado de la tabla de DATOS de Excel (a diferencia del
+  # Dictionary, ver LabelParser) eso va en su PROPIA fila en vez de pisar
+  # la fila de Codigo, y solo aparece cuando el patron esta presente (el
+  # archivo principal, sin loop, sigue con 3 filas -- ver el test anterior).
+  it 'cuando el codigo trae un piping de referencia al loop, lo separa en una 4ta fila de encabezado' do
+    dir = Dir.mktmpdir
+    xlsx_path = File.join(dir, 'data.xlsx')
+    zip_path = File.join(dir, 'loop_header.zip')
+
+    workbook_xml = '<?xml version="1.0" encoding="utf-8"?><x:workbook ' \
+      'xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' \
+      '<x:sheets><x:sheet name="Sheet1" sheetId="1" r:id="RID1" ' \
+      'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" /></x:sheets></x:workbook>'
+    rels_xml = '<?xml version="1.0" encoding="utf-8"?><Relationships ' \
+      'xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' \
+      '<Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" ' \
+      'Target="/xl/worksheets/sheet.xml" Id="RID1" /></Relationships>'
+    sheet_xml_con_loop_ref = <<~XML
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+      <row r="1"><c r="A1" t="str"><v>q0a2_1 : CÂNCER (Q0A // ^f('hidden_ficha_nom')^ - O(a) Dr.(a) confirma? )</v></c></row>
+      <row r="2"><c r="A2" t="str"><v>1</v></c></row>
+      </sheetData></worksheet>
+    XML
+
+    Zip::File.open(xlsx_path, Zip::File::CREATE) do |xlsx|
+      xlsx.get_output_stream('xl/workbook.xml') { |f| f.write(workbook_xml) }
+      xlsx.get_output_stream('xl/_rels/workbook.xml.rels') { |f| f.write(rels_xml) }
+      xlsx.get_output_stream('xl/worksheets/sheet.xml') { |f| f.write(sheet_xml_con_loop_ref) }
+    end
+    Zip::File.open(zip_path, Zip::File::CREATE) { |zip| zip.add('data.xlsx', xlsx_path) }
+
+    captured = {}
+    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, **|
+      captured[:workbook] = RubyXL::Parser.parse(output_paths.first)
+      instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+    end
+
+    described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+    sheet = captured[:workbook].worksheets[0]
+    expect(sheet[0].cells.map(&:value)).to eq(['Q0A'])
+    expect(sheet[1].cells.map(&:value)).to eq(["// ^f('hidden_ficha_nom')^"])
+    expect(sheet[2].cells.map(&:value)).to eq(['CÂNCER'])
+    expect(sheet[3].cells.map(&:value)).to eq(['O(a) Dr.(a) confirma?'])
+    expect(sheet[4].cells.map(&:value)).to eq(['1'])
+  end
+
   it 'agrega una segunda hoja "Dictionary" con una fila por variable y sus estadisticas de columna' do
     captured = {}
     allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths|
@@ -327,12 +376,28 @@ RSpec.describe RelabelExcelExportWorker do
         path
       end
 
+      # Diego: "el zip deberia aparecer con el mismo nombre del archivo
+      # principal (no de loops)" -- el principal es el que tiene la
+      # variable de sistema "status" (ver #main_file_basename), nunca el
+      # de loop, sin importar el orden en que Dir.glob devuelva los xlsx.
+      it 'delivery_zip_name usa el nombre del archivo principal (el que tiene "status"), nunca el del loop' do
+        captured = nil
+        allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, _paths, delivery_zip_name:, **|
+          captured = delivery_zip_name
+          instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+        end
+
+        described_class.new.perform(zip_path_with_loop, 'p123456', ['destino@cliente.com'])
+
+        expect(captured).to eq('main_relabeled')
+      end
+
       it 'resuelve "completa" buscando el label entre las respuestas, no asumiendo un precode fijo' do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:answer_options).and_return([])
         allow(lookup).to receive(:variable_type).with('qestado_1').and_return('Multi')
-        allow(lookup).to receive(:answer_label_matching).with('fichaestado', %w[completa complete c]).and_return('completa')
+        allow(lookup).to receive(:answer_option_matching).with('fichaestado', %w[completa complete c]).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return(
           [{ name: 'quota5', cells: [{ limit: 10, fields: [{ name: 'qestado_1', precode: '1', value: '1' }] }] }]
         )
@@ -358,7 +423,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:answer_options).and_return([])
-        allow(lookup).to receive(:answer_label_matching).and_return('completa')
+        allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
         allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
 
@@ -384,7 +449,7 @@ RSpec.describe RelabelExcelExportWorker do
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:answer_options).and_return([])
         allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
-        allow(lookup).to receive(:answer_label_matching).and_return('completa')
+        allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:answer_label).and_return(nil)
         allow(lookup).to receive(:quotas).and_return(
           [{ name: 'quota1', cells: [{ limit: 88, fields: [{ name: 's0', precode: nil, value: '1' }] }] }]
@@ -414,7 +479,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:answer_options).and_return([])
-        allow(lookup).to receive(:answer_label_matching).and_return('completa')
+        allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
         allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
 
@@ -463,7 +528,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:answer_options).and_return([])
-        allow(lookup).to receive(:answer_label_matching).and_return('completa')
+        allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
         allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
         allow(ExportRelabeling::CrosstabBuilder).to receive(:call).and_raise(StandardError, 'schema inesperado')

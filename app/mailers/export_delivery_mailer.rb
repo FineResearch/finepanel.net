@@ -57,7 +57,7 @@ class ExportDeliveryMailer < ApplicationMailer
   def relabeled_export_email(
     recipients, project_id, file_paths, export_type:,
     relabeled: true, project_title: nil, includes_quotas: false, includes_report: false,
-    includes_dictionary: false, interview_status_filter: nil, completed_quotas: []
+    includes_dictionary: false, interview_status_filter: nil, completed_quotas: [], delivery_zip_name: nil
   )
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: FROM)
@@ -70,7 +70,7 @@ class ExportDeliveryMailer < ApplicationMailer
     body = body_for(project_id, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
-    delivery_zip_path = build_delivery_zip(file_paths, project_id)
+    delivery_zip_path = build_delivery_zip(file_paths, project_id, delivery_zip_name)
     mail.add_attachment(build_attachment(delivery_zip_path))
 
     send_email(mail)
@@ -109,15 +109,38 @@ class ExportDeliveryMailer < ApplicationMailer
   # @work_dir del worker, que ya se borra en su propio "ensure" antes de
   # que este metodo pueda terminar) y se borra en el "ensure" de arriba
   # apenas se termina de leer para el adjunto.
-  def build_delivery_zip(file_paths, project_id)
+  def build_delivery_zip(file_paths, project_id, delivery_zip_name)
     zip_dir = Dir.mktmpdir
-    zip_path = File.join(zip_dir, "#{project_id}.zip")
+    zip_path = File.join(zip_dir, "#{delivery_zip_basename(project_id, file_paths, delivery_zip_name)}.zip")
 
     Zip::File.open(zip_path, Zip::File::CREATE) do |zip|
       file_paths.each { |path| zip.add(File.basename(path), path) }
     end
 
     zip_path
+  end
+
+  # Diego: el zip de entrega tiene que llamarse igual que el archivo
+  # PRINCIPAL (nunca uno de loop, ej. fichas) -- delivery_zip_name ya
+  # viene resuelto asi desde cada worker (ver
+  # RelabelSpssExportWorker/RelabelExcelExportWorker#main_file_basename).
+  #
+  # Bug real (Diego): cuando el archivo de entrada no trae el patron
+  # pXXXXX en el nombre Y tampoco se pudo resolver el "Survey ID:" del
+  # cuerpo del mail (ver MailerController#export_sync), project_id llega
+  # vacio -- "#{project_id}.zip" daba literalmente ".zip", un archivo SIN
+  # nombre que varios dispositivos/clientes de mail no reconocen ni dejan
+  # abrir. project_id/primer-archivo quedan como fallback para el caso
+  # "el pipeline central revento, se manda el zip original tal cual" (ahi
+  # no hay un archivo "principal" que distinguir de un loop).
+  def delivery_zip_basename(project_id, file_paths, delivery_zip_name)
+    return delivery_zip_name if delivery_zip_name.present?
+    return project_id if project_id.present?
+
+    first_file = file_paths.first
+    return 'export' if first_file.blank?
+
+    File.basename(first_file, File.extname(first_file)).presence || 'export'
   end
 
   def subject_for(project_id, export_type, project_title)

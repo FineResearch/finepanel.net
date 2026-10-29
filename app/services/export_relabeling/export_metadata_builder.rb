@@ -185,7 +185,10 @@ module ExportRelabeling
 
     def build_source(sheet)
       config = status_config(sheet)
-      { headers: sheet.headers, rows: sheet.rows, status_variable: config[:status_variable], complete_value: config[:complete_value] }
+      {
+        headers: sheet.headers, rows: sheet.rows, status_variable: config[:status_variable],
+        complete_value: config[:complete_value], complete_precode: config[:complete_precode]
+      }
     end
 
     # Bug real (encontrado por Diego): si ConfirmitSchemaFetcher no pudo
@@ -200,12 +203,21 @@ module ExportRelabeling
       return { status_variable: STATUS_VARIABLE, complete_value: STATUS_COMPLETE_VALUE } if variable?(sheet, STATUS_VARIABLE)
 
       loop_status = sheet.headers.find { |h| h.variable_name.to_s.match?(LOOP_STATUS_SUFFIX) }
-      return { status_variable: nil, complete_value: nil } unless loop_status
+      return { status_variable: nil, complete_value: nil, complete_precode: nil } unless loop_status
 
-      complete_value = safely('deteccion de completitud del loop') do
-        @lookup&.answer_label_matching(loop_status.variable_name, LOOP_COMPLETE_LABEL_CANDIDATES)
+      # [precode, texto] en vez de solo el texto -- ver
+      # ConfirmitVariableLookup#answer_option_matching y
+      # QuotaProgressBuilder#complete?: confirmado contra un export real de
+      # SPSS (p573989981944) que la columna de estado del loop
+      # ("fichaestado") trae el PRECODE numerico crudo en el .dat, nunca el
+      # texto "completa" que resuelve el schema -- sin el precode como
+      # candidato alternativo, #complete? no matchea NUNCA para SPSS
+      # (silencioso, sin excepcion) y toda cuota de loop sale "Achieved: 0".
+      complete_option = safely('deteccion de completitud del loop') do
+        @lookup&.answer_option_matching(loop_status.variable_name, LOOP_COMPLETE_LABEL_CANDIDATES)
       end
-      { status_variable: loop_status.variable_name, complete_value: complete_value }
+      complete_precode, complete_value = complete_option
+      { status_variable: loop_status.variable_name, complete_value: complete_value, complete_precode: complete_precode }
     end
 
     def variable?(sheet, name)
@@ -233,9 +245,17 @@ module ExportRelabeling
     # worker para distinguir el archivo principal del/los loop(s) (ej.
     # "..._fichas.xlsx" vs "....xlsx" en Excel, o el nombre del .sps en
     # SPSS) -- no hace falta declararlo a mano.
+    # File.basename(path, '.xlsx') solo quita esa extension puntual --
+    # para un path de SPSS (".sps") no hacia nada, dejando el ".sps"
+    # colgado en ambos *_base y por lo tanto nunca encontrando loop_base
+    # como substring de main_base (confirmado con un export real de SPSS,
+    # p573989981944: el titulo de la seccion de loop en el Diccionario
+    # salia como el nombre de archivo completo en vez de un "Fichas"
+    # limpio como ya sale bien en Excel). File.extname funciona para
+    # cualquier extension, no solo xlsx.
     def loop_section_title(main_path, loop_path)
-      main_base = File.basename(main_path.to_s, '.xlsx')
-      loop_base = File.basename(loop_path.to_s, '.xlsx')
+      main_base = File.basename(main_path.to_s, File.extname(main_path.to_s))
+      loop_base = File.basename(loop_path.to_s, File.extname(loop_path.to_s))
       label = loop_base.sub(main_base, '').sub(/\A_/, '').presence || loop_base
 
       [label.titleize] + Array.new(DICTIONARY_HEADER.length - 1)

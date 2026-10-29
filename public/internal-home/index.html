@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fine Panel - Herramientas internas</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#ffffff; --text:#1d2733; --muted:#5b6b7b; --line:#d9e0e7; --accent:#1f6feb; --accent-text:#ffffff; --error:#b42318; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1720; --card:#17212c; --text:#e6edf3; --muted:#9fb0c0; --line:#2a3a4a; --accent:#4c8dff; --accent-text:#0b1220; --error:#ff8a80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; background:var(--bg); color:var(--text); font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { width:100%; max-width:420px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px; }
+  h1 { margin:0 0 4px; font-size:1.25rem; }
+  p.sub { margin:0 0 20px; color:var(--muted); font-size:.9rem; }
+  label { display:block; margin:12px 0 4px; font-size:.85rem; color:var(--muted); }
+  input { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--text); font:inherit; }
+  input:focus-visible, button:focus-visible, a.tool:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  button.primary { width:100%; margin-top:18px; padding:11px; border:0; border-radius:8px; background:var(--accent); color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer; }
+  button.primary:disabled { opacity:.6; cursor:default; }
+  button.link { background:none; border:0; padding:0; color:var(--muted); font:inherit; font-size:.85rem; cursor:pointer; text-decoration:underline; }
+  .error { margin-top:12px; color:var(--error); font-size:.9rem; min-height:1.2em; }
+  .who { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; font-size:.9rem; color:var(--muted); }
+  .who strong { color:var(--text); word-break:break-all; }
+  a.tool { display:block; padding:14px 16px; margin-top:10px; border:1px solid var(--line); border-radius:10px; color:var(--text); text-decoration:none; }
+  a.tool:hover { border-color:var(--accent); }
+  a.tool span { display:block; font-weight:600; }
+  a.tool small { color:var(--muted); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Fine Panel</h1>
+    <p class="sub">Herramientas internas</p>
+
+    <form id="loginView" hidden autocomplete="on">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" required>
+      <label for="password">Contraseña</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button class="primary" id="submitBtn" type="submit">Ingresar</button>
+      <div class="error" id="loginError" role="alert"></div>
+    </form>
+
+    <section id="menuView" hidden>
+      <div class="who">
+        <div>Sesión: <strong id="whoEmail"></strong></div>
+        <button class="link" id="logoutBtn" type="button">Salir</button>
+      </div>
+      <a class="tool" href="/internal/fine_panel_setup"><span>Wizard de seteo de proyectos</span><small>Fine Panel Set Up</small></a>
+      <a class="tool" href="/internal/whatsapp/inbox"><span>Inbox de WhatsApp</span><small>Conversaciones con panelistas</small></a>
+      <a class="tool" href="/internal/automated_transcripts"><span>Transcripciones automáticas</span><small>Audio a texto</small></a>
+    </section>
+
+    <div class="error" id="statusView" hidden></div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var KEY = 'fpSetupAuthToken'; // misma clave que el Wizard, el inbox y Transcripciones
+  var loginView = document.getElementById('loginView');
+  var menuView = document.getElementById('menuView');
+  var statusView = document.getElementById('statusView');
+  var loginError = document.getElementById('loginError');
+  var submitBtn = document.getElementById('submitBtn');
+
+  function getToken() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+  function setToken(t) { try { localStorage.setItem(KEY, t); } catch (e) {} }
+  function clearToken() { try { localStorage.removeItem(KEY); } catch (e) {} }
+
+  // Solo rutas internas del mismo sitio (evita redirigir a otro lugar).
+  function safeNext() {
+    var n = new URLSearchParams(window.location.search).get('next') || '';
+    var ok = /^\/internal(\/[A-Za-z0-9_\-\/.]*)?$/.test(n) && n.indexOf('//') === -1 && n.indexOf('..') === -1;
+    return ok ? n : '';
+  }
+
+  function show(view) {
+    loginView.hidden = view !== 'login';
+    menuView.hidden = view !== 'menu';
+    statusView.hidden = view !== 'status';
+  }
+
+  function enter(user) {
+    var next = safeNext();
+    if (next) { window.location.replace(next); return; }
+    document.getElementById('whoEmail').textContent = user.email + (user.role ? ' (' + user.role + ')' : '');
+    show('menu');
+  }
+
+  function checkSession() {
+    var token = getToken();
+    if (!token) { show('login'); return; }
+    fetch('/internal/auth/whoami', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function (r) {
+        if (r.status === 401) { clearToken(); show('login'); return null; }
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
+      .then(function (user) { if (user) enter(user); })
+      .catch(function () {
+        statusView.textContent = 'No se pudo verificar la sesión. Reintentá en unos segundos.';
+        show('status');
+      });
+  }
+
+  loginView.addEventListener('submit', function (e) {
+    e.preventDefault();
+    loginError.textContent = '';
+    submitBtn.disabled = true;
+    fetch('/internal/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ internal_user: { email: document.getElementById('email').value.trim(), password: document.getElementById('password').value } })
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (data) { return { response: response, data: data }; });
+    }).then(function (result) {
+      if (result.response.ok) {
+        setToken((result.response.headers.get('Authorization') || '').replace(/^Bearer\s+/, ''));
+        document.getElementById('password').value = '';
+        checkSession();
+      } else {
+        loginError.textContent = result.data.message || 'No se pudo iniciar sesión.';
+      }
+    }).catch(function () {
+      loginError.textContent = 'Error de conexión.';
+    }).then(function () { submitBtn.disabled = false; });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    clearToken();
+    show('login');
+  });
+
+  checkSession();
+})();
+</script>
+</body>
+</html>

@@ -111,8 +111,28 @@ module ExportRelabeling
       value.to_s.strip
     end
 
+    # Mismo fix que QuotaProgressBuilder#complete? -- source[:complete_precode]
+    # (ver ExportMetadataBuilder#status_config) cubre el caso SPSS, donde la
+    # columna de estado del loop trae el precode numerico crudo en vez del
+    # texto resuelto ("completa").
     def complete?(status_value, source)
-      status_value.to_s.casecmp?(source[:complete_value].to_s)
+      candidates = [source[:complete_value], source[:complete_precode]].compact
+      candidates.any? { |candidate| values_match?(status_value, candidate) }
+    end
+
+    # Mismo fix que QuotaProgressBuilder#values_match? -- el .dat de ancho
+    # fijo de Confirmit rellena precodes cortos con un cero a la izquierda
+    # (ej. "09"), que #normalize (solo strip) no neutraliza.
+    def values_match?(data_value, candidate)
+      a = normalize(data_value)
+      b = normalize(candidate)
+      return true if a.casecmp?(b)
+
+      numeric?(a) && numeric?(b) && a.to_i == b.to_i
+    end
+
+    def numeric?(value)
+      value.match?(/\A-?\d+\z/)
     end
 
     def source_for(variable_name)
