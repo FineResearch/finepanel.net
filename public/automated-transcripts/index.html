@@ -69,7 +69,7 @@
   <div class="card">
     <h3 style="margin-top:0;">Tus transcripciones</h3>
     <table>
-      <thead><tr><th>Archivo</th><th>Estado</th><th>Resultado</th></tr></thead>
+      <thead><tr><th>Archivo</th><th>Estado</th><th>Tiempo</th><th>Resultado</th></tr></thead>
       <tbody id="jobsBody"></tbody>
     </table>
   </div>
@@ -174,13 +174,51 @@ document.getElementById('uploadBtn').addEventListener('click', function () {
     });
 });
 
+// Etiquetas de estado en español, mas claras que el valor crudo que devuelve
+// la API (created/queued/processing/done/error).
+var STATUS_LABELS = {
+  created: 'preparando',
+  queued: 'en cola',
+  processing: 'procesando',
+  done: 'listo',
+  error: 'error',
+};
+
+function formatElapsed(seconds) {
+  if (seconds < 60) return seconds + 's';
+  var m = Math.floor(seconds / 60);
+  var s = seconds % 60;
+  return m + 'm ' + s + 's';
+}
+
+// No hay todavia una estimacion de tiempo restante calibrada (es un
+// promedio demasiado variable segun duracion del audio, diarizacion,
+// traduccion) -- por ahora mostramos tiempo transcurrido, que ya ayuda a
+// saber si sigue vivo o quedo colgado. Si en el futuro se guarda la
+// duracion del audio al subirlo, aca se podria calcular un ETA real.
+function elapsedLabel(job) {
+  var startTs = job.started_at || job.created_at;
+  if (!startTs) return '—';
+  var elapsed = Math.max(0, Math.floor(Date.now() / 1000) - startTs);
+  if (job.status === 'done' || job.status === 'error') {
+    var finishTs = job.finished_at || null;
+    if (finishTs && job.started_at) return 'tardó ' + formatElapsed(finishTs - job.started_at);
+    return '—';
+  }
+  return formatElapsed(elapsed) + (job.status === 'processing' ? ' procesando' : ' en cola');
+}
+
+var jobsPollTimer = null;
+
 function refreshJobs() {
   fetch(API_BASE + '/jobs', { headers: authHeaders() })
     .then(function (r) { return r.json(); })
     .then(function (data) {
       var body = document.getElementById('jobsBody');
       body.innerHTML = '';
-      (data.jobs || []).forEach(function (job) {
+      var jobs = data.jobs || [];
+      var stillActive = false;
+      jobs.forEach(function (job) {
         var tr = document.createElement('tr');
         var resultCell = '—';
         if (job.status === 'done' && job.transcript_url) {
@@ -190,12 +228,23 @@ function refreshJobs() {
           }
         } else if (job.status === 'error') {
           resultCell = job.error || 'error';
+        } else {
+          stillActive = true;
         }
         tr.innerHTML = '<td>' + (job.input_key || '').split('/').pop() + '</td>' +
-          '<td class="status-' + job.status + '">' + job.status + '</td>' +
+          '<td class="status-' + job.status + '">' + (STATUS_LABELS[job.status] || job.status) + '</td>' +
+          '<td>' + elapsedLabel(job) + '</td>' +
           '<td>' + resultCell + '</td>';
         body.appendChild(tr);
       });
+
+      // Auto-refresh cada 5s mientras haya algo sin terminar, para no tener
+      // que recargar la pagina a mano -- se frena solo cuando todo termino,
+      // para no pegarle a la API en vano.
+      if (jobsPollTimer) { clearInterval(jobsPollTimer); jobsPollTimer = null; }
+      if (stillActive) {
+        jobsPollTimer = setInterval(refreshJobs, 5000);
+      }
     });
 }
 
