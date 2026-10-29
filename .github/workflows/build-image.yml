@@ -1,0 +1,59 @@
+name: Build image (sin deploy)
+
+# Solo construye la imagen de produccion en un runner amd64 nativo y la sube
+# a ECR. NO toca ECS: el deploy lo hace deploy_all.sh con SKIP_BUILD=1
+# (ver comentario en ese script). Existe porque "docker build --platform
+# linux/amd64" local en la maquina ARM de Diego se cuelga bajo QEMU al
+# compilar nokogiri.
+#
+# Se dispara al empujar un tag "build-*" (corre con el workflow del propio
+# commit, sin depender de la rama por defecto) o a mano desde la pestana
+# Actions.
+on:
+  push:
+    tags:
+      - 'build-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and push image to AWS ECR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute image tag
+        id: tag
+        run: echo "tag=deploy-gh-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.release
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/production/finepanel:${{ steps.tag.outputs.tag }}
+
+      - name: Image tag
+        run: |
+          echo "IMAGE_TAG=${{ steps.tag.outputs.tag }}"
+          echo "Deploy con: SKIP_BUILD=1 IMAGE_TAG=${{ steps.tag.outputs.tag }} bash deploy_all.sh" >> "$GITHUB_STEP_SUMMARY"
