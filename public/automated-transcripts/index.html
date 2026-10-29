@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Automated Transcripts — Fine Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; background:#f4f6f8; margin:0; color:#1a2b3c; }
+  header { background:#14415E; color:#fff; padding:16px 24px; font-size:18px; font-weight:600; }
+  #appContent { display:none; max-width:720px; margin:32px auto; padding:0 16px; }
+  .card { background:#fff; border-radius:8px; padding:20px; margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+  label { display:block; margin:10px 0 4px; font-size:13px; color:#51606e; }
+  input[type=file], select { width:100%; padding:8px; border:1px solid #ccd3da; border-radius:4px; box-sizing:border-box; }
+  button { background:#14415E; color:#fff; border:none; border-radius:4px; padding:10px 18px; cursor:pointer; font-size:14px; margin-top:14px; }
+  button:disabled { opacity:0.5; cursor:default; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid #eef1f3; }
+  .status-created, .status-queued { color:#8a6d00; }
+  .status-processing { color:#0a5aa8; }
+  .status-done { color:#1a7a3c; }
+  .status-error { color:#b00020; }
+  a.result-link { color:#14415E; }
+  #loginOverlay { display:none; position:fixed; inset:0; background:#14415E; z-index:1000; align-items:center; justify-content:center; }
+  #loginForm { background:#fff; border-radius:8px; padding:28px; width:280px; box-shadow:0 4px 16px rgba(0,0,0,0.25); }
+  #loginForm label { margin-top:12px; }
+  #loginForm input { width:100%; padding:8px; border:1px solid #ccd3da; border-radius:4px; box-sizing:border-box; }
+  #loginError { color:#b00020; font-size:12px; margin-top:10px; display:none; }
+</style>
+</head>
+<body>
+
+<div id="loginOverlay" style="display:flex;">
+  <form id="loginForm">
+    <h3 style="margin-top:0;">Automated Transcripts</h3>
+    <label for="loginEmail">Email</label>
+    <input type="text" id="loginEmail" autocomplete="username">
+    <label for="loginPassword">Contraseña</label>
+    <input type="password" id="loginPassword" autocomplete="current-password">
+    <div id="loginError"></div>
+    <button type="submit">Ingresar</button>
+  </form>
+</div>
+
+<header>Automated Transcripts <span style="opacity:0.7; font-size:13px; font-weight:400;">· Fine Panel</span></header>
+
+<div id="appContent">
+  <div class="card">
+    <h3 style="margin-top:0;">Nueva transcripción</h3>
+    <label for="audioFile">Archivo de audio/video</label>
+    <input type="file" id="audioFile" accept="audio/*,video/*">
+    <label for="languageSelect">Idioma del audio</label>
+    <select id="languageSelect">
+      <option value="">Detectar automáticamente</option>
+      <option value="pt">Portugués</option>
+      <option value="es">Español</option>
+      <option value="en">Inglés</option>
+    </select>
+    <label for="translateSelect">Traducir a</label>
+    <select id="translateSelect">
+      <option value="">No traducir</option>
+      <option value="en">Inglés</option>
+      <option value="es">Español (próximamente)</option>
+    </select>
+    <label><input type="checkbox" id="diarizeCheck" style="width:auto; margin-right:6px;"> Separar por hablante (diarización)</label>
+    <div id="uploadError" style="color:#b00020; font-size:13px; margin-top:10px; display:none;"></div>
+    <button id="uploadBtn" type="button">Subir y procesar</button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Tus transcripciones</h3>
+    <table>
+      <thead><tr><th>Archivo</th><th>Estado</th><th>Resultado</th></tr></thead>
+      <tbody id="jobsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// Mismo nombre de clave que el Wizard (ver fine-panel-setup/index.html) a
+// proposito -- localStorage es por origen, no por path, asi que loguearse
+// en cualquiera de los dos tools autentica al otro tambien sin pedir
+// password de nuevo.
+var AUTH_TOKEN_KEY = 'fpSetupAuthToken';
+
+// Desplegado 2026-10-29 -- ver FineResearch/automated-transcripts.
+var API_BASE = 'https://17o7s2fe9k.execute-api.us-east-1.amazonaws.com/prod';
+
+function getAuthToken() {
+  try { return localStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch (e) { return ''; }
+}
+function setAuthToken(token) {
+  try { localStorage.setItem(AUTH_TOKEN_KEY, token); } catch (e) {}
+}
+function showLoginOverlay() {
+  document.getElementById('appContent').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+function showAppContent() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+  refreshJobs();
+}
+
+function authHeaders() {
+  var token = getAuthToken();
+  return token ? { 'Authorization': 'Bearer ' + token } : {};
+}
+
+document.getElementById('loginForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value;
+  var errorEl = document.getElementById('loginError');
+  errorEl.style.display = 'none';
+
+  fetch('/internal/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ internal_user: { email: email, password: password } }),
+  }).then(function (response) {
+    return response.json().then(function (data) { return { response: response, data: data }; });
+  }).then(function (result) {
+    if (result.response.ok) {
+      var token = (result.response.headers.get('Authorization') || '').replace(/^Bearer\s+/, '');
+      setAuthToken(token);
+      document.getElementById('loginPassword').value = '';
+      showAppContent();
+    } else {
+      errorEl.textContent = result.data.message || 'No se pudo iniciar sesión.';
+      errorEl.style.display = 'block';
+    }
+  }).catch(function () {
+    errorEl.textContent = 'Error de conexión.';
+    errorEl.style.display = 'block';
+  });
+});
+
+document.getElementById('uploadBtn').addEventListener('click', function () {
+  var fileInput = document.getElementById('audioFile');
+  var errorEl = document.getElementById('uploadError');
+  errorEl.style.display = 'none';
+  var file = fileInput.files[0];
+  if (!file) {
+    errorEl.textContent = 'Elegí un archivo primero.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  var payload = {
+    filename: file.name,
+    language: document.getElementById('languageSelect').value || null,
+    translate_to: document.getElementById('translateSelect').value || null,
+    diarize: document.getElementById('diarizeCheck').checked,
+  };
+
+  var headers = Object.assign({ 'Content-Type': 'application/json' }, authHeaders());
+
+  fetch(API_BASE + '/jobs', { method: 'POST', headers: headers, body: JSON.stringify(payload) })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.upload_url) { throw new Error(data.error || 'No se pudo crear el job'); }
+      return fetch(data.upload_url, { method: 'PUT', body: file }).then(function () { return data.job_id; });
+    })
+    .then(function (jobId) {
+      return fetch(API_BASE + '/jobs/' + jobId + '/submit', { method: 'POST', headers: authHeaders() });
+    })
+    .then(function () {
+      fileInput.value = '';
+      refreshJobs();
+    })
+    .catch(function (err) {
+      errorEl.textContent = err.message || 'Error al subir el archivo.';
+      errorEl.style.display = 'block';
+    });
+});
+
+function refreshJobs() {
+  fetch(API_BASE + '/jobs', { headers: authHeaders() })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var body = document.getElementById('jobsBody');
+      body.innerHTML = '';
+      (data.jobs || []).forEach(function (job) {
+        var tr = document.createElement('tr');
+        var resultCell = '—';
+        if (job.status === 'done' && job.transcript_url) {
+          resultCell = '<a class="result-link" href="' + job.transcript_url + '" target="_blank">transcripción</a>';
+          if (job.transcript_en_url) {
+            resultCell += ' · <a class="result-link" href="' + job.transcript_en_url + '" target="_blank">inglés</a>';
+          }
+        } else if (job.status === 'error') {
+          resultCell = job.error || 'error';
+        }
+        tr.innerHTML = '<td>' + (job.input_key || '').split('/').pop() + '</td>' +
+          '<td class="status-' + job.status + '">' + job.status + '</td>' +
+          '<td>' + resultCell + '</td>';
+        body.appendChild(tr);
+      });
+    });
+}
+
+if (getAuthToken()) { showAppContent(); } else { showLoginOverlay(); }
+// Si ya habia sesion abierta en el Wizard en otra pestaña de este mismo
+// origen, este evento la recoge sin pedir login de nuevo.
+window.addEventListener('storage', function (e) {
+  if (e.key === AUTH_TOKEN_KEY && e.newValue) { showAppContent(); }
+});
+</script>
+</body>
+</html>

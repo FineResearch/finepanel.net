@@ -42,6 +42,16 @@ end
     post 'add_fnp_redirect', to: 'setup#add_fnp_redirect'
     post 'upload_client_links', to: 'setup#upload_client_links'
   end
+
+  get 'auth/whoami', to: 'auth#whoami'
+
+  # Pagina estatica (ver Internal::AutomatedTranscripts::SetupController) --
+  # el servicio real vive aparte, en el repo FineResearch/automated-transcripts
+  # (AWS Batch/Lambda propios, no en este cluster de ECS Fargate). Comparte
+  # login con fine_panel_setup via internal/auth/whoami.
+  namespace :automated_transcripts do
+    get '/', to: 'setup#index'
+  end
 end
 
   get 'health', to: 'tracked_surveys#health'
