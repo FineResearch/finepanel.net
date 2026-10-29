@@ -16,6 +16,11 @@ API_CONTAINER="api"
 SIDEKIQ_CONTAINER="sidekiq"
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+SKIP_BUILD="${SKIP_BUILD:-0}"
+if [[ "${SKIP_BUILD}" == "1" && -z "${IMAGE_TAG:-}" ]]; then
+  echo "ERROR: SKIP_BUILD=1 requiere IMAGE_TAG (tag de una imagen ya subida a ECR, ver workflow build-image.yml)."
+  exit 1
+fi
 IMAGE_TAG="${IMAGE_TAG:-deploy-${TIMESTAMP}}"
 IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
 
@@ -48,6 +53,15 @@ if [[ -n "${CURRENT_BRANCH}" ]]; then
 else
   echo "WARNING: could not detect git branch. Skipping git pull."
 fi
+
+if [[ "${SKIP_BUILD}" == "1" ]]; then
+  # La imagen ya fue construida y subida por GitHub Actions (build-image.yml);
+  # no se usa Docker local. Solo se verifica que exista en ECR.
+  echo
+  echo "[1-3/10] SKIP_BUILD=1: usando imagen existente ${IMAGE_URI}"
+  aws ecr describe-images --region "${AWS_REGION}" --repository-name "${ECR_REPO}" \
+    --image-ids imageTag="${IMAGE_TAG}" --query 'imageDetails[0].imagePushedAt' --output text --no-cli-pager
+else
 
 echo
 echo "[1/10] Login ECR"
@@ -92,6 +106,8 @@ docker build --platform linux/amd64 -f Dockerfile.release -t "${IMAGE_URI}" .
 echo
 echo "[3/10] Push Docker image"
 docker push "${IMAGE_URI}"
+
+fi
 
 update_taskdef () {
   local TASKDEF_FILE="$1"
@@ -194,8 +210,8 @@ echo "[10/10] Prune leftover local images/build cache"
 # deploys sin podar). Solo borra imagenes sin tag (huerfanas) y cache de
 # build de mas de un dia -- nunca toca imagenes tageadas, para no arriesgar
 # algo que el usuario este usando para otra cosa.
-docker image prune -f
-docker builder prune -f --filter "until=24h"
+docker image prune -f || true
+docker builder prune -f --filter "until=24h" || true
 
 echo
 echo "================================================"
