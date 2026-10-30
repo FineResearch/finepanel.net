@@ -69,7 +69,7 @@
   <div class="card">
     <h3 style="margin-top:0;">Tus transcripciones</h3>
     <table>
-      <thead><tr><th>Archivo</th><th>Estado</th><th>Tiempo</th><th>Resultado</th></tr></thead>
+      <thead><tr><th>Archivo</th><th>Fecha</th><th>Estado</th><th>Tiempo</th><th>Resultado</th></tr></thead>
       <tbody id="jobsBody"></tbody>
     </table>
   </div>
@@ -184,6 +184,13 @@ var STATUS_LABELS = {
   error: 'error',
 };
 
+function formatDate(ts) {
+  if (!ts) return '—';
+  var d = new Date(ts * 1000);
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
 function formatElapsed(seconds) {
   if (seconds < 60) return seconds + 's';
   var m = Math.floor(seconds / 60);
@@ -232,6 +239,7 @@ function refreshJobs() {
           stillActive = true;
         }
         tr.innerHTML = '<td>' + (job.input_key || '').split('/').pop() + '</td>' +
+          '<td>' + formatDate(job.created_at) + '</td>' +
           '<td class="status-' + job.status + '">' + (STATUS_LABELS[job.status] || job.status) + '</td>' +
           '<td>' + elapsedLabel(job) + '</td>' +
           '<td>' + resultCell + '</td>';
