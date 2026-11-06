@@ -72,6 +72,18 @@
       <option value="es">Español</option>
     </select>
     <label><input type="checkbox" id="diarizeCheck" style="width:auto; margin-right:6px;"> Separar por hablante (diarización)</label>
+    <label for="numSpeakersSelect">Número de hablantes</label>
+    <select id="numSpeakersSelect">
+      <option value="">Automático</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8+">8 o más</option>
+    </select>
     <label><input type="checkbox" id="anonymizeCheck" checked style="width:auto; margin-right:6px;"> Anonimizar datos personales</label>
     <label><input type="checkbox" id="detectAdverseCheck" checked style="width:auto; margin-right:6px;"> Detectar eventos adversos</label>
     <div id="uploadError" style="color:#b00020; font-size:13px; margin-top:10px; display:none;"></div>
@@ -163,6 +175,7 @@ document.getElementById('uploadBtn').addEventListener('click', function () {
     language: document.getElementById('languageSelect').value || null,
     translate_to: document.getElementById('translateSelect').value || null,
     diarize: document.getElementById('diarizeCheck').checked,
+    num_speakers: document.getElementById('numSpeakersSelect').value || null,
     anonymize: document.getElementById('anonymizeCheck').checked,
     detect_adverse_events: document.getElementById('detectAdverseCheck').checked,
   };
