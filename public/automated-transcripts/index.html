@@ -20,6 +20,7 @@
   .status-done { color:#1a7a3c; }
   .status-error { color:#b00020; }
   a.result-link { color:#14415E; }
+  a.delete-link { color:#b00020; font-size:12px; }
   tr.row-adverse-event { background:#fdecea; }
   .ae-badge { color:#b00020; font-weight:600; margin-right:6px; cursor:help; }
   #loginOverlay { display:none; position:fixed; inset:0; background:#14415E; z-index:1000; align-items:center; justify-content:center; }
@@ -93,7 +94,7 @@
   <div class="card">
     <h3 style="margin-top:0;">Tus transcripciones</h3>
     <table>
-      <thead><tr><th>Archivo</th><th>Fecha</th><th>Estado</th><th>Tiempo</th><th>Resultado</th></tr></thead>
+      <thead><tr><th>Archivo</th><th>Fecha</th><th>Estado</th><th>Tiempo</th><th>Resultado</th><th></th></tr></thead>
       <tbody id="jobsBody"></tbody>
     </table>
   </div>
@@ -255,22 +256,13 @@ function refreshJobs() {
       jobs.forEach(function (job) {
         var tr = document.createElement('tr');
         var resultCell = '—';
-        if (job.status === 'done' && job.transcript_url) {
-          resultCell = '<a class="result-link" href="' + job.transcript_url + '" target="_blank">transcripción</a>';
-          if (job.transcript_html_url) {
-            resultCell += ' (<a class="result-link" href="' + job.transcript_html_url + '" target="_blank">HTML</a>)';
+        if (job.status === 'done' && job.transcript_html_url) {
+          resultCell = '<a class="result-link" href="' + job.transcript_html_url + '" target="_blank">transcripción</a>';
+          if (job.transcript_en_html_url) {
+            resultCell += ' · <a class="result-link" href="' + job.transcript_en_html_url + '" target="_blank">inglés</a>';
           }
-          if (job.transcript_en_url) {
-            resultCell += ' · <a class="result-link" href="' + job.transcript_en_url + '" target="_blank">inglés</a>';
-            if (job.transcript_en_html_url) {
-              resultCell += ' (<a class="result-link" href="' + job.transcript_en_html_url + '" target="_blank">HTML</a>)';
-            }
-          }
-          if (job.transcript_es_url) {
-            resultCell += ' · <a class="result-link" href="' + job.transcript_es_url + '" target="_blank">español</a>';
-            if (job.transcript_es_html_url) {
-              resultCell += ' (<a class="result-link" href="' + job.transcript_es_html_url + '" target="_blank">HTML</a>)';
-            }
+          if (job.transcript_es_html_url) {
+            resultCell += ' · <a class="result-link" href="' + job.transcript_es_html_url + '" target="_blank">español</a>';
           }
         } else if (job.status === 'error') {
           resultCell = job.error || 'error';
@@ -289,7 +281,8 @@ function refreshJobs() {
           '<td>' + formatDate(job.created_at) + '</td>' +
           '<td class="status-' + job.status + '">' + (STATUS_LABELS[job.status] || job.status) + '</td>' +
           '<td>' + elapsedLabel(job) + '</td>' +
-          '<td>' + resultCell + '</td>';
+          '<td>' + resultCell + '</td>' +
+          '<td><a href="#" class="delete-link" data-job-id="' + job.job_id + '">Eliminar</a></td>';
         body.appendChild(tr);
       });
 
@@ -302,6 +295,20 @@ function refreshJobs() {
       }
     });
 }
+
+// Delegado en el tbody (en vez de un listener por fila) porque refreshJobs
+// reemplaza todas las filas cada vez que corre -- un listener atado a un
+// <a> concreto se perdería en el siguiente refresh.
+document.getElementById('jobsBody').addEventListener('click', function (e) {
+  var link = e.target.closest('.delete-link');
+  if (!link) return;
+  e.preventDefault();
+  if (!confirm('¿Eliminar esta transcripción? Esta acción no se puede deshacer.')) return;
+  fetch(API_BASE + '/jobs/' + link.getAttribute('data-job-id'), {
+    method: 'DELETE',
+    headers: authHeaders(),
+  }).then(refreshJobs);
+});
 
 if (getAuthToken()) { showAppContent(); } else { showLoginOverlay(); }
 // Si ya habia sesion abierta en el Wizard en otra pestaña de este mismo
