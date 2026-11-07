@@ -307,7 +307,10 @@ document.getElementById('jobsBody').addEventListener('click', function (e) {
   fetch(API_BASE + '/jobs/' + link.getAttribute('data-job-id'), {
     method: 'DELETE',
     headers: authHeaders(),
-  }).then(refreshJobs);
+  })
+    .then(function (r) { if (!r.ok) throw new Error('No se pudo eliminar (HTTP ' + r.status + ')'); })
+    .then(refreshJobs)
+    .catch(function (err) { alert(err.message); });
 });
 
 if (getAuthToken()) { showAppContent(); } else { showLoginOverlay(); }
