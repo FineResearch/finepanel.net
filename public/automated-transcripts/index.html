@@ -87,6 +87,7 @@
     </select>
     <label><input type="checkbox" id="anonymizeCheck" checked style="width:auto; margin-right:6px;"> Anonimizar datos personales</label>
     <label><input type="checkbox" id="detectAdverseCheck" checked style="width:auto; margin-right:6px;"> Detectar eventos adversos</label>
+    <label><input type="checkbox" id="detectInconsistenciesCheck" checked style="width:auto; margin-right:6px;"> Detectar posibles inconsistencias</label>
     <div id="uploadError" style="color:#b00020; font-size:13px; margin-top:10px; display:none;"></div>
     <button id="uploadBtn" type="button">Subir y procesar</button>
   </div>
@@ -179,6 +180,7 @@ document.getElementById('uploadBtn').addEventListener('click', function () {
     num_speakers: document.getElementById('numSpeakersSelect').value || null,
     anonymize: document.getElementById('anonymizeCheck').checked,
     detect_adverse_events: document.getElementById('detectAdverseCheck').checked,
+    detect_inconsistencies: document.getElementById('detectInconsistenciesCheck').checked,
   };
 
   var headers = Object.assign({ 'Content-Type': 'application/json' }, authHeaders());
