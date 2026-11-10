@@ -66,4 +66,61 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
 
     expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email)
   end
+
+  describe 'variables faltantes del cuestionario' do
+    let(:missing) { [{ name: 'q5a', title: 'Q5A' }] }
+
+    def stub_missing_mailer
+      delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      allow(ExportDeliveryMailer).to receive(:missing_variables_alert_email).and_return(delivery)
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(delivery)
+    end
+
+    it 'avisa a las direcciones @fine-research.com aunque el procesamiento haya salido bien' do
+      stub_missing_mailer
+
+      described_class.call(
+        recipients: ['cliente@otraempresa.com', 'dcasar@fine-research.com'], project_id: 'p123456',
+        export_type: :excel, relabeled: true, missing_variables: missing
+      )
+
+      expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email)
+        .with(['dcasar@fine-research.com'], 'p123456', export_type: :excel, variables: missing)
+      expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email)
+    end
+
+    it 'nunca avisa al cliente: sin destinatarios @fine-research.com no manda nada' do
+      stub_missing_mailer
+
+      described_class.call(
+        recipients: ['cliente@otraempresa.com'], project_id: 'p123456', export_type: :excel,
+        relabeled: true, missing_variables: missing
+      )
+
+      expect(ExportDeliveryMailer).not_to have_received(:missing_variables_alert_email)
+    end
+
+    it 'no manda nada si no falta ninguna variable' do
+      stub_missing_mailer
+
+      described_class.call(
+        recipients: ['dcasar@fine-research.com'], project_id: 'p123456', export_type: :excel,
+        relabeled: true, missing_variables: []
+      )
+
+      expect(ExportDeliveryMailer).not_to have_received(:missing_variables_alert_email)
+    end
+
+    it 'si ademas hubo un error de procesamiento, salen los 2 avisos por separado' do
+      stub_missing_mailer
+
+      described_class.call(
+        recipients: ['dcasar@fine-research.com'], project_id: 'p123456', export_type: :spss,
+        relabeled: false, missing_variables: missing
+      )
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email).once
+      expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email).once
+    end
+  end
 end

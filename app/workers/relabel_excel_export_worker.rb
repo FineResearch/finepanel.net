@@ -3,8 +3,8 @@
 require 'zip'
 
 # Recibe el zip que Confirmit manda con el/los .xlsx de un export, corrige
-# los encabezados (formato "codigo | atributo | pregunta" en 3 filas, ver
-# ExportRelabeling::LabelParser) y manda el resultado por mail.
+# los encabezados (una fila "VARIABLE : atributo | TITULO. pregunta", ver
+# ExportRelabeling::LabelFormatter) y manda el resultado por mail.
 #
 # Como el .xlsx y el .sps son 2 procesos separados (cada uno con su propia
 # Rule/mail en Confirmit), este worker nunca depende del otro -- ver
@@ -70,6 +70,7 @@ class RelabelExcelExportWorker
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
     @permission_denied = false
+    @missing_variables = []
 
     output_paths, relabeled, includes_quotas, includes_report, includes_dictionary, completed_quotas, delivery_zip_name =
       build_output_paths(zip_path, project_id, email_body)
@@ -83,7 +84,7 @@ class RelabelExcelExportWorker
 
     ExportRelabeling::ProcessingAlertNotifier.call(
       recipients: recipients, project_id: project_id, export_type: :excel,
-      permission_denied: @permission_denied, relabeled: relabeled
+      permission_denied: @permission_denied, relabeled: relabeled, missing_variables: @missing_variables
     )
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
@@ -116,6 +117,7 @@ class RelabelExcelExportWorker
     sheets = xlsx_files.map { |path| [path, ExportRelabeling::ExcelReader.call(path)] }
 
     metadata = ExportRelabeling::ExportMetadataBuilder.call(sheets: sheets, lookup: lookup, email_body: email_body)
+    @missing_variables = metadata[:missing_variables] || []
 
     output_paths = sheets.map do |path, sheet|
       relabel(path, sheet, metadata[:parsed_by_path][path], metadata[:quota_rows], metadata[:report_rows], metadata[:dictionary_rows], lookup)
@@ -160,7 +162,7 @@ class RelabelExcelExportWorker
     output_path = xlsx_path.sub(/\.xlsx\z/, '_relabeled.xlsx')
     ExportRelabeling::ExcelWriter.call(
       sheet_name: sheet.name,
-      header_rows: build_header_rows(parsed),
+      header_rows: build_header_rows(sheet.headers, parsed),
       data_rows: sheet.rows,
       extra_sheets: extra_sheets_for(sheet, quota_rows, report_rows, dictionary_rows, lookup),
       date_columns: sheet.date_columns,
@@ -204,31 +206,17 @@ class RelabelExcelExportWorker
     { rows: result[:rows], highlighted_rows: result[:header_indices] }
   end
 
-  # 3 filas de encabezado (codigo / atributo / pregunta) en vez del string
-  # unico "codigo | atributo | pregunta" que usa SPSS -- decision ya
-  # tomada, mas practico para trabajar en Excel que un solo string largo
-  # por columna. Una variable sin codigo/atributo detectable (sistema, o
-  # sin el patron "codigo - pregunta") deja esas 2 filas vacias y el
-  # texto tal cual en la fila de pregunta.
-  #
-  # Diego: en un archivo de loop (ej. fichas), el codigo de CADA variable
-  # trae pegado un piping sin resolver que Confirmit agrega como
-  # referencia al loop (ej. "Q0A // ^f('hidden_ficha_nom')^", identico en
-  # TODA fila) -- en el Dictionary eso queda tal cual a proposito (ver
-  # ExportMetadataBuilder/LabelParser, "no molesta"), pero en el
-  # encabezado de la tabla de DATOS se ve mejor separado en su propia
-  # fila en vez de pisar la fila de Codigo. Se agrega esa 4ta fila SOLO
-  # cuando aparece (nunca para el archivo principal, que no tiene este
-  # patron en ninguna columna) -- ver LabelParser.split_loop_reference.
-  def build_header_rows(parsed)
-    codes_and_refs = parsed.map { |p| ExportRelabeling::LabelParser.split_loop_reference(p[:code]) }
-    codes = codes_and_refs.map(&:first)
-    loop_refs = codes_and_refs.map(&:last)
-
-    rows = [codes]
-    rows << loop_refs if loop_refs.any?(&:present?)
-    rows << parsed.map { |p| p[:attribute] }
-    rows << parsed.map { |p| p[:question] }
-    rows
+  # UNA fila de encabezado por columna, con el formato del modelo del
+  # cliente "VARIABLE : atributo | TITULO. pregunta" (ver
+  # ExportRelabeling::LabelFormatter) -- el mismo texto que usa SPSS en
+  # VARIABLE LABELS. Reemplaza las 3 filas anteriores (codigo / atributo /
+  # pregunta): el cliente (IQVIA, acta del 06/11/2026) pidio una sola linea
+  # porque ya las comparan contra las bases de ondas anteriores.
+  def build_header_rows(headers, parsed)
+    [
+      headers.each_with_index.map do |header, index|
+        ExportRelabeling::LabelFormatter.call(variable_name: header.variable_name, parsed: parsed[index])
+      end
+    ]
   end
 end

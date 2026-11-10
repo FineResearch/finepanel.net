@@ -65,6 +65,7 @@ class RelabelSpssExportWorker
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
     @permission_denied = false
+    @missing_variables = []
 
     output_paths, relabeled, metadata_info, delivery_zip_name = build_output_paths(zip_path, project_id, email_body)
 
@@ -78,7 +79,7 @@ class RelabelSpssExportWorker
 
     ExportRelabeling::ProcessingAlertNotifier.call(
       recipients: recipients, project_id: project_id, export_type: :spss,
-      permission_denied: @permission_denied, relabeled: relabeled
+      permission_denied: @permission_denied, relabeled: relabeled, missing_variables: @missing_variables
     )
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
@@ -142,6 +143,7 @@ class RelabelSpssExportWorker
     return [nil, blank_metadata_info] if sheets.empty?
 
     metadata = ExportRelabeling::ExportMetadataBuilder.call(sheets: sheets, lookup: lookup, email_body: email_body)
+    @missing_variables = metadata[:missing_variables] || []
     return [nil, blank_metadata_info] if metadata[:dictionary_rows].blank? && metadata[:quota_rows].blank? && metadata[:report_rows].blank?
 
     [write_metadata_excel(main_sps_path(sheets), metadata), metadata_info_from(metadata)]

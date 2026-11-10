@@ -108,7 +108,7 @@ RSpec.describe RelabelSpssExportWorker do
 
     described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
 
-    expect(captured_sps).to include("Q1 'F1 | Pergunta | Texto de la pregunta'")
+    expect(captured_sps).to include("Q1 'Q1 : Pergunta | F1. Texto de la pregunta'")
     expect(captured_sps).to include("NAME = '#{ExportRelabeling::PsppLambdaClient::LAMBDA_DATA_PATH}'")
     expect(captured_sps).not_to include('c:\temp')
     expect(captured_sps).to include("SAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}'")
@@ -266,7 +266,7 @@ RSpec.describe RelabelSpssExportWorker do
       dictionary = captured.worksheets[0]
       expect(dictionary.sheet_name).to eq('Dictionary')
       expect(dictionary[0].cells.map(&:value)).to eq(
-        ['Variable', 'Code', 'Attribute', 'Question', 'Mean', 'Min', 'Max', 'Nulls', '% Nulls', 'Zeros', '', '', 'Answer Options']
+        ['Variable', 'Code', 'Attribute', 'Question', 'Mean', 'Min', 'Max', 'Nulls', '% Nulls', 'Zeros', 'Type', 'Answer Options']
       )
       expect(dictionary[1].cells.map(&:value)[0..3]).to eq(['Q1', 'F1', 'Pergunta', 'Texto de la pregunta'])
       # El compile a .sav escribe "data_relabeled.sps" en el MISMO
@@ -281,7 +281,8 @@ RSpec.describe RelabelSpssExportWorker do
     it 'agrega una hoja Quotas cuando el lookup resuelve cuotas, contando contra las filas reales del .dat' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
-      allow(lookup).to receive(:answer_options).and_return([])
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('Q1').and_return('Single')
       allow(lookup).to receive(:quotas).and_return(
         [{ name: 'quota1', cells: [{ limit: 10, fields: [{ name: 'Q1', precode: nil, value: '1' }] }] }]

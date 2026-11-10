@@ -49,14 +49,20 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
 
   it 'reescribe un label compuesto simple dentro de VARIABLE LABELS' do
     expect(rewritten).to include(
-      " F4_1 'F4 | Consultório/Clínica/Hospital PRIVADO | Dentre os locais de atendimento abaixo, " \
+      " F4_1 'F4_1 : Consultório/Clínica/Hospital PRIVADO | F4. Dentre os locais de atendimento abaixo, " \
       "como o(a) Dr.(a) distribuiria o seu tempo de atendimento?'"
     )
   end
 
+  # Mismo texto que el encabezado del Excel (ver LabelFormatter): "el label del
+  # SPSS vira igual a la primera linea del Excel" (acta del 06/11/2026).
+  it 'usa en VARIABLE LABELS el mismo formato "VARIABLE : atributo | TITULO. pregunta" que el encabezado del Excel' do
+    expect(rewritten).to match(/ F4_1 'F4_1 : .+ \| F4\. .+'/)
+  end
+
   it 'deja el piping crudo, re-escapado correctamente, dentro de VARIABLE LABELS' do
     expect(rewritten).to include(
-      " F9A_99 'F9A | ^f(''f9_99_other'')^ | E quantas(os) pacientes o(a) Dr.(a) atendeu a partir de " \
+      " F9A_99 'F9A_99 : ^f(''f9_99_other'')^ | F9A. E quantas(os) pacientes o(a) Dr.(a) atendeu a partir de " \
       "FEVEREIRO DE 2026 com esse(s) tipo(s) de câncer(es) no ambiente privado?'"
     )
   end
@@ -71,7 +77,7 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
 
     result = described_class.call(sps_text, lookup: lookup)
 
-    expect(result).to include(" F4_1 'F4 | Atributo de la API | Pregunta de la API'")
+    expect(result).to include(" F4_1 'F4_1 : Atributo de la API | F4. Pregunta de la API'")
   end
 
   it 'no usa el lookup dentro de VALUE LABELS (el token ahi es un codigo de respuesta, no una variable)' do
@@ -120,6 +126,45 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
     result = described_class.call(sps_text, lookup: lookup)
     rewritten_line = result.lines.find { |line| line.include?('9. Obrigações') }
 
-    expect(rewritten_line).to eq(" RESPONSEID '9. Obrigações Quando aplicável, é sua obrigação... 10. Propriedade'\n")
+    expect(rewritten_line).to eq(
+      " RESPONSEID 'RESPONSEID : 9. Obrigações Quando aplicável, é sua obrigação... 10. Propriedade'\n"
+    )
+  end
+
+  # SPSS corta el label alrededor de 250 caracteres (el cliente lo menciono en
+  # la reunion): el atributo va primero, asi que lo que se pierde es el final
+  # del texto largo de la pregunta, nunca lo que identifica a la columna.
+  describe 'truncado del label de una variable' do
+    def label_of(result, variable)
+      result.lines.find { |line| line.start_with?(" #{variable} '") }.chomp[/'(.*)'/, 1]
+    end
+
+    it 'limita el label a 250 bytes y conserva el atributo' do
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:call).with('F4_1').and_return(
+        code: 'F4', attribute: 'Atributo corto', question: 'Pergunta muito longa. ' * 40
+      )
+
+      label = label_of(described_class.call(sps_text, lookup: lookup), 'F4_1')
+
+      expect(label.bytesize).to be <= 250
+      expect(label).to start_with('F4_1 : Atributo corto | F4. Pergunta muito longa.')
+    end
+
+    it 'no parte un caracter multibyte al cortar' do
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:call).with('F4_1').and_return(code: 'F4', attribute: nil, question: 'é' * 300)
+
+      label = label_of(described_class.call(sps_text, lookup: lookup), 'F4_1')
+
+      expect(label.bytesize).to be <= 250
+      expect(label).to be_valid_encoding
+    end
+
+    it 'no trunca un label corto' do
+      expect(label_of(rewritten, 'F4_1').bytesize).to be < 250
+    end
   end
 end

@@ -132,10 +132,9 @@ RSpec.describe ExportRelabeling::LabelParser do
   end
 
   describe '.split_loop_reference' do
-    # Diego: en el encabezado de la tabla de datos de Excel (a diferencia
-    # del Dictionary) si quiere el piping separado, en su propia fila --
-    # RelabelExcelExportWorker#build_header_rows usa esto para esa fila
-    # extra, sin tocar como se arma `code` en #call/#format.
+    # El encabezado de datos (a diferencia del Dictionary) no lleva el piping
+    # del loop -- LabelFormatter usa esto para descartarlo, sin tocar como se
+    # arma `code` en #call/#format.
     it 'separa el codigo limpio de la referencia al loop cuando el sufijo esta presente' do
       expect(described_class.split_loop_reference("Q0A // ^f('hidden_ficha_nom')^")).to eq(
         ['Q0A', "// ^f('hidden_ficha_nom')^"]

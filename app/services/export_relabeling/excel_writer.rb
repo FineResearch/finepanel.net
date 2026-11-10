@@ -97,11 +97,22 @@ module ExportRelabeling
       rows.each_with_index do |row, row_idx|
         row.each_with_index do |value, col_idx|
           is_date_column = date_columns.include?(col_idx)
-          cell_value = is_date_column ? numeric_or(value) : value
+          cell_value = is_date_column ? numeric_or(value) : original_type(value)
           cell = sheet.add_cell(row_idx + row_offset, col_idx, cell_value)
           cell.set_number_format(DATE_FORMAT) if value.present? && is_date_column
         end
       end
+    end
+
+    # Una celda que era numerica en el original (ver ExcelReader::NumericString)
+    # se escribe como numero; todo lo demas sigue como texto. Un entero se
+    # convierte exacto (sin pasar por Float); lo demas, como decimal.
+    def original_type(value)
+      return value unless value.is_a?(ExportRelabeling::ExcelReader::NumericString)
+
+      value.match?(/\A-?\d+\z/) ? Integer(value, 10) : Float(value)
+    rescue ArgumentError, TypeError
+      value.to_s
     end
 
     def numeric_or(value)

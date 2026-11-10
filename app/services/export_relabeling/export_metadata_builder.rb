@@ -14,11 +14,11 @@
 # un path real.
 module ExportRelabeling
   class ExportMetadataBuilder
-    # 2 columnas vacias antes de "Answer Options" a pedido de Diego, para
-    # separarla visualmente de las estadisticas numericas.
+    # Mismas columnas que el modelo del cliente (acta del 06/11/2026); ver
+    # DictionaryEntryBuilder para el criterio de cada una.
     DICTIONARY_HEADER = [
       'Variable', 'Code', 'Attribute', 'Question', 'Mean', 'Min', 'Max', 'Nulls', '% Nulls', 'Zeros',
-      '', '', 'Answer Options'
+      'Type', 'Answer Options'
     ].freeze
 
     # "status" es un campo de SISTEMA de Confirmit (no lo define cada
@@ -67,6 +67,7 @@ module ExportRelabeling
       report_rows = safely('hoja Report') { build_report_rows(manual[:crosses], sources) }
       dictionary_rows = safely('Dictionary consolidado') { build_consolidated_dictionary_rows(parsed_by_path) }
       completed_quotas = safely('cuotas completas para el cuerpo del mail', []) { ExportRelabeling::CompletedQuotas.call(quota_rows && quota_rows[:rows]) }
+      missing_variables = safely('variables faltantes del cuestionario', []) { build_missing_variables }
 
       {
         parsed_by_path: parsed_by_path,
@@ -74,6 +75,7 @@ module ExportRelabeling
         report_rows: report_rows,
         dictionary_rows: dictionary_rows,
         completed_quotas: completed_quotas,
+        missing_variables: missing_variables,
         includes_quotas: quota_rows.present?,
         includes_report: report_rows.present?,
         includes_dictionary: dictionary_rows.present?
@@ -81,6 +83,14 @@ module ExportRelabeling
     end
 
     private
+
+    # Preguntas del cuestionario que no llegaron en NINGUN archivo del export
+    # (ver MissingVariablesDetector) -- el aviso es interno, no cambia nada de
+    # lo que recibe el cliente.
+    def build_missing_variables
+      exported_names = @sheets.flat_map { |_path, sheet| sheet.headers.map(&:variable_name) }
+      ExportRelabeling::MissingVariablesDetector.call(lookup: @lookup, exported_names: exported_names)
+    end
 
     # El proceso principal es que el cliente reciba la base re-etiquetada --
     # Diego: "si algun proceso falla se omite ese proceso y no se para el
@@ -282,47 +292,31 @@ module ExportRelabeling
       ExportRelabeling::LabelParser.call(header.raw_label)
     end
 
-    # Misma resolucion que las 3 filas de encabezado de Excel, pero en
-    # formato tabla (una fila por variable) para que sea legible como
-    # diccionario, en vez de tener que leer 3 filas columna por columna.
-    # Suma las estadisticas por columna que pidio el cliente (ver
-    # ExportRelabeling::ColumnStatistics) -- se calculan sobre los valores ya
-    # presentes en este mismo archivo, no dependen de ninguna otra fuente.
+    # Misma resolucion que el encabezado de Excel, pero en formato tabla (una
+    # fila por variable) para que sea legible como diccionario. La fila de
+    # cada variable la arma ExportRelabeling::DictionaryEntryBuilder (tipo,
+    # opciones de respuesta y estadisticas por columna, ver ahi el criterio)
+    # -- las estadisticas se calculan sobre los valores ya presentes en este
+    # mismo archivo, no dependen de ninguna otra fuente.
     def build_dictionary_rows(headers, parsed, rows)
       entries = headers.each_with_index.map do |header, index|
-        stats = ExportRelabeling::ColumnStatistics.call(rows.map { |row| row[index] })
-
-        [
-          header.variable_name,
-          parsed[index][:code],
-          parsed[index][:attribute],
-          parsed[index][:question],
-          stats[:mean],
-          stats[:min],
-          stats[:max],
-          stats[:null_count],
-          stats[:null_percentage],
-          stats[:zero_count],
-          nil,
-          nil,
-          format_answer_options(header.variable_name)
-        ]
+        ExportRelabeling::DictionaryEntryBuilder.call(
+          variable_name: header.variable_name,
+          parsed: parsed[index],
+          values: rows.map { |row| row[index] },
+          profile: column_profile(header.variable_name)
+        )
       end
 
       [DICTIONARY_HEADER] + entries
     end
 
-    # Solo tiene contenido para preguntas Single (ver
-    # ConfirmitVariableLookup#answer_options) -- una Multi ya muestra el
-    # texto de su propia opcion en la columna "Atributo" de esa misma fila,
-    # no hace falta repetirlo aca.
-    def format_answer_options(variable_name)
+    # Sin schema (lookup nil) o si la variable no se resuelve, el tipo se
+    # deduce de los datos (ver DictionaryEntryBuilder).
+    def column_profile(variable_name)
       return nil unless @lookup
 
-      options = safely("opciones de respuesta de #{variable_name}", []) { @lookup.answer_options(variable_name) }
-      return nil if options.blank?
-
-      options.map { |precode, text| "#{precode}=#{text}" }.join('; ')
+      safely("tipo de la columna #{variable_name}") { @lookup.column_profile(variable_name) }
     end
   end
 end

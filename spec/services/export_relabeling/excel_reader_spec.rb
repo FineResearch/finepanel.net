@@ -111,4 +111,48 @@ RSpec.describe ExportRelabeling::ExcelReader do
       expect(sheet.rows.first[1]).to eq('45847')
     end
   end
+
+  # En un export real (p314244165357) las celdas numericas vienen sin t= y el
+  # texto como t="str". Hay que distinguirlas para que el archivo de salida no
+  # convierta los numeros en texto.
+  describe 'tipo de celda original' do
+    let(:typed_path) do
+      dir = Dir.mktmpdir
+      path = File.join(dir, 'typed.xlsx')
+      workbook_xml = '<?xml version="1.0" encoding="utf-8"?><x:workbook xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheets><x:sheet name="Sheet1" sheetId="1" r:id="RID1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" /></x:sheets></x:workbook>'
+      rels_xml = '<?xml version="1.0" encoding="utf-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="/xl/worksheets/sheet.xml" Id="RID1" /></Relationships>'
+      sheet_xml = <<~XML
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+        <row r="1"><c r="A1" t="str"><v>respid</v></c><c r="B1" t="str"><v>tiempo</v></c><c r="C1" t="str"><v>codigo</v></c><c r="D1" t="str"><v>nota</v></c></row>
+        <row r="2"><c r="A2"><v>7</v></c><c r="B2"><v>178.9</v></c><c r="C2" t="str"><v>007</v></c><c r="D2" t="str"><v>abc</v></c></row>
+        </sheetData></worksheet>
+      XML
+      Zip::File.open(path, Zip::File::CREATE) do |zip|
+        zip.get_output_stream('xl/workbook.xml') { |f| f.write(workbook_xml) }
+        zip.get_output_stream('xl/_rels/workbook.xml.rels') { |f| f.write(rels_xml) }
+        zip.get_output_stream('xl/worksheets/sheet.xml') { |f| f.write(sheet_xml) }
+      end
+      path
+    end
+
+    let(:row) { described_class.call(typed_path).rows.first }
+
+    it 'marca como numericas las celdas sin t= (enteros y decimales)' do
+      expect(row[0]).to be_a(described_class::NumericString)
+      expect(row[1]).to be_a(described_class::NumericString)
+    end
+
+    it 'deja como texto plano las celdas t="str", aunque parezcan un numero (ej. "007")' do
+      expect(row[2]).not_to be_a(described_class::NumericString)
+      expect(row[3]).not_to be_a(described_class::NumericString)
+    end
+
+    it 'una celda numerica se comporta exactamente como el String de siempre' do
+      expect(row[0]).to eq('7')
+      expect(row[1]).to eq('178.9')
+      expect([row[0]].include?('7')).to be true
+      expect({ '7' => :ok }[row[0]]).to eq(:ok)
+      expect(Float(row[1])).to eq(178.9)
+    end
+  end
 end

@@ -26,8 +26,23 @@ require 'set'
 # muestra como el numero crudo en vez de una fecha -- por eso se detectan
 # aca las columnas de fecha (por estilo de celda, no por nombre de
 # variable) para que ExcelWriter les reaplique el formato.
+#
+# Los NUMEROS tambien hay que preservarlos: en un export real (p314244165357)
+# las celdas numericas vienen SIN t= (tipo numerico de Excel), mientras que el
+# texto viene como t="str". Si todo se lee como String y se reescribe asi, un
+# "1" numerico queda como el texto '1' (alineado a la izquierda, con el
+# triangulo verde, sin poder sumarse) -- 2068 celdas distintas en un export
+# de prueba. Por eso las celdas numericas se devuelven como NumericString (ver
+# mas abajo) y ExcelWriter las vuelve a escribir como numero.
 module ExportRelabeling
   class ExcelReader
+    # Un String que recuerda que en el archivo original era una celda numerica.
+    # Se comporta EXACTAMENTE como un String (==, to_s, hash, comparaciones,
+    # Float(...)) a proposito: cuotas, cruces y estadisticas siguen trabajando
+    # con texto como siempre, y solo ExcelWriter mira la clase para escribir
+    # un numero en vez de texto.
+    class NumericString < String; end
+
     Sheet = Struct.new(:name, :headers, :rows, :date_columns)
     Header = Struct.new(:variable_name, :raw_label)
 
@@ -160,10 +175,28 @@ module ExportRelabeling
         index = column_index(cell['r'])
         next if index.nil? || index >= column_count
 
-        values[index] = cell_value(cell)
+        values[index] = typed_cell_value(cell)
       end
 
       values
+    end
+
+    # Sin t= (o t="n") es una celda numerica de Excel; cualquier otro tipo
+    # (str, inlineStr, s, b, e...) se deja como texto, igual que antes.
+    def typed_cell_value(cell)
+      value = cell_value(cell)
+      return value unless value && numeric_cell?(cell, value)
+
+      NumericString.new(value)
+    end
+
+    def numeric_cell?(cell, value)
+      return false unless cell['t'].nil? || cell['t'] == 'n'
+
+      Float(value)
+      true
+    rescue ArgumentError, TypeError
+      false
     end
 
     def cell_value(cell)

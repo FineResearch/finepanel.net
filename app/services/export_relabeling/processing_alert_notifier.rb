@@ -14,6 +14,10 @@
 #   re-etiquetar como fallback -- ver RelabelSpssExportWorker/
 #   RelabelExcelExportWorker.
 #
+# Y un tercer aviso, aparte de los dos anteriores y no un fallo: las
+# preguntas del cuestionario que faltan en el export (ver
+# MissingVariablesDetector), para corregir el Data Template.
+#
 # Los destinatarios de la alerta son SOLO las direcciones @fine-research.com
 # que ya estaban en el cuerpo del mail original (nunca el cliente, nunca
 # una lista aparte) -- si ninguna de las direcciones del envio es de ese
@@ -22,33 +26,46 @@ module ExportRelabeling
   class ProcessingAlertNotifier
     FINE_RESEARCH_DOMAIN = '@fine-research.com'
 
-    def self.call(recipients:, project_id:, export_type:, permission_denied: false, relabeled: true)
+    def self.call(recipients:, project_id:, export_type:, permission_denied: false, relabeled: true, missing_variables: [])
       new(
         recipients: recipients, project_id: project_id, export_type: export_type,
-        permission_denied: permission_denied, relabeled: relabeled
+        permission_denied: permission_denied, relabeled: relabeled, missing_variables: missing_variables
       ).call
     end
 
-    def initialize(recipients:, project_id:, export_type:, permission_denied:, relabeled:)
+    def initialize(recipients:, project_id:, export_type:, permission_denied:, relabeled:, missing_variables:)
       @recipients = recipients
       @project_id = project_id
       @export_type = export_type
       @permission_denied = permission_denied
       @relabeled = relabeled
+      @missing_variables = Array(missing_variables)
     end
 
     def call
-      return unless alert_type
-
       targets = internal_recipients
       return if targets.empty?
 
+      send_processing_alert(targets) if alert_type
+      send_missing_variables_alert(targets) if @missing_variables.any?
+    end
+
+    private
+
+    def send_processing_alert(targets)
       ExportDeliveryMailer.processing_alert_email(
         targets, @project_id, export_type: @export_type, alert_type: alert_type
       ).deliver_now
     end
 
-    private
+    # Aparte de la alerta de procesamiento: no es un fallo del pipeline sino un
+    # aviso para corregir el Data Template (ver MissingVariablesDetector). Si
+    # ambas aplican salen 2 mails, cada uno con un solo tema.
+    def send_missing_variables_alert(targets)
+      ExportDeliveryMailer.missing_variables_alert_email(
+        targets, @project_id, export_type: @export_type, variables: @missing_variables
+      ).deliver_now
+    end
 
     def alert_type
       return :permission_denied if @permission_denied

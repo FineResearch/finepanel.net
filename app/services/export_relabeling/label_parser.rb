@@ -40,10 +40,10 @@ module ExportRelabeling
     # variable del loop (ej. "Q0A // ^f('hidden_ficha_nom')^"), identico en
     # TODA fila del archivo. #call/#format lo DEJAN intacto dentro de
     # `code` a proposito (Diego: en el Dictionary no molesta, hasta ayuda a
-    # ver la logica) -- #split_loop_reference es un helper APARTE, que el
-    # encabezado de datos de Excel usa para separarlo en su propia fila (ver
-    # RelabelExcelExportWorker#build_header_rows), sin afectar como se arma
-    # `code` en ningun otro lado (Dictionary, SPSS VALUE LABELS, etc).
+    # ver la logica) -- #split_loop_reference es un helper APARTE, que
+    # LabelFormatter usa para descartarlo del encabezado/label de la
+    # columna (es identico en toda columna del loop), sin afectar como se
+    # arma `code` en ningun otro lado (Dictionary, SPSS VALUE LABELS, etc).
     LOOP_REFERENCE_PATTERN = %r{\s*(//\s*\^[^^]*\^)\s*\z}.freeze
 
     def self.call(raw_label)

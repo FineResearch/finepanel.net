@@ -330,4 +330,143 @@ RSpec.describe ExportRelabeling::ConfirmitVariableLookup do
       expect(lookup.answer_options('no_existe')).to eq([])
     end
   end
+
+  describe '#column_profile' do
+    # Forma real confirmada contra p314244165357/p573989981944: Open numerico
+    # = Numeric="true", fecha = IsDate="true", puntos de una escala = <Scale>
+    # dentro de <Scales> de un Grid.
+    let(:profile_lookup) do
+      described_class.new(<<~XML)
+        <Open EntityId="1" Numeric="true"><Name>i2</Name><FormTexts><FormText Language="1046"><Title>I2</Title><Text>Quanto tempo?</Text></FormText></FormTexts></Open>
+        <Open EntityId="2" IsDate="true"><Name>data</Name><FormTexts><FormText Language="1046"><Title>Data</Title></FormText></FormTexts></Open>
+        <Open EntityId="3"><Name>comentario</Name><FormTexts><FormText Language="1046"><Title>C1</Title></FormText></FormTexts></Open>
+        <Single EntityId="4"><Name>f0</Name><FormTexts><FormText Language="1046"><Title>F0</Title><Text>Estado?</Text></FormText></FormTexts>
+          <SingleAnswers><Answer Precode="1"><Texts><Text Language="1046">Rio de Janeiro</Text></Texts></Answer><Answer Precode="2"><Texts><Text Language="1046">S&#227;o Paulo</Text></Texts></Answer></SingleAnswers>
+        </Single>
+        <Multi EntityId="5"><Name>i3</Name><FormTexts><FormText Language="1046"><Title>I3</Title><Text>Sintomas?</Text></FormText></FormTexts>
+          <MultiAnswers><Answer Precode="1"><Texts><Text Language="1046">Cansa&#231;o</Text></Texts></Answer><Answer Precode="99"><Texts><Text Language="1046">Outros</Text></Texts></Answer></MultiAnswers>
+        </Multi>
+        <Grid EntityId="6"><Name>p1</Name><FormTexts><FormText Language="1046"><Title>P1</Title><Text>Objetivos?</Text></FormText></FormTexts>
+          <GridAnswers><GridAnswer Precode="1"><Texts><Text Language="1046">Reducao</Text></Texts></GridAnswer></GridAnswers>
+          <Scales>
+            <Scale Precode="1"><Texts><Text Language="1046">Nada importante</Text></Texts></Scale>
+            <Scale Precode="2"><Texts><Text Language="1046">Pouco</Text></Texts></Scale>
+            <Scale Precode="3"><Texts><Text Language="1046">Medio</Text></Texts></Scale>
+          </Scales>
+        </Grid>
+      XML
+    end
+
+    it 'resuelve los puntos de una escala que viene como lista compartida (<Scales><Predefined/>)' do
+      lookup = described_class.new(<<~XML)
+        <Grid EntityId="6"><Name>s13</Name><FormTexts><FormText Language="1046"><Title>S13</Title><Text>Pensando em...</Text></FormText></FormTexts>
+          <GridAnswers><GridAnswer Precode="1"><Texts><Text Language="1046">MSD</Text></Texts></GridAnswer></GridAnswers>
+          <Scales><Predefined ListSource="17655" ReferencedEntityId="17655" /></Scales>
+        </Grid>
+        <PredefinedList EntityId="17655"><PredefinedListAnswers>
+          <Answer Precode="1"><Texts><Text Language="1046">Nunca</Text></Texts></Answer>
+          <Answer Precode="2"><Texts><Text Language="1046">As vezes</Text></Texts></Answer>
+          <Answer Precode="3"><Texts><Text Language="1046">Sempre</Text></Texts></Answer>
+        </PredefinedListAnswers></PredefinedList>
+      XML
+
+      expect(lookup.column_profile('s13_1')).to eq(
+        type: :scale, scale_points: 3, options: [%w[1 Nunca], ['2', 'As vezes'], %w[3 Sempre]]
+      )
+    end
+
+    it 'detecta una numerica por Numeric="true"' do
+      expect(profile_lookup.column_profile('I2')).to eq(type: :numeric)
+    end
+
+    it 'detecta una fecha por IsDate="true"' do
+      expect(profile_lookup.column_profile('data')).to eq(type: :date)
+    end
+
+    it 'trata un Open sin marcas como texto' do
+      expect(profile_lookup.column_profile('comentario')).to eq(type: :text)
+    end
+
+    it 'devuelve las opciones de una Single' do
+      expect(profile_lookup.column_profile('f0')).to eq(type: :single, options: [['1', 'Rio de Janeiro'], ['2', 'São Paulo']])
+    end
+
+    it 'detecta una sub-respuesta de Multi' do
+      expect(profile_lookup.column_profile('I3_1')).to eq(type: :multi)
+    end
+
+    it 'detecta el texto abierto de "especificar" y lo vincula a su opcion' do
+      expect(profile_lookup.column_profile('I3_99_OTHER')).to eq(type: :other_text, linked_to: 'I3_99')
+    end
+
+    it 'detecta una escala con su cantidad de puntos y las etiquetas de cada punto' do
+      expect(profile_lookup.column_profile('P1_1')).to eq(
+        type: :scale, scale_points: 3,
+        options: [['1', 'Nada importante'], ['2', 'Pouco'], ['3', 'Medio']]
+      )
+    end
+
+    it 'devuelve nil para una variable que no esta en el schema (sistema)' do
+      expect(profile_lookup.column_profile('responseid')).to be_nil
+    end
+  end
+
+  describe '#questionnaire_variables' do
+    # Forma real de p314244165357/p573989981944: el cuestionario va entre el
+    # Info "PRESENTATION" y el Single "iradatos1"; antes hay variables de
+    # panel/sistema y despues cierre/control de duplicados.
+    let(:flow_lookup) do
+      described_class.new(<<~XML)
+        <Single EntityId="1" VariableType="Panel"><Name>Pais1</Name><FormTexts><FormText Language="1046"><Title>Pais</Title></FormText></FormTexts></Single>
+        <Info EntityId="2"><Name>PRESENTATION</Name></Info>
+        <Single EntityId="3"><Name>f0</Name><FormTexts><FormText Language="1046"><Title>F0</Title></FormText></FormTexts></Single>
+        <Multi EntityId="4"><Name>i3</Name><FormTexts><FormText Language="1046"><Title>I3</Title></FormText></FormTexts></Multi>
+        <Open EntityId="5" VariableType="Hidden"><Name>oculta</Name></Open>
+        <Folder EntityId="6"><Name>una carpeta</Name></Folder>
+        <Grid3D EntityId="7"><Name>gf18</Name><FormTexts><FormText Language="1046"><Title>F18</Title></FormText></FormTexts>
+          <Nodes><Multi EntityId="8"><Name>f18x1</Name></Multi><Multi EntityId="9"><Name>f18x2</Name></Multi></Nodes>
+        </Grid3D>
+        <Single EntityId="10"><Name>iradatos1</Name></Single>
+        <Single EntityId="11"><Name>despues_del_cierre</Name></Single>
+      XML
+    end
+
+    def units(lookup)
+      lookup.questionnaire_variables(start_markers: %w[presentation presentacion], end_marker: 'iradatos1')
+    end
+
+    it 'devuelve solo las preguntas entre PRESENTATION e iradatos1, en orden del schema' do
+      expect(units(flow_lookup).map { |unit| unit[:name] }).to eq(%w[f0 i3 gf18])
+    end
+
+    it 'excluye las Hidden, las anteriores a PRESENTATION y las posteriores a iradatos1' do
+      names = units(flow_lookup).map { |unit| unit[:name] }
+
+      expect(names).not_to include('oculta', 'Pais1', 'despues_del_cierre')
+    end
+
+    it 'trae el titulo de cada pregunta' do
+      expect(units(flow_lookup).first).to include(name: 'f0', title: 'F0')
+    end
+
+    it 'una Grid3D es una sola unidad e incluye los nombres de sus filas anidadas' do
+      grid = units(flow_lookup).find { |unit| unit[:name] == 'gf18' }
+
+      expect(grid[:names]).to eq(%w[gf18 f18x1 f18x2])
+    end
+
+    it 'devuelve nil si falta algun marcador (no se puede acotar el cuestionario)' do
+      sin_cierre = described_class.new('<Info EntityId="2"><Name>PRESENTATION</Name></Info><Single EntityId="3"><Name>f0</Name></Single>')
+      sin_inicio = described_class.new('<Single EntityId="3"><Name>f0</Name></Single><Single EntityId="10"><Name>iradatos1</Name></Single>')
+
+      expect(units(sin_cierre)).to be_nil
+      expect(units(sin_inicio)).to be_nil
+    end
+
+    it 'acepta el marcador de inicio en espanol' do
+      lookup = described_class.new('<Info EntityId="2"><Name>Presentacion</Name></Info><Single EntityId="3"><Name>f0</Name></Single><Single EntityId="10"><Name>iradatos1</Name></Single>')
+
+      expect(units(lookup).map { |unit| unit[:name] }).to eq(%w[f0])
+    end
+  end
 end

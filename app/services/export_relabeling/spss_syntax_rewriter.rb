@@ -32,6 +32,14 @@ module ExportRelabeling
     BLOCK_END = /\A\s*\.\s*\z/
     LABEL_LINE = /\A(\s*)(\S+)(\s+)'((?:[^']|'')*)'(\s*)\z/
 
+    # SPSS corta el label de una variable alrededor de 250 caracteres (el
+    # cliente lo menciono en la reunion del 06/11/2026) -- se limita en BYTES
+    # (un acento ocupa 2 en UTF-8) para no pasarse nunca. Se corta por el
+    # FINAL a proposito: el formato de LabelFormatter pone el atributo antes
+    # que la pregunta justamente para que lo que se pierda sea el final del
+    # texto largo de la pregunta y no lo que identifica a la columna.
+    MAX_VARIABLE_LABEL_BYTES = 250
+
     def self.call(sps_text, lookup: nil)
       new(sps_text, lookup).call
     end
@@ -77,9 +85,30 @@ module ExportRelabeling
         raw_label: raw_label,
         lookup: use_lookup ? @lookup : nil
       )
-      new_label = escape_sps_string(ExportRelabeling::LabelParser.format(parsed))
+      new_label = escape_sps_string(build_label(token, parsed, use_lookup))
 
       "#{leading}#{token}#{gap}'#{new_label}'#{trailing}#{trailing_newline}"
+    end
+
+    # VARIABLE LABELS: el mismo texto que el encabezado del Excel ("VARIABLE :
+    # atributo | TITULO. pregunta", ver LabelFormatter), truncado por el final.
+    # VALUE LABELS: la etiqueta de una opcion de respuesta, sin variable que
+    # anteponer -- queda como estaba.
+    def build_label(token, parsed, variable_labels_block)
+      return ExportRelabeling::LabelParser.format(parsed) unless variable_labels_block
+
+      label = ExportRelabeling::LabelFormatter.call(variable_name: token, parsed: parsed)
+      # Una variable sin texto (ej. RESPONSEID '') queda como estaba, no con su
+      # propio nombre repetido como label.
+      return parsed[:question].to_s if label.casecmp?(token.to_s)
+
+      truncate_bytes(label)
+    end
+
+    def truncate_bytes(text)
+      return text if text.bytesize <= MAX_VARIABLE_LABEL_BYTES
+
+      text.byteslice(0, MAX_VARIABLE_LABEL_BYTES).scrub('').strip
     end
 
     def unescape_sps_string(text)

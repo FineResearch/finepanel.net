@@ -146,4 +146,63 @@ RSpec.describe ExportRelabeling::ExcelWriter do
       expect(data_cell).to include('<v>45847</v>')
     end
   end
+
+  # El archivo original de Confirmit guarda los numeros como celdas numericas;
+  # reescribirlos como texto los dejaba alineados a la izquierda, con el
+  # triangulo verde y sin poder sumarse. Se valida contra el XML crudo.
+  describe 'celdas que eran numericas en el original' do
+    def raw_cell(output_path, reference)
+      raw_sheet_xml = Zip::File.open(output_path) { |zip| zip.read('xl/worksheets/sheet1.xml') }
+      raw_sheet_xml[/<c r="#{reference}"[^>]*>.*?<\/c>/]
+    end
+
+    def numeric(text)
+      ExportRelabeling::ExcelReader::NumericString.new(text)
+    end
+
+    it 'las escribe como numero (sin t="str") y deja el texto como texto' do
+      Dir.mktmpdir do |dir|
+        output_path = File.join(dir, 'output.xlsx')
+
+        described_class.call(
+          sheet_name: 'Sheet1',
+          header_rows: [%w[respid tiempo codigo nota]],
+          data_rows: [[numeric('7'), numeric('178.9'), '007', 'abc']],
+          output_path: output_path
+        )
+
+        expect(raw_cell(output_path, 'A2')).not_to include('t="str"')
+        expect(raw_cell(output_path, 'A2')).to include('<v>7</v>')
+        expect(raw_cell(output_path, 'B2')).not_to include('t="str"')
+        expect(raw_cell(output_path, 'B2')).to include('<v>178.9</v>')
+        # un "007" que en el original era TEXTO no se convierte en 7
+        expect(raw_cell(output_path, 'C2')).to include('t="str"')
+        expect(raw_cell(output_path, 'C2')).to include('007')
+        expect(raw_cell(output_path, 'D2')).to include('t="str"')
+      end
+    end
+
+    it 'un entero muy grande no pierde digitos (no pasa por Float)' do
+      Dir.mktmpdir do |dir|
+        output_path = File.join(dir, 'output.xlsx')
+
+        described_class.call(
+          sheet_name: 'Sheet1', header_rows: [['id']], data_rows: [[numeric('586351381586351381')]],
+          output_path: output_path
+        )
+
+        expect(raw_cell(output_path, 'A2')).to include('<v>586351381586351381</v>')
+      end
+    end
+
+    it 'un String comun que parece numero sigue siendo texto (no se adivina)' do
+      Dir.mktmpdir do |dir|
+        output_path = File.join(dir, 'output.xlsx')
+
+        described_class.call(sheet_name: 'Sheet1', header_rows: [['x']], data_rows: [['42']], output_path: output_path)
+
+        expect(raw_cell(output_path, 'A2')).to include('t="str"')
+      end
+    end
+  end
 end

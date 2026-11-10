@@ -51,7 +51,7 @@ RSpec.describe RelabelExcelExportWorker do
     delivery
   end
 
-  it 'extrae el zip, reescribe los encabezados en 3 filas, y manda el .xlsx resultante por mail' do
+  it 'extrae el zip, reescribe los encabezados en UNA fila (VARIABLE : atributo | TITULO. pregunta), y manda el .xlsx resultante por mail' do
     # El worker borra su directorio de trabajo en el "ensure" apenas termina
     # perform -- hay que leer el archivo de salida DURANTE la llamada al
     # mailer (antes de que perform retorne), no despues.
@@ -74,19 +74,17 @@ RSpec.describe RelabelExcelExportWorker do
 
     sheet = captured[:workbook].worksheets[0]
     expect(sheet.sheet_name).to eq('Sheet1')
-    expect(sheet[0].cells.map(&:value)).to eq([nil, 'F4'])
-    expect(sheet[1].cells.map(&:value)).to eq([nil, 'Consultório/Clínica/Hospital PRIVADO'])
-    expect(sheet[2].cells.map(&:value)).to eq(['responseid', 'Dentre os locais?'])
-    expect(sheet[3].cells.map(&:value)).to eq(%w[1 2])
+    expect(sheet[0].cells.map(&:value)).to eq(
+      ['responseid', 'f4_1 : Consultório/Clínica/Hospital PRIVADO | F4. Dentre os locais?']
+    )
+    expect(sheet[1].cells.map(&:value)).to eq(%w[1 2])
   end
 
-  # Diego: en un archivo de loop, Confirmit agrega un piping sin resolver
-  # pegado al codigo de CADA variable (ej. "Q0A // ^f('hidden_ficha_nom')^")
-  # -- en el encabezado de la tabla de DATOS de Excel (a diferencia del
-  # Dictionary, ver LabelParser) eso va en su PROPIA fila en vez de pisar
-  # la fila de Codigo, y solo aparece cuando el patron esta presente (el
-  # archivo principal, sin loop, sigue con 3 filas -- ver el test anterior).
-  it 'cuando el codigo trae un piping de referencia al loop, lo separa en una 4ta fila de encabezado' do
+  # En un archivo de loop, Confirmit agrega un piping sin resolver pegado al
+  # codigo de CADA variable (ej. "Q0A // ^f('hidden_ficha_nom')^"). Es
+  # identico en toda columna y no ayuda a leer el encabezado de UNA sola fila
+  # del formato nuevo, asi que se descarta ahi (el Dictionary lo conserva).
+  it 'descarta del encabezado el piping de referencia al loop (una sola fila)' do
     dir = Dir.mktmpdir
     xlsx_path = File.join(dir, 'data.xlsx')
     zip_path = File.join(dir, 'loop_header.zip')
@@ -122,11 +120,8 @@ RSpec.describe RelabelExcelExportWorker do
     described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
 
     sheet = captured[:workbook].worksheets[0]
-    expect(sheet[0].cells.map(&:value)).to eq(['Q0A'])
-    expect(sheet[1].cells.map(&:value)).to eq(["// ^f('hidden_ficha_nom')^"])
-    expect(sheet[2].cells.map(&:value)).to eq(['CÂNCER'])
-    expect(sheet[3].cells.map(&:value)).to eq(['O(a) Dr.(a) confirma?'])
-    expect(sheet[4].cells.map(&:value)).to eq(['1'])
+    expect(sheet[0].cells.map(&:value)).to eq(['q0a2_1 : CÂNCER | Q0A. O(a) Dr.(a) confirma?'])
+    expect(sheet[1].cells.map(&:value)).to eq(['1'])
   end
 
   it 'agrega una segunda hoja "Dictionary" con una fila por variable y sus estadisticas de columna' do
@@ -141,15 +136,76 @@ RSpec.describe RelabelExcelExportWorker do
     dictionary = captured[:workbook].worksheets[1]
     expect(dictionary.sheet_name).to eq('Dictionary')
     expect(dictionary[0].cells.map(&:value)).to eq(
-      ['Variable', 'Code', 'Attribute', 'Question', 'Mean', 'Min', 'Max', 'Nulls', '% Nulls', 'Zeros', '', '',
+      ['Variable', 'Code', 'Attribute', 'Question', 'Mean', 'Min', 'Max', 'Nulls', '% Nulls', 'Zeros', 'Type',
        'Answer Options']
     )
+    # Sin schema (lookup nil) el tipo se deduce de los datos de la columna.
     expect(dictionary[1].cells.map(&:value)).to eq(
-      ['responseid', nil, nil, 'responseid', 2.0, 1.0, 3.0, 0, 0.0, 0, nil, nil, nil]
+      ['responseid', '-', '-', 'responseid', 2.0, 1.0, 3.0, 0, 0.0, 0, 'Numeric', 'Numeric value']
     )
     expect(dictionary[2].cells.map(&:value)).to eq(
-      ['f4_1', 'F4', 'Consultório/Clínica/Hospital PRIVADO', 'Dentre os locais?', 1.0, 0.0, 2.0, 1, 33.33, 1, nil, nil, nil]
+      ['f4_1', 'F4', 'Consultório/Clínica/Hospital PRIVADO', 'Dentre os locais?', 1.0, 0.0, 2.0, 1, 33.33, 1, 'Numeric', 'Numeric value']
     )
+  end
+
+  describe 'variables faltantes del cuestionario' do
+    def lookup_double(units)
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:quotas).and_return([])
+      allow(lookup).to receive(:questionnaire_variables).and_return(units)
+      lookup
+    end
+
+    # Las columnas del archivo de prueba son "responseid" y "f4_1".
+    it 'le pasa al aviso interno las preguntas del cuestionario que no vinieron en el export' do
+      units = [
+        { name: 'f4', title: 'F4', names: %w[f4] },
+        { name: 'q5a', title: 'Q5A', names: %w[q5a] }
+      ]
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup_double(units))
+      stub_mailer
+      allow(ExportRelabeling::ProcessingAlertNotifier).to receive(:call)
+
+      described_class.new.perform(zip_path, 'p123456', ['dcasar@fine-research.com'])
+
+      expect(ExportRelabeling::ProcessingAlertNotifier).to have_received(:call).with(
+        hash_including(missing_variables: [{ name: 'q5a', title: 'Q5A' }])
+      )
+    end
+
+    it 'no le pasa nada si todas las preguntas vinieron' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_return(lookup_double([{ name: 'f4', title: 'F4', names: %w[f4] }]))
+      stub_mailer
+      allow(ExportRelabeling::ProcessingAlertNotifier).to receive(:call)
+
+      described_class.new.perform(zip_path, 'p123456', ['dcasar@fine-research.com'])
+
+      expect(ExportRelabeling::ProcessingAlertNotifier).to have_received(:call).with(hash_including(missing_variables: []))
+    end
+
+    it 'si no hay schema (lookup nil) no se avisa nada ni se rompe el envio' do
+      stub_mailer
+      allow(ExportRelabeling::ProcessingAlertNotifier).to receive(:call)
+
+      expect { described_class.new.perform(zip_path, 'p123456', ['dcasar@fine-research.com']) }.not_to raise_error
+
+      expect(ExportRelabeling::ProcessingAlertNotifier).to have_received(:call).with(hash_including(missing_variables: []))
+    end
+
+    # El cliente recibe la base pase lo que pase con la deteccion.
+    it 'si la deteccion revienta, igual manda el export' do
+      lookup = lookup_double(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_raise(StandardError, 'schema raro')
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
+      delivery = stub_mailer
+
+      described_class.new.perform(zip_path, 'p123456', ['dcasar@fine-research.com'])
+
+      expect(delivery).to have_received(:deliver_now)
+    end
   end
 
   it 'borra el zip original y el directorio de trabajo al terminar' do
@@ -220,7 +276,8 @@ RSpec.describe RelabelExcelExportWorker do
     it 'agrega una hoja "Quotas" cuando el lookup resuelve cuotas, contando contra las filas reales, con el header en negrita y fondo amarillo' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
-      allow(lookup).to receive(:answer_options).and_return([])
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
       allow(lookup).to receive(:quotas).and_return(
         [{ name: 'quota1', cells: [{ limit: 88, fields: [{ name: 's0', precode: nil, value: '1' }] }] }]
@@ -250,7 +307,8 @@ RSpec.describe RelabelExcelExportWorker do
     it 'pasa las cuotas ya completas (achieved >= goal) al mailer como completed_quotas' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
-      allow(lookup).to receive(:answer_options).and_return([])
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
       allow(lookup).to receive(:quotas).and_return(
         [{ name: 'quota1', cells: [{ limit: 2, fields: [{ name: 's0', precode: nil, value: '1' }] }] }]
@@ -285,7 +343,8 @@ RSpec.describe RelabelExcelExportWorker do
     it 'excluye del proceso automatico las cuotas que referencian una variable de tipo Grid (fichas)' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
-      allow(lookup).to receive(:answer_options).and_return([])
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('qregion').and_return('Grid')
       allow(lookup).to receive(:quotas).and_return(
         [{ name: 'quota3', cells: [{ limit: 95, fields: [{ name: 'qregion', precode: nil, value: 'A' }] }] }]
@@ -310,7 +369,8 @@ RSpec.describe RelabelExcelExportWorker do
     it 'si el calculo de cuotas automaticas revienta (excepcion inesperada), igual manda el archivo base sin la hoja "Quotas"' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
-      allow(lookup).to receive(:answer_options).and_return([])
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:quotas).and_raise(StandardError, 'schema inesperado')
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
 
@@ -395,7 +455,8 @@ RSpec.describe RelabelExcelExportWorker do
       it 'resuelve "completa" buscando el label entre las respuestas, no asumiendo un precode fijo' do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
-        allow(lookup).to receive(:answer_options).and_return([])
+        allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:variable_type).with('qestado_1').and_return('Multi')
         allow(lookup).to receive(:answer_option_matching).with('fichaestado', %w[completa complete c]).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return(
@@ -422,7 +483,8 @@ RSpec.describe RelabelExcelExportWorker do
       it 'consolida el Diccionario del archivo principal con las variables del loop debajo, con su titulo' do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
-        allow(lookup).to receive(:answer_options).and_return([])
+        allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
         allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
@@ -447,7 +509,8 @@ RSpec.describe RelabelExcelExportWorker do
       it 'agrega las cuotas declaradas a mano en el mail abajo de las automaticas, separadas por una fila en blanco y con su propio header repetido' do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
-        allow(lookup).to receive(:answer_options).and_return([])
+        allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:answer_label).and_return(nil)
@@ -478,7 +541,8 @@ RSpec.describe RelabelExcelExportWorker do
       it 'arma la hoja "Report" con un crosstab para cada cruce pedido en "Report:", sin la fila de eje redundante' do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
-        allow(lookup).to receive(:answer_options).and_return([])
+        allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
         allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
@@ -527,7 +591,8 @@ RSpec.describe RelabelExcelExportWorker do
       it 'si el crosstab de "Report" revienta (excepcion inesperada), igual manda el archivo base sin esa hoja' do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
-        allow(lookup).to receive(:answer_options).and_return([])
+        allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
         allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)

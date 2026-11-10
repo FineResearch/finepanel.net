@@ -101,7 +101,40 @@ class ExportDeliveryMailer < ApplicationMailer
     send_email(mail)
   end
 
+  MAX_MISSING_VARIABLES_LISTED = 100
+
+  # Alerta interna aparte (ver ExportRelabeling::MissingVariablesDetector):
+  # preguntas del cuestionario que no llegaron en el export, para corregir el
+  # Data Template del proyecto. Mismo canal que processing_alert_email: solo a
+  # direcciones @fine-research.com, nunca al cliente.
+  def missing_variables_alert_email(recipients, project_id, export_type:, variables:)
+    mail = SendGrid::Mail.new
+    mail.from = Email.new(email: FROM)
+
+    personalization = generate_personalization(Array(recipients).join(','))
+    personalization.subject = "[ALERTA] #{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)} - faltan variables"
+    mail.add_personalization(personalization)
+
+    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: missing_variables_body(variables)))
+
+    send_email(mail)
+  end
+
   private
+
+  def missing_variables_body(variables)
+    listed = variables.first(MAX_MISSING_VARIABLES_LISTED).map do |variable|
+      variable[:title].present? && variable[:title] != variable[:name] ? "- #{variable[:name]} (#{variable[:title]})" : "- #{variable[:name]}"
+    end
+    extra = variables.length - listed.length
+
+    lines = ["Faltan #{variables.length} variable(s) del cuestionario en el export:", *listed]
+    lines << "... y #{extra} mas" if extra.positive?
+    lines << ''
+    lines << 'Se excluyen las anteriores a PRESENTATION, las posteriores a iradatos1 y las Hidden.'
+    lines << 'Revisar el Data Template del proyecto. El cliente ya recibio su export.'
+    lines.join("\n")
+  end
 
   # Pedido de Diego: un solo adjunto en vez de uno por archivo (loops
   # incluidos) -- mas facil de guardar/reenviar para el cliente que varios

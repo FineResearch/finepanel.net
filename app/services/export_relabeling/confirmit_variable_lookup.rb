@@ -258,7 +258,137 @@ module ExportRelabeling
       question_node_type(name) || sub_answer_variable_type(name)
     end
 
+    # Tipo y opciones de respuesta de una COLUMNA exportada, para las
+    # columnas "Type"/"Answer Options" del Dictionary (modelo del cliente,
+    # acta del 06/11/2026). A diferencia de #variable_type (que devuelve el tag
+    # crudo del schema), esto traduce a lo que le sirve al analista:
+    #
+    #   { type: :single,  options: [[precode, texto], ...] }
+    #   { type: :multi }
+    #   { type: :scale,   scale_points: 5, options: [[precode, texto], ...] }
+    #   { type: :numeric } / { type: :date } / { type: :text }
+    #   { type: :other_text, linked_to: 'I3_99' }
+    #
+    # Confirmado contra 2 schemas reales (p314244165357, p573989981944):
+    # un <Open Numeric="true"> es numerico, <Open IsDate="true"> es fecha, y
+    # los puntos de una escala son los <Scale> dentro de <Scales> de un Grid
+    # (las filas del Grid son sus <GridAnswer>, que son las columnas
+    # exportadas "p2_1", "p2_2"...). Devuelve nil si la variable no esta en el
+    # schema (variable de sistema, loop que el schema principal no trae).
+    def column_profile(variable_name)
+      return nil if variable_name.blank?
+
+      name = variable_name.to_s.downcase
+      standalone_profile(name) || other_text_profile(variable_name.to_s) || sub_answer_profile(name)
+    end
+
+    # Preguntas del cuestionario propiamente dicho, en el orden del schema:
+    # las que quedan entre el primer nodo cuyo nombre es alguno de
+    # `start_markers` (ej. "PRESENTATION") y el primer nodo `end_marker` que
+    # lo sigue (ej. "iradatos1"). Todo lo anterior (variables de panel/
+    # sistema) y lo posterior (cierre, control de duplicados, avisos) no es
+    # cuestionario y no se espera en el export. Las Hidden se excluyen
+    # (Diego: "muchas veces preferimos excluirlas"). Info/Folder/Script/etc
+    # no son variables.
+    #
+    # Cada elemento es una "unidad" de cuestionario: { name:, title:,
+    # names: [...] }. Una Grid3D es una sola unidad, y `names` incluye
+    # tambien a las filas anidadas (ej. "f18x1" dentro de "gf18"), porque son
+    # esas filas las que dan nombre a las columnas exportadas ("f18x1_1").
+    #
+    # Devuelve nil (no [], que significaria "no falta nada") si alguno de los
+    # dos marcadores no esta en el schema: sin ellos no se puede acotar el
+    # cuestionario y avisar igual daria falsas alarmas.
+    def questionnaire_variables(start_markers:, end_marker:)
+      nodes = @doc.xpath('//*[Name]').to_a
+      names = nodes.map { |node| node.at_xpath('./Name').text.to_s.downcase }
+
+      start_index = names.index { |name| Array(start_markers).map(&:downcase).include?(name) }
+      return nil unless start_index
+
+      end_index = (start_index + 1...names.length).find { |index| names[index] == end_marker.to_s.downcase }
+      return nil unless end_index
+
+      nodes[(start_index + 1)...end_index]
+        .select { |node| questionnaire_unit?(node) }
+        .map { |node| questionnaire_unit(node) }
+    end
+
     private
+
+    QUESTIONNAIRE_UNIT_TAGS = %w[Single Multi Open Grid Grid3D].freeze
+
+    def questionnaire_unit?(node)
+      QUESTIONNAIRE_UNIT_TAGS.include?(node.name) &&
+        node['VariableType'] != 'Hidden' &&
+        node.ancestors.none? { |ancestor| ancestor.name == 'Grid3D' }
+    end
+
+    def questionnaire_unit(node)
+      name = node.at_xpath('./Name').text
+      nested = node.name == 'Grid3D' ? node.xpath('.//Nodes/*[Name]').map { |row| row.at_xpath('./Name').text } : []
+
+      { name: name, title: clean_text(title_of(node)), names: ([name] + nested).map(&:downcase) }
+    end
+
+    def standalone_profile(name)
+      node = find_question_node(name)
+      return nil unless node && QUESTION_TAGS.include?(node.name)
+
+      case node.name
+      when 'Single' then { type: :single, options: single_options(node) }
+      when 'Multi' then { type: :multi }
+      when 'Grid' then grid_profile(node)
+      when 'Open' then open_profile(node)
+      end
+    end
+
+    def open_profile(node)
+      return { type: :numeric } if node['Numeric'] == 'true'
+      return { type: :date } if node['IsDate'] == 'true'
+
+      { type: :text }
+    end
+
+    def single_options(node)
+      container_node = node.at_xpath('.//SingleAnswers')
+      container_node ? collect_answer_options(container_node, 'Answer') : []
+    end
+
+    # Los puntos de la escala pueden venir inline (<Scale Precode=...>) o como
+    # referencia a una lista compartida (<Scales><Predefined ListSource=.../>),
+    # igual que las respuestas de Single/Multi -- confirmado con p314244165357:
+    # 14 de sus 15 Grid usan lista compartida, y contar solo los <Scale> inline
+    # daba "0-point scale". collect_answer_options ya sigue esas listas.
+    def grid_profile(node)
+      scales_node = node.at_xpath('./Scales')
+      options = scales_node ? collect_answer_options(scales_node, 'Scale') : []
+
+      { type: :scale, scale_points: options.size, options: options }
+    end
+
+    # "i3_99_other" es el texto abierto de "especificar" de la opcion "i3_99" --
+    # no es una pregunta propia. Se chequea DESPUES de #standalone_profile por
+    # si algun proyecto tiene una pregunta real que termina en "_other".
+    def other_text_profile(variable_name)
+      match = OTHER_SUFFIX.match(variable_name)
+      return nil unless match
+
+      { type: :other_text, linked_to: match[1] }
+    end
+
+    def sub_answer_profile(name)
+      match = SUB_ANSWER_NAME.match(name)
+      return nil unless match
+
+      parent = find_question_node(match[1])
+      return nil unless parent && QUESTION_TAGS.include?(parent.name)
+
+      case parent.name
+      when 'Multi', 'Grid3D' then { type: :multi }
+      when 'Grid' then grid_profile(parent)
+      end
+    end
 
     def question_node_type(name)
       node = find_question_node(name)

@@ -348,4 +348,47 @@ RSpec.describe ExportDeliveryMailer do
       expect(body).to include('favor chequear que el cliente reciba su export')
     end
   end
+
+  describe '#missing_variables_alert_email' do
+    def deliver(variables)
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+      described_class.new.missing_variables_alert_email(
+        ['dcasar@fine-research.com'], 'p123456', export_type: :excel, variables: variables
+      )
+      sent_json(sent_mail)
+    end
+
+    it 'lista cada variable faltante con su titulo, solo a la direccion interna' do
+      json = deliver([{ name: 'q5a', title: 'Q5A' }, { name: 'f12', title: nil }])
+
+      expect(json['personalizations'].first['to'].map { |t| t['email'] }).to eq(['dcasar@fine-research.com'])
+      expect(json['personalizations'].first['subject']).to eq('[ALERTA] p123456 - Excel Export - faltan variables')
+      body = json['content'].first['value']
+      expect(body).to include('Faltan 2 variable(s)')
+      expect(body).to include('- q5a (Q5A)')
+      expect(body).to include('- f12')
+      expect(body).to include('Hidden')
+      expect(body).to include('Data Template')
+    end
+
+    it 'no repite el titulo cuando es igual al nombre' do
+      body = deliver([{ name: 'Q5A', title: 'Q5A' }])['content'].first['value']
+
+      expect(body).to include("- Q5A
+")
+      expect(body).not_to include('Q5A (Q5A)')
+    end
+
+    it 'acota la lista y resume el resto' do
+      variables = Array.new(130) { |index| { name: "v#{index}", title: nil } }
+
+      body = deliver(variables)['content'].first['value']
+
+      expect(body).to include('Faltan 130 variable(s)')
+      expect(body).to include('- v99')
+      expect(body).not_to include('- v100')
+      expect(body).to include('... y 30 mas')
+    end
+  end
 end
