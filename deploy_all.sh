@@ -15,6 +15,15 @@ SIDEKIQ_TASKDEF_FILE="taskdef-sidekiq-new.json"
 API_CONTAINER="api"
 SIDEKIQ_CONTAINER="sidekiq"
 
+# On Windows, "python3"/"python" often resolve to the Microsoft Store's
+# App Execution Alias stub instead of a real interpreter (prints a
+# install-from-Store message and exits nonzero) even when the official
+# Python launcher ("py") works fine -- prefer "py" when it's present.
+PYTHON_BIN="python3"
+if command -v py >/dev/null 2>&1; then
+  PYTHON_BIN="py"
+fi
+
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 if [[ "${SKIP_BUILD}" == "1" && -z "${IMAGE_TAG:-}" ]]; then
@@ -117,7 +126,7 @@ update_taskdef () {
 
   export TASKDEF_FILE CONTAINER_NAME IMAGE_URI
 
-  python3 << 'PY'
+  "${PYTHON_BIN}" << 'PY'
 import json
 import os
 
