@@ -56,6 +56,27 @@
     <p>Personal identifiable information (PII) is automatically masked in transcripts (e.g., Pedro becomes Ped**), while speaker diarization preserves the structure of the conversation. In addition, automated adverse event (AE) screening identifies potential safety-related mentions and flags them for human review, supporting pharmacovigilance compliance.</p>
   </div>
   <div class="card">
+    <h3 style="margin-top:0;">Traducir documento (Word)</h3>
+    <p style="font-size:13px; color:#51606e; margin-top:0;">Traducción directa de un .docx a otro .docx, sin transcripción, diarización, anonimización ni detección de eventos adversos -- solo el texto, traducido manteniendo el formato (negrita, cursiva, etc.) donde sea posible.</p>
+    <label for="docFile">Archivo Word (.docx)</label>
+    <input type="file" id="docFile" accept=".docx">
+    <label for="docSourceSelect">Idioma de origen</label>
+    <select id="docSourceSelect">
+      <option value="es">Español</option>
+      <option value="en">Inglés</option>
+      <option value="pt">Portugués</option>
+    </select>
+    <label for="docTargetSelect">Traducir a</label>
+    <select id="docTargetSelect">
+      <option value="en" selected>Inglés</option>
+      <option value="es">Español</option>
+      <option value="pt">Portugués</option>
+    </select>
+    <div id="docUploadError" style="color:#b00020; font-size:13px; margin-top:10px; display:none;"></div>
+    <button id="docUploadBtn" type="button">Traducir documento</button>
+  </div>
+
+  <div class="card">
     <h3 style="margin-top:0;">Nueva transcripción</h3>
     <label for="audioFile">Archivo de audio/video</label>
     <input type="file" id="audioFile" accept="audio/*,video/*">
@@ -95,7 +116,7 @@
   <div class="card">
     <h3 style="margin-top:0;">Tus transcripciones</h3>
     <table>
-      <thead><tr><th>Archivo</th><th>Fecha</th><th>Estado</th><th>Tiempo</th><th>Resultado</th><th></th></tr></thead>
+      <thead><tr><th>Archivo</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th>Tiempo</th><th>Resultado</th><th></th></tr></thead>
       <tbody id="jobsBody"></tbody>
     </table>
   </div>
@@ -161,27 +182,16 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
   });
 });
 
-document.getElementById('uploadBtn').addEventListener('click', function () {
-  var fileInput = document.getElementById('audioFile');
-  var errorEl = document.getElementById('uploadError');
+// Comun a ambos formularios (audio y documento) -- crea el job, sube el
+// archivo al presigned URL, y lo manda a la cola. Solo cambia el payload y
+// de donde saca el archivo/muestra errores cada caller.
+function createAndSubmitJob(file, payload, errorEl) {
   errorEl.style.display = 'none';
-  var file = fileInput.files[0];
   if (!file) {
     errorEl.textContent = 'Elegí un archivo primero.';
     errorEl.style.display = 'block';
     return;
   }
-
-  var payload = {
-    filename: file.name,
-    language: document.getElementById('languageSelect').value || null,
-    translate_to: document.getElementById('translateSelect').value || null,
-    diarize: document.getElementById('diarizeCheck').checked,
-    num_speakers: document.getElementById('numSpeakersSelect').value || null,
-    anonymize: document.getElementById('anonymizeCheck').checked,
-    detect_adverse_events: document.getElementById('detectAdverseCheck').checked,
-    detect_inconsistencies: document.getElementById('detectInconsistenciesCheck').checked,
-  };
 
   var headers = Object.assign({ 'Content-Type': 'application/json' }, authHeaders());
 
@@ -194,14 +204,50 @@ document.getElementById('uploadBtn').addEventListener('click', function () {
     .then(function (jobId) {
       return fetch(API_BASE + '/jobs/' + jobId + '/submit', { method: 'POST', headers: authHeaders() });
     })
-    .then(function () {
-      fileInput.value = '';
-      refreshJobs();
-    })
+    .then(refreshJobs)
     .catch(function (err) {
       errorEl.textContent = err.message || 'Error al subir el archivo.';
       errorEl.style.display = 'block';
     });
+}
+
+document.getElementById('uploadBtn').addEventListener('click', function () {
+  var fileInput = document.getElementById('audioFile');
+  var file = fileInput.files[0];
+  var payload = {
+    filename: file ? file.name : '',
+    job_type: 'transcribe',
+    language: document.getElementById('languageSelect').value || null,
+    translate_to: document.getElementById('translateSelect').value || null,
+    diarize: document.getElementById('diarizeCheck').checked,
+    num_speakers: document.getElementById('numSpeakersSelect').value || null,
+    anonymize: document.getElementById('anonymizeCheck').checked,
+    detect_adverse_events: document.getElementById('detectAdverseCheck').checked,
+    detect_inconsistencies: document.getElementById('detectInconsistenciesCheck').checked,
+  };
+  createAndSubmitJob(file, payload, document.getElementById('uploadError'));
+  if (file) { fileInput.value = ''; }
+});
+
+document.getElementById('docUploadBtn').addEventListener('click', function () {
+  var fileInput = document.getElementById('docFile');
+  var errorEl = document.getElementById('docUploadError');
+  var file = fileInput.files[0];
+  var sourceLang = document.getElementById('docSourceSelect').value;
+  var targetLang = document.getElementById('docTargetSelect').value;
+  if (sourceLang === targetLang) {
+    errorEl.textContent = 'El idioma de origen y de destino deben ser distintos.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  var payload = {
+    filename: file ? file.name : '',
+    job_type: 'translate_document',
+    source_lang: sourceLang,
+    target_lang: targetLang,
+  };
+  createAndSubmitJob(file, payload, errorEl);
+  if (file) { fileInput.value = ''; }
 });
 
 // Etiquetas de estado en español, mas claras que el valor crudo que devuelve
@@ -257,8 +303,17 @@ function refreshJobs() {
       var stillActive = false;
       jobs.forEach(function (job) {
         var tr = document.createElement('tr');
+        var isDocJob = job.job_type === 'translate_document';
         var resultCell = '—';
-        if (job.status === 'done' && job.transcript_html_url) {
+        if (isDocJob) {
+          if (job.status === 'done' && job.translated_doc_url) {
+            resultCell = '<a class="result-link" href="' + job.translated_doc_url + '" target="_blank">documento traducido</a>';
+          } else if (job.status === 'error') {
+            resultCell = job.error || 'error';
+          } else {
+            stillActive = true;
+          }
+        } else if (job.status === 'done' && job.transcript_html_url) {
           resultCell = '<a class="result-link" href="' + job.transcript_html_url + '" target="_blank">transcripción</a>';
           if (job.transcript_en_html_url) {
             resultCell += ' · <a class="result-link" href="' + job.transcript_en_html_url + '" target="_blank">inglés</a>';
@@ -280,6 +335,7 @@ function refreshJobs() {
         }
 
         tr.innerHTML = '<td>' + fileCell + '</td>' +
+          '<td>' + (isDocJob ? 'Traducción doc.' : 'Transcripción') + '</td>' +
           '<td>' + formatDate(job.created_at) + '</td>' +
           '<td class="status-' + job.status + '">' + (STATUS_LABELS[job.status] || job.status) + '</td>' +
           '<td>' + elapsedLabel(job) + '</td>' +
