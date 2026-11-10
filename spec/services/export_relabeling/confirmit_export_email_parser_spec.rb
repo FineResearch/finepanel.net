@@ -53,4 +53,24 @@ RSpec.describe ExportRelabeling::ConfirmitExportEmailParser do
     expect(result[:interview_status_filter]).to be_nil
     expect(result[:survey_id]).to be_nil
   end
+
+  describe '.title_from_filename' do
+    # Visto en un envio real: el cuerpo del mail no traia "Survey Name" y el
+    # asunto salio sin el nombre del proyecto.
+    it 'recupera el nombre del proyecto de la convencion "<proyecto> - EXCEL_<fecha>"' do
+      expect(described_class.title_from_filename('FP-18874N - 3375211 Cosentyx PDS PSO - EXCEL_20261110.zip'))
+        .to eq('FP-18874N - 3375211 Cosentyx PDS PSO')
+    end
+
+    it 'tambien con SPSS y con sufijos de loop' do
+      expect(described_class.title_from_filename('FP-18874N - Proyecto X - SPSS_20261110.zip')).to eq('FP-18874N - Proyecto X')
+      expect(described_class.title_from_filename('FP-18874N - Proyecto X - EXCEL_20261110_l1.xlsx')).to eq('FP-18874N - Proyecto X')
+    end
+
+    it 'devuelve nil si el nombre no sigue la convencion (no inventa un titulo)' do
+      expect(described_class.title_from_filename('p123456_def_dcasar_1.zip')).to be_nil
+      expect(described_class.title_from_filename('export_personalizado.zip')).to be_nil
+      expect(described_class.title_from_filename(nil)).to be_nil
+    end
+  end
 end

@@ -14,7 +14,13 @@
 #   re-etiquetar como fallback -- ver RelabelSpssExportWorker/
 #   RelabelExcelExportWorker.
 #
-# Y un tercer aviso, aparte de los dos anteriores y no un fallo: las
+# - project_unidentified: el mail no trajo el ID del proyecto (ni en el nombre
+#   del archivo ni como "Survey ID:" en el cuerpo) -- sin proyecto no hay
+#   schema de Confirmit, asi que el export se entrega pero degradado (sin
+#   tipos en el Dictionary, sin traducir cuotas, sin detectar faltantes) y sin
+#   este aviso nadie se entera.
+#
+# Y otro aviso, aparte de los anteriores y no un fallo: las
 # preguntas del cuestionario que faltan en el export (ver
 # MissingVariablesDetector), para corregir el Data Template.
 #
@@ -26,20 +32,22 @@ module ExportRelabeling
   class ProcessingAlertNotifier
     FINE_RESEARCH_DOMAIN = '@fine-research.com'
 
-    def self.call(recipients:, project_id:, export_type:, permission_denied: false, relabeled: true, missing_variables: [])
+    def self.call(recipients:, project_id:, export_type:, permission_denied: false, relabeled: true, missing_variables: [], project_unidentified: false)
       new(
         recipients: recipients, project_id: project_id, export_type: export_type,
-        permission_denied: permission_denied, relabeled: relabeled, missing_variables: missing_variables
+        permission_denied: permission_denied, relabeled: relabeled, missing_variables: missing_variables,
+        project_unidentified: project_unidentified
       ).call
     end
 
-    def initialize(recipients:, project_id:, export_type:, permission_denied:, relabeled:, missing_variables:)
+    def initialize(recipients:, project_id:, export_type:, permission_denied:, relabeled:, missing_variables:, project_unidentified:)
       @recipients = recipients
       @project_id = project_id
       @export_type = export_type
       @permission_denied = permission_denied
       @relabeled = relabeled
       @missing_variables = Array(missing_variables)
+      @project_unidentified = project_unidentified
     end
 
     def call
@@ -70,6 +78,7 @@ module ExportRelabeling
     def alert_type
       return :permission_denied if @permission_denied
       return :processing_error unless @relabeled
+      return :project_unidentified if @project_unidentified
 
       nil
     end

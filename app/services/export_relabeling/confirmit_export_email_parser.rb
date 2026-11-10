@@ -41,6 +41,21 @@ module ExportRelabeling
       new(body).call
     end
 
+    # Convencion de nombre de archivo de las Rules de Fine: "<nombre del
+    # proyecto> - EXCEL_20261110" / "... - SPSS_20261110" (visto en un envio
+    # real: "FP-18874N - 3375211 Cosentyx PDS PSO - EXCEL_20261110.zip"). Si el
+    # cuerpo del mail no trae "Survey Name:", el nombre del proyecto se recupera
+    # de ahi para el asunto. Solo si el nombre sigue esa convencion -- no se
+    # inventa un titulo de un nombre cualquiera.
+    FILENAME_EXPORT_SUFFIX = /\s*-\s*(?:EXCEL|SPSS)_\d{8}\S*\z/i.freeze
+
+    def self.title_from_filename(filename)
+      base = File.basename(filename.to_s, File.extname(filename.to_s))
+      return nil unless base.match?(FILENAME_EXPORT_SUFFIX)
+
+      base.sub(FILENAME_EXPORT_SUFFIX, '').strip.presence
+    end
+
     def initialize(body)
       @body = body.to_s
     end

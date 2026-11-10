@@ -141,10 +141,10 @@ RSpec.describe RelabelExcelExportWorker do
     )
     # Sin schema (lookup nil) el tipo se deduce de los datos de la columna.
     expect(dictionary[1].cells.map(&:value)).to eq(
-      ['responseid', '-', '-', 'responseid', 2.0, 1.0, 3.0, 0, 0.0, 0, 'Numeric', 'Numeric value']
+      ['responseid', '-', '-', 'responseid', 2.0, 1.0, 3.0, 0, 0.0, 0, 'Numeric', '-']
     )
     expect(dictionary[2].cells.map(&:value)).to eq(
-      ['f4_1', 'F4', 'Consultório/Clínica/Hospital PRIVADO', 'Dentre os locais?', 1.0, 0.0, 2.0, 1, 33.33, 1, 'Numeric', 'Numeric value']
+      ['f4_1', 'F4', 'Consultório/Clínica/Hospital PRIVADO', 'Dentre os locais?', 1.0, 0.0, 2.0, 1, 33.33, 1, 'Numeric', '-']
     )
   end
 

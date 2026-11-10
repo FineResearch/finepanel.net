@@ -146,6 +146,7 @@ class MailerController < ApplicationController
     # ExportRelabeling::ConfirmitExportEmailParser) -- confirmado que esto
     # pasa de verdad (un envio real llego con el project_id vacio).
     project_id = file.original_filename[/p\d+/] || metadata[:survey_id]
+    project_title = metadata[:project_title] || ExportRelabeling::ConfirmitExportEmailParser.title_from_filename(file.original_filename)
     recipients = body_text.scan(EMAIL_REGEX).uniq.reject { |email| EXCLUDED_RECIPIENT_EMAILS.include?(email.downcase) }
 
     if recipients.empty?
@@ -157,10 +158,10 @@ class MailerController < ApplicationController
     entry_names = Zip::File.open(zip_path) { |zip_file| zip_file.entries.map(&:name) }
 
     if entry_names.any? { |name| name.end_with?('.sps') }
-      RelabelSpssExportWorker.perform_async(zip_path, project_id, recipients, body_text, metadata[:project_title], metadata[:interview_status_filter])
+      RelabelSpssExportWorker.perform_async(zip_path, project_id, recipients, body_text, project_title, metadata[:interview_status_filter])
       Rails.logger.info('export_sync: RelabelSpssExportWorker enqueued')
     elsif entry_names.any? { |name| name.end_with?('.xlsx') }
-      RelabelExcelExportWorker.perform_async(zip_path, project_id, recipients, body_text, metadata[:project_title], metadata[:interview_status_filter])
+      RelabelExcelExportWorker.perform_async(zip_path, project_id, recipients, body_text, project_title, metadata[:interview_status_filter])
       Rails.logger.info('export_sync: RelabelExcelExportWorker enqueued')
     else
       Rails.logger.error("[export_sync] zip sin .sps ni .xlsx reconocible, se descarta: #{entry_names}")

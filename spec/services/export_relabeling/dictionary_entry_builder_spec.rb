@@ -39,7 +39,7 @@ RSpec.describe ExportRelabeling::DictionaryEntryBuilder do
       row = build(variable_name: 'I2', values: %w[48 3 12 18], profile: { type: :numeric })
 
       expect(row[4..6]).to eq([20.25, 3.0, 48.0])
-      expect(row[10..11]).to eq(['Numeric', 'Numeric value'])
+      expect(row[10..11]).to eq(['Numeric', '-'])
     end
 
     it 'Text vinculado a una opcion "otros": ceros no aplica y se explica a que opcion pertenece' do
@@ -78,7 +78,7 @@ RSpec.describe ExportRelabeling::DictionaryEntryBuilder do
       row = build(variable_name: 'data', values: ['2026-11-01'], profile: { type: :date })
 
       expect(row[9]).to eq('-')
-      expect(row[10..11]).to eq(%w[Date Date])
+      expect(row[10..11]).to eq(%w[Date -])
     end
   end
 
@@ -86,7 +86,7 @@ RSpec.describe ExportRelabeling::DictionaryEntryBuilder do
     it 'deduce Numeric de los datos' do
       row = build(variable_name: 'responseid', values: %w[1 2 3])
 
-      expect(row[10..11]).to eq(['Numeric', 'Numeric value'])
+      expect(row[10..11]).to eq(['Numeric', '-'])
       expect(row[4]).to eq(2.0)
     end
 
@@ -94,7 +94,7 @@ RSpec.describe ExportRelabeling::DictionaryEntryBuilder do
       row = build(variable_name: 'status', values: %w[complete screened])
 
       expect(row[9]).to eq('-')
-      expect(row[10..11]).to eq(['Text', 'Open text'])
+      expect(row[10..11]).to eq(['Text', '-'])
     end
 
     it 'una columna sin valores no inventa un tipo' do

@@ -123,4 +123,46 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
       expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email).once
     end
   end
+
+  describe 'proyecto no identificado' do
+    def stub_all
+      delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(delivery)
+    end
+
+    it 'avisa solo a @fine-research.com cuando el mail no trajo el ID del proyecto' do
+      stub_all
+
+      described_class.call(
+        recipients: ['cliente@otraempresa.com', 'dcasar@fine-research.com'], project_id: 'FP-18874N - Proyecto X',
+        export_type: :excel, relabeled: true, project_unidentified: true
+      )
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(['dcasar@fine-research.com'], 'FP-18874N - Proyecto X', export_type: :excel, alert_type: :project_unidentified)
+    end
+
+    it 'si el pipeline ademas fallo, prima el error de procesamiento' do
+      stub_all
+
+      described_class.call(
+        recipients: ['dcasar@fine-research.com'], project_id: 'x', export_type: :excel,
+        relabeled: false, project_unidentified: true
+      )
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(anything, 'x', export_type: :excel, alert_type: :processing_error)
+    end
+
+    it 'no avisa nada si el proyecto si se identifico' do
+      stub_all
+
+      described_class.call(
+        recipients: ['dcasar@fine-research.com'], project_id: 'p123456', export_type: :excel,
+        relabeled: true, project_unidentified: false
+      )
+
+      expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email)
+    end
+  end
 end

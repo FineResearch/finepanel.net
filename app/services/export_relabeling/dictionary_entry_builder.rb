@@ -115,9 +115,7 @@ module ExportRelabeling
       when :single then format_options(@profile[:options])
       when :multi then MULTI_OPTIONS
       when :scale then scale_options
-      when :numeric then 'Numeric value'
-      when :date then 'Date'
-      when :text then 'Open text'
+      when :numeric, :date, :text then EMPTY
       when :other_text then "Open text linked to #{@profile[:linked_to]}"
       else EMPTY
       end

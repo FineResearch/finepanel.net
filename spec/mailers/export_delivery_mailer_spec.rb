@@ -335,7 +335,11 @@ RSpec.describe ExportDeliveryMailer do
       json = sent_json(sent_mail)
       expect(json['personalizations'].first['to'].map { |t| t['email'] }).to eq(['dcasar@fine-research.com'])
       expect(json['personalizations'].first['subject']).to eq('[ALERTA] p123456 - SPSS Export')
-      expect(json['content'].first['value']).to include('favor autorizar a la API de Confirmit')
+      body = json['content'].first['value']
+      expect(body).to include('favor autorizar a la API de Confirmit')
+      expect(body).to include('Permission denied')
+      expect(body).to include('dar acceso al usuario de la API al proyecto')
+      expect(body).to include('Proyecto: p123456')
     end
 
     it 'arma una alerta interna de error de procesamiento' do
@@ -389,6 +393,67 @@ RSpec.describe ExportDeliveryMailer do
       expect(body).to include('- v99')
       expect(body).not_to include('- v100')
       expect(body).to include('... y 30 mas')
+    end
+  end
+
+  # Visto en un envio real: sin project_id el asunto salio "- Excel Export" y
+  # el cuerpo decia "latest data files for ,".
+  describe 'sin project_id' do
+    def delivery(project_id:, project_title:)
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+      Dir.mktmpdir do |dir|
+        path = File.join(dir, 'archivo.xlsx')
+        File.write(path, 'x')
+        described_class.new.relabeled_export_email(
+          ['cliente@empresa.com'], project_id, [path], export_type: :excel, project_title: project_title
+        )
+      end
+      sent_json(sent_mail)
+    end
+
+    it 'arma el asunto solo con el titulo y el tipo, sin guiones colgados' do
+      json = delivery(project_id: nil, project_title: 'FP-18874N - Proyecto X')
+
+      expect(json['personalizations'].first['subject']).to eq('Project: FP-18874N - Proyecto X - Excel Export')
+    end
+
+    it 'si no hay ni id ni titulo, el asunto es solo el tipo de export' do
+      json = delivery(project_id: '', project_title: nil)
+
+      expect(json['personalizations'].first['subject']).to eq('Excel Export')
+    end
+
+    it 'el cuerpo nombra el titulo cuando no hay id (no deja "for ,")' do
+      body = delivery(project_id: nil, project_title: 'FP-18874N - Proyecto X')['content'].first['value']
+
+      expect(body).to include('latest data files for FP-18874N - Proyecto X,')
+      expect(body).not_to include('for ,')
+    end
+
+    it 'sin id ni titulo, el cuerpo usa una referencia generica' do
+      body = delivery(project_id: nil, project_title: nil)['content'].first['value']
+
+      expect(body).to include('latest data files for your project,')
+    end
+
+    it 'con id y titulo mantiene el asunto de siempre' do
+      json = delivery(project_id: 'p123456', project_title: 'Mi proyecto')
+
+      expect(json['personalizations'].first['subject']).to eq('Project: Mi proyecto - p123456 - Excel Export')
+    end
+  end
+
+  describe '#processing_alert_email con proyecto no identificado' do
+    it 'explica que el export salio degradado y que hay que revisar la Rule' do
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.processing_alert_email(['dcasar@fine-research.com'], 'FP-18874N', export_type: :excel, alert_type: :project_unidentified)
+
+      body = sent_json(sent_mail)['content'].first['value']
+      expect(body).to include('No se pudo identificar el proyecto de Confirmit')
+      expect(body).to include('Survey ID')
     end
   end
 end

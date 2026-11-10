@@ -67,7 +67,7 @@ class ExportDeliveryMailer < ApplicationMailer
     personalization.subject = subject_for(project_id, export_type, project_title)
     mail.add_personalization(personalization)
 
-    body = body_for(project_id, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
+    body = body_for(project_reference(project_id, project_title), recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
     delivery_zip_path = build_delivery_zip(file_paths, project_id, delivery_zip_name)
@@ -84,8 +84,15 @@ class ExportDeliveryMailer < ApplicationMailer
   # permisos en la API de Confirmit, o cualquier otro error que impidio un
   # procesamiento integral.
   ALERT_MESSAGES = {
-    permission_denied: 'No se pudo hacer un procesamiento completo por falta de permisos, favor autorizar a la API de Confirmit.',
-    processing_error: 'Por algun motivo el archivo no pudo procesar integralmente, por favor chequear que el cliente reciba su export.'
+    permission_denied: [
+      'No se pudo hacer un procesamiento completo por falta de permisos, favor autorizar a la API de Confirmit.',
+      'Confirmit respondio "Permission denied" al leer el schema del proyecto: el usuario de la API no tiene acceso a el.',
+      'El export se entrego igual, pero sin traducir las cuotas ni el Report declarados en el mail (pueden figurar en 0),',
+      'sin tipos en el Dictionary y sin deteccion de variables faltantes.',
+      'Para corregirlo: dar acceso al usuario de la API al proyecto en Confirmit y volver a enviar el export.'
+    ].join(' '),
+    processing_error: 'Por algun motivo el archivo no pudo procesar integralmente, por favor chequear que el cliente reciba su export.',
+    project_unidentified: 'No se pudo identificar el proyecto de Confirmit (el nombre del archivo no trae pXXXX y el cuerpo del mail no trae "Survey ID: pXXXX"). El export se entrego igual, pero sin consultar el schema: sin tipos en el Dictionary, sin traducir las cuotas y sin deteccion de variables faltantes. Revisar el texto de la Rule en Confirmit.'
   }.freeze
 
   def processing_alert_email(recipients, project_id, export_type:, alert_type:)
@@ -96,7 +103,7 @@ class ExportDeliveryMailer < ApplicationMailer
     personalization.subject = "[ALERTA] #{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
     mail.add_personalization(personalization)
 
-    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: ALERT_MESSAGES.fetch(alert_type)))
+    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: alert_body(alert_type, project_id)))
 
     send_email(mail)
   end
@@ -121,6 +128,14 @@ class ExportDeliveryMailer < ApplicationMailer
   end
 
   private
+
+  # El mensaje de cada tipo de alerta, con el proyecto al que se refiere (sin
+  # eso habia que deducirlo del asunto).
+  def alert_body(alert_type, project_id)
+    lines = [ALERT_MESSAGES.fetch(alert_type)]
+    lines << "Proyecto: #{project_id}" if project_id.present?
+    lines.join("\n\n")
+  end
 
   def missing_variables_body(variables)
     listed = variables.first(MAX_MISSING_VARIABLES_LISTED).map do |variable|
@@ -176,16 +191,27 @@ class ExportDeliveryMailer < ApplicationMailer
     File.basename(first_file, File.extname(first_file)).presence || 'export'
   end
 
+  # Cada parte se agrega solo si existe: antes, un project_id vacio dejaba un
+  # asunto como "- Excel Export" (guion colgado), y el cuerpo decia "for ,".
   def subject_for(project_id, export_type, project_title)
-    prefix = project_title.present? ? "Project: #{project_title} - " : ''
-    "#{prefix}#{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
+    parts = []
+    parts << "Project: #{project_title}" if project_title.present?
+    parts << project_id if project_id.present?
+    parts << EXPORT_TYPE_LABELS.fetch(export_type)
+    parts.join(' - ')
   end
 
-  def body_for(project_id, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
+  # A que proyecto se refiere el cuerpo del mail: el ID si lo hay, si no el
+  # titulo, si no una referencia generica -- nunca un hueco.
+  def project_reference(project_id, project_title)
+    project_id.presence || project_title.presence || 'your project'
+  end
+
+  def body_for(project_reference, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
     <<~BODY
       This message is intended only for following recipients: #{recipient_list.join(', ')}
 
-      Please find attached the latest data files for #{project_id}, generated through our automated data delivery.
+      Please find attached the latest data files for #{project_reference}, generated through our automated data delivery.
       The delivery includes:
 
       #{delivery_bullets(includes_quotas, includes_report, includes_dictionary, interview_status_filter)}

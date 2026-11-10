@@ -120,6 +120,33 @@ RSpec.describe MailerController do
       }
     end
 
+    it 'si el cuerpo no trae "Survey Name", toma el nombre del proyecto del nombre del archivo' do
+      expect(RelabelSpssExportWorker).to receive(:perform_async) do |_zip_path, _project_id, _recipients, _body, project_title, *_rest|
+        expect(project_title).to eq('FP-18874N - 3375211 Cosentyx PDS PSO')
+      end
+
+      post :export_sync, params: {
+        attachment1: upload_for(build_zip(filename: 'FP-18874N - 3375211 Cosentyx PDS PSO - SPSS_20261110.sps')),
+        from: 'mailer@us.confirmit.com', text: 'dcasar@fine-research.com'
+      }
+    end
+
+    it 'el "Survey Name" del cuerpo tiene prioridad sobre el nombre del archivo' do
+      body = <<~BODY
+        Survey Name: "Nombre del cuerpo"
+        Comment: dcasar@fine-research.com
+      BODY
+
+      expect(RelabelSpssExportWorker).to receive(:perform_async) do |_zip_path, _project_id, _recipients, _body, project_title, *_rest|
+        expect(project_title).to eq('Nombre del cuerpo')
+      end
+
+      post :export_sync, params: {
+        attachment1: upload_for(build_zip(filename: 'Otro nombre - SPSS_20261110.sps')),
+        from: 'mailer@us.confirmit.com', text: body
+      }
+    end
+
     # Antes de este fix, si algo revienta DESPUES de guardar el zip (ej. el
     # adjunto no es un zip valido) el archivo quedaba huerfano para siempre
     # en tmp/feed_files/export (EFS compartido).

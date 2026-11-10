@@ -78,8 +78,9 @@ class RelabelSpssExportWorker
     ).deliver_now
 
     ExportRelabeling::ProcessingAlertNotifier.call(
-      recipients: recipients, project_id: project_id, export_type: :spss,
-      permission_denied: @permission_denied, relabeled: relabeled, missing_variables: @missing_variables
+      recipients: recipients, project_id: project_id.presence || project_title, export_type: :spss,
+      permission_denied: @permission_denied, relabeled: relabeled, missing_variables: @missing_variables,
+      project_unidentified: project_id.blank?
     )
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir

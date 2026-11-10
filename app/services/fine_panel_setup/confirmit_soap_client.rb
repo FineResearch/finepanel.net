@@ -1210,9 +1210,21 @@ module FinePanelSetup
       response_body = get_questionnaire(key: key, project_id: project_id, endpoint: SURVEY_DESIGN_ENDPOINT)
 
       match = response_body.match(/<GetQuestionnaireResult([^>]*)>(.*)<\/GetQuestionnaireResult>/m)
-      raise "No se pudo leer el SurveySchema del proyecto #{project_id}: #{response_body[0, 300]}" unless match
+      raise "No se pudo leer el SurveySchema del proyecto #{project_id}: #{schema_error_reason(response_body)}" unless match
 
       { key: key, attrs: match[1], inner: match[2] }
+    end
+
+    # El motivo legible de una respuesta SOAP que no trae el resultado
+    # esperado: el <faultstring> si es un Fault (ej. "Server was unable to
+    # process request. ---> Permission denied."), o el principio de la
+    # respuesta si no. Importa que sea el faultstring y no los primeros N
+    # caracteres: el envelope de Confirmit abre con ~500 caracteres de
+    # namespaces, asi que cortar a 300 dejaba el mensaje sin el motivo -- y
+    # ConfirmitSchemaFetcher, que detecta "Permission denied" para avisar a
+    # Fine, nunca lo veia (confirmado con p588393362171).
+    def schema_error_reason(response_body)
+      response_body[/<faultstring>(.*?)<\/faultstring>/m, 1].presence || response_body[0, 300]
     end
 
     # Reemplaza el ScriptCode completo de un nodo de script, identificado por
