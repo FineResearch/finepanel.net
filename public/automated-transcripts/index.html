@@ -199,7 +199,19 @@ function createAndSubmitJob(file, payload, errorEl) {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (!data.upload_url) { throw new Error(data.error || 'No se pudo crear el job'); }
-      return fetch(data.upload_url, { method: 'PUT', body: file }).then(function () { return data.job_id; });
+      var jobId = data.job_id;
+      // fetch() solo rechaza en un error de red -- un 403/expirado en el
+      // PUT a S3 resuelve igual, así que sin este chequeo el job se
+      // mandaba a procesar con el archivo nunca subido (confirmado en
+      // producción: terminaba fallando en el worker con un 403 de S3,
+      // minutos después y sin mensaje claro para el usuario).
+      return fetch(data.upload_url, { method: 'PUT', body: file }).then(function (uploadResp) {
+        if (!uploadResp.ok) {
+          fetch(API_BASE + '/jobs/' + jobId, { method: 'DELETE', headers: authHeaders() }).catch(function () {});
+          throw new Error('No se pudo subir el archivo (HTTP ' + uploadResp.status + '). Probá de nuevo.');
+        }
+        return jobId;
+      });
     })
     .then(function (jobId) {
       return fetch(API_BASE + '/jobs/' + jobId + '/submit', { method: 'POST', headers: authHeaders() });
