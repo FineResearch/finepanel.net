@@ -81,4 +81,59 @@ RSpec.describe ExportRelabeling::SpssDataListReader do
     expect { described_class.call(sps_text: 'cualquier cosa sin DATA LIST', data_path: data_path) }
       .to raise_error(/No se encontro ningun campo/)
   end
+
+  # Confirmit escribe las variables de UNA columna sin guion ("F9_1 65"); son las
+  # casillas 0/1 de las preguntas multiples. Antes el lector las ignoraba y el
+  # Dictionary, las cuotas y el detector de variables faltantes no las veian.
+  describe 'variables de una sola columna (sin guion)' do
+    let(:single_column_sps) do
+      <<~SPS
+        DATA LIST
+         FIXED FILE = F1
+         RECORDS=1
+        /1
+         RESPONSEID 1-3
+         F9_1 4
+         F9_2 5
+         F9_99 6
+         STATUS 7-14 (A)
+        .
+        VARIABLE LABELS
+         RESPONSEID 'responseid'
+         F9_1 'Opcion uno (F9 - Pregunta?)'
+         F9_2 'Opcion dos (F9 - Pregunta?)'
+         F9_99 'Otros (F9 - Pregunta?)'
+         STATUS 'status'
+        .
+      SPS
+    end
+
+    it 'las incluye con su posicion y las trocea del .dat' do
+      data_path = write_data_file(['426101complete', '336010screened'])
+
+      sheet = described_class.call(sps_text: single_column_sps, data_path: data_path)
+
+      expect(sheet.headers.map(&:variable_name)).to eq(%w[RESPONSEID F9_1 F9_2 F9_99 STATUS])
+      expect(sheet.rows).to eq([
+        %w[426 1 0 1 complete],
+        %w[336 0 1 0 screened]
+      ])
+    end
+
+    it 'sigue leyendo las variables con rango y con formato (A) igual que antes' do
+      data_path = write_data_file(['426101complete'])
+
+      sheet = described_class.call(sps_text: single_column_sps, data_path: data_path)
+
+      expect(sheet.headers.map(&:raw_label)).to include('Opcion uno (F9 - Pregunta?)', 'status')
+    end
+
+    it 'no confunde las lineas de cabecera del DATA LIST (FIXED FILE, RECORDS, /1) con variables' do
+      data_path = write_data_file(['426101complete'])
+
+      sheet = described_class.call(sps_text: single_column_sps, data_path: data_path)
+
+      expect(sheet.headers.map(&:variable_name)).not_to include('RECORDS=1', '/1', 'FIXED')
+    end
+  end
 end

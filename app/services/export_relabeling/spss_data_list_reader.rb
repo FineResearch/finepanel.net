@@ -16,7 +16,10 @@
 #    RESPONSEID 1-8
 #    STATUS 9-28 (A)
 #    RESPID 29-36
+#    F9_1 65
 #   .
+#
+# (una variable de una sola columna va sin guion, ej. "F9_1 65")
 #
 # Solo se soporta un unico record ("/1") -- nunca se vio un .sps real de
 # Confirmit con mas de uno, y RECORDS siempre viene en 1. Si algun dia
@@ -30,7 +33,11 @@ module ExportRelabeling
     BLOCK_END = /\A\.\z/.freeze
     RECORD_MARKER = /\A\/\d+\z/.freeze
     SKIP_LINE = /\A(FIXED|RECORDS)\b/i.freeze
-    VARIABLE_DEF = /\A(\S+)\s+(\d+)-(\d+)(?:\s*\([^)]*\))?\z/.freeze
+    # Una variable de UNA sola columna se escribe sin guion ("F9_1 65", no
+    # "F9_1 65-65") -- confirmado contra un .sps real de Confirmit: son las
+    # casillas 0/1 de las preguntas multiples, y antes quedaban fuera del
+    # Dictionary, de las cuotas y del detector de variables faltantes.
+    VARIABLE_DEF = /\A(\S+)\s+(\d+)(?:-(\d+))?(?:\s*\([^)]*\))?\z/.freeze
     LABEL_LINE = /\A(\S+)\s+'((?:[^']|'')*)'\z/.freeze
 
     def self.call(sps_text:, data_path:)
@@ -65,7 +72,7 @@ module ExportRelabeling
         next if line.empty? || line.match?(RECORD_MARKER) || line.match?(SKIP_LINE)
 
         match = VARIABLE_DEF.match(line)
-        columns << { name: match[1], start: match[2].to_i, end: match[3].to_i } if match
+        columns << { name: match[1], start: match[2].to_i, end: (match[3] || match[2]).to_i } if match
       end
       columns
     end
