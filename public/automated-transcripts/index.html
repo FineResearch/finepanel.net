@@ -13,8 +13,14 @@
   input[type=file], select { width:100%; padding:8px; border:1px solid #ccd3da; border-radius:4px; box-sizing:border-box; }
   button { background:#14415E; color:#fff; border:none; border-radius:4px; padding:10px 18px; cursor:pointer; font-size:14px; margin-top:14px; }
   button:disabled { opacity:0.5; cursor:default; }
+  .table-scroll { overflow-x:auto; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
   th, td { text-align:left; padding:8px 6px; border-bottom:1px solid #eef1f3; }
+  /* El nombre de archivo es la columna mas larga y no tiene limite natural
+     (puede venir con nombres largos de export/reunion) -- sin esto, una
+     celda sin romper linea empuja el ancho de toda la tabla (y de toda la
+     pagina en mobile, sin viewport real) mas alla de la pantalla. */
+  td.file-cell { max-width:160px; overflow-wrap:anywhere; }
   .status-created, .status-queued { color:#8a6d00; }
   .status-processing { color:#0a5aa8; }
   .status-done { color:#1a7a3c; }
@@ -115,10 +121,12 @@
 
   <div class="card">
     <h3 style="margin-top:0;">Tus transcripciones</h3>
-    <table>
-      <thead><tr><th>Archivo</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th>Tiempo</th><th>Resultado</th><th></th></tr></thead>
-      <tbody id="jobsBody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Archivo</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th>Tiempo</th><th>Resultado</th><th></th></tr></thead>
+        <tbody id="jobsBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -346,7 +354,7 @@ function refreshJobs() {
           fileCell = '<span class="ae-badge" title="' + aeTitle + '">⚠ EA</span>' + fileCell;
         }
 
-        tr.innerHTML = '<td>' + fileCell + '</td>' +
+        tr.innerHTML = '<td class="file-cell">' + fileCell + '</td>' +
           '<td>' + (isDocJob ? 'Traducción doc.' : 'Transcripción') + '</td>' +
           '<td>' + formatDate(job.created_at) + '</td>' +
           '<td class="status-' + job.status + '">' + (STATUS_LABELS[job.status] || job.status) + '</td>' +
