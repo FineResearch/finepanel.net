@@ -165,4 +165,72 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
       expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email)
     end
   end
+
+  # Los exports de un proyecto se repiten todos los dias y el PM tarda en
+  # corregir el Data Template: el aviso sale UNA vez por proyecto y variable.
+  describe 'aviso de variables faltantes una sola vez por proyecto' do
+    let(:q5a) { { name: 'q5a', title: 'Q5A' } }
+    let(:q6) { { name: 'q6', title: 'Q6' } }
+
+    before do
+      delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      allow(ExportDeliveryMailer).to receive(:missing_variables_alert_email).and_return(delivery)
+    end
+
+    def notify(project_id, variables)
+      described_class.call(
+        recipients: ['dcasar@fine-research.com'], project_id: project_id, export_type: :excel,
+        relabeled: true, missing_variables: variables
+      )
+    end
+
+    it 'el primer export avisa y el siguiente, con las mismas faltantes, no' do
+      notify('p1', [q5a])
+      notify('p1', [q5a])
+
+      expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email).once
+    end
+
+    it 'si despues falta una variable distinta, avisa solo de la nueva' do
+      notify('p1', [q5a])
+      notify('p1', [q5a, q6])
+
+      expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email)
+        .with(anything, 'p1', export_type: :excel, variables: [q6])
+    end
+
+    it 'otro proyecto con la misma variable faltante si avisa' do
+      notify('p1', [q5a])
+      notify('p2', [q5a])
+
+      expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email).twice
+    end
+
+    it 'si el envio del mail falla, no se marca como avisada (se reintenta en el proximo export)' do
+      allow(ExportDeliveryMailer).to receive(:missing_variables_alert_email).and_raise(StandardError, 'sendgrid caido')
+
+      expect { notify('p1', [q5a]) }.not_to raise_error
+      expect(ExportMissingVariableAlert.count).to eq(0)
+    end
+
+    it 'si la base falla al consultar, avisa igual (mejor repetido que ninguno)' do
+      allow(ExportMissingVariableAlert).to receive(:not_alerted).and_raise(ActiveRecord::StatementInvalid, 'sin tabla')
+
+      notify('p1', [q5a])
+
+      expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email)
+        .with(anything, 'p1', export_type: :excel, variables: [q5a])
+    end
+
+    it 'un fallo enviando un aviso interno nunca llega al worker (si no, Sidekiq reenviaria el export al cliente)' do
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_raise(StandardError, 'sendgrid caido')
+
+      expect do
+        described_class.call(
+          recipients: ['dcasar@fine-research.com'], project_id: 'p1', export_type: :excel,
+          permission_denied: true, relabeled: true
+        )
+      end.not_to raise_error
+    end
+  end
 end

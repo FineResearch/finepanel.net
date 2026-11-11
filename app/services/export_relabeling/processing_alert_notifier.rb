@@ -50,12 +50,18 @@ module ExportRelabeling
       @project_unidentified = project_unidentified
     end
 
+    # Los avisos son de mejor esfuerzo: si algo falla aca (mail, base) se loguea y
+    # listo. Un error que escapara de este metodo haria que Sidekiq reintente
+    # TODO el trabajo del worker -- y con el, que el cliente reciba el export
+    # duplicado.
     def call
       targets = internal_recipients
       return if targets.empty?
 
       send_processing_alert(targets) if alert_type
       send_missing_variables_alert(targets) if @missing_variables.any?
+    rescue StandardError => e
+      Rails.logger.error("[ProcessingAlertNotifier] no se pudo enviar el aviso interno de #{@project_id}: #{e.class} #{e.message}")
     end
 
     private
@@ -69,10 +75,37 @@ module ExportRelabeling
     # Aparte de la alerta de procesamiento: no es un fallo del pipeline sino un
     # aviso para corregir el Data Template (ver MissingVariablesDetector). Si
     # ambas aplican salen 2 mails, cada uno con un solo tema.
+    #
+    # Sale UNA vez por proyecto y variable (ver ExportMissingVariableAlert): los
+    # exports de un proyecto se repiten todos los dias y el PM tarda en corregir
+    # el Data Template, asi que sin esto el mismo aviso llegaria a diario. Si
+    # mas adelante falta una variable distinta, se avisa solo de la nueva. Las
+    # variables se marcan como avisadas DESPUES de mandar el mail: si el envio
+    # falla, el aviso se reintenta en el proximo export en vez de perderse.
     def send_missing_variables_alert(targets)
+      pending = not_yet_alerted
+      return if pending.empty?
+
       ExportDeliveryMailer.missing_variables_alert_email(
-        targets, @project_id, export_type: @export_type, variables: @missing_variables
+        targets, @project_id, export_type: @export_type, variables: pending
       ).deliver_now
+
+      remember_alerted(pending)
+    end
+
+    # Si la base falla, se avisa de todo (mejor un aviso repetido que ninguno).
+    def not_yet_alerted
+      names = ExportMissingVariableAlert.not_alerted(@project_id, @missing_variables.map { |variable| variable[:name] })
+      @missing_variables.select { |variable| names.include?(variable[:name]) }
+    rescue StandardError => e
+      Rails.logger.error("[ProcessingAlertNotifier] no se pudo consultar los avisos previos de #{@project_id}: #{e.class} #{e.message}")
+      @missing_variables
+    end
+
+    def remember_alerted(variables)
+      ExportMissingVariableAlert.register(@project_id, variables.map { |variable| variable[:name] })
+    rescue StandardError => e
+      Rails.logger.error("[ProcessingAlertNotifier] no se pudo registrar el aviso de #{@project_id}: #{e.class} #{e.message}")
     end
 
     def alert_type
