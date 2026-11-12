@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Arma el Dictionary/Quotas/Report/completed_quotas compartidos entre los 2
+# Arma el Dictionary/Quotas/Report/quota_lines compartidos entre los 2
 # pipelines de export (RelabelExcelExportWorker y RelabelSpssExportWorker)
 # -- extraido de RelabelExcelExportWorker a proposito: la logica de cuotas/
 # report/diccionario no depende de que la fuente sea un .xlsx o un .sps+.dat,
@@ -66,7 +66,7 @@ module ExportRelabeling
       quota_rows = build_quota_rows(sources, manual[:quotas])
       report_rows = safely('hoja Report') { build_report_rows(manual[:crosses], sources) }
       dictionary_rows = safely('Dictionary consolidado') { build_consolidated_dictionary_rows(parsed_by_path) }
-      completed_quotas = safely('cuotas completas para el cuerpo del mail', []) { ExportRelabeling::CompletedQuotas.call(quota_rows && quota_rows[:rows]) }
+      quota_lines = safely('cuotas completas para el cuerpo del mail', []) { ExportRelabeling::QuotaLines.call(quota_rows && quota_rows[:rows]) }
       missing_variables = safely('variables faltantes del cuestionario', []) { build_missing_variables }
 
       {
@@ -74,7 +74,7 @@ module ExportRelabeling
         quota_rows: quota_rows,
         report_rows: report_rows,
         dictionary_rows: dictionary_rows,
-        completed_quotas: completed_quotas,
+        quota_lines: quota_lines,
         missing_variables: missing_variables,
         includes_quotas: quota_rows.present?,
         includes_report: report_rows.present?,

@@ -49,15 +49,15 @@ class ExportDeliveryMailer < ApplicationMailer
   # existia, el bullet de Dictionary se mostraba siempre para Excel sin
   # chequear si esa hoja realmente se pudo armar.
   #
-  # completed_quotas (ver ExportRelabeling::CompletedQuotas) -- array de
-  # {quota:, field:, value:, target:, achieved:} para las cuotas que ya
-  # alcanzaron o superaron la meta. Pedido de Diego: mostrarlas en el
+  # quota_lines (ver ExportRelabeling::QuotaLines) -- array de
+  # {quota:, field:, value:, target:, achieved:, pending:} de TODAS las
+  # cuotas (completas y abiertas). Pedido de Diego: mostrarlas en el
   # cuerpo para que no haga falta abrir el Excel a buscarlas -- la seccion
-  # entera se omite si no hay ninguna completa.
+  # entera se omite si no hay ninguna cuota.
   def relabeled_export_email(
     recipients, project_id, file_paths, export_type:,
     relabeled: true, project_title: nil, includes_quotas: false, includes_report: false,
-    includes_dictionary: false, interview_status_filter: nil, completed_quotas: [], delivery_zip_name: nil
+    includes_dictionary: false, interview_status_filter: nil, quota_lines: [], delivery_zip_name: nil
   )
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: FROM)
@@ -67,7 +67,7 @@ class ExportDeliveryMailer < ApplicationMailer
     personalization.subject = subject_for(project_id, export_type, project_title)
     mail.add_personalization(personalization)
 
-    body = body_for(project_reference(project_id, project_title), recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
+    body = body_for(project_reference(project_id, project_title), recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, quota_lines)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
     delivery_zip_path = build_delivery_zip(file_paths, project_id, delivery_zip_name)
@@ -254,7 +254,7 @@ class ExportDeliveryMailer < ApplicationMailer
     project_id.presence || project_title.presence || 'your project'
   end
 
-  def body_for(project_reference, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, completed_quotas)
+  def body_for(project_reference, recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, quota_lines)
     <<~BODY
       This message is intended only for following recipients: #{recipient_list.join(', ')}
 
@@ -265,7 +265,7 @@ class ExportDeliveryMailer < ApplicationMailer
 
       The files reflect all interviews processed as of #{Time.current.strftime('%Y-%m-%d %H:%M UTC')}.
       #{validation_note(relabeled)}
-      #{completed_quotas_section(completed_quotas)}
+      #{quota_lines_section(quota_lines)}
       Best regards,
       Fine Research
     BODY
@@ -287,11 +287,19 @@ class ExportDeliveryMailer < ApplicationMailer
       'the attached file reflects the data exactly as received, without relabeling.'
   end
 
-  def completed_quotas_section(completed_quotas)
-    return '' if completed_quotas.blank?
+  def quota_lines_section(quota_lines)
+    return '' if quota_lines.blank?
 
-    lines = completed_quotas.map { |q| "#{q[:quota]} | #{q[:field]}: #{q[:value]} | Target: #{q[:target]} | Achieved: #{q[:achieved]}" }
-    "\nCompleted Quotas:\n\n#{lines.join("\n")}\n"
+    lines = quota_lines.map do |q|
+      "#{q[:quota]} | #{q[:field]}: #{trim_all_whitespace(q[:value])} | Target: #{q[:target]} | Achieved: #{q[:achieved]} | Pending: #{q[:pending]}"
+    end
+    "\nQuotas:\n\n#{lines.join("\n")}\n"
+  end
+
+  # Los labels de Confirmit a veces traen un espacio duro (nbsp) al final
+  # ("Região Norte "), que String#strip no saca.
+  def trim_all_whitespace(text)
+    text.to_s.gsub(/\A[[:space:]]+|[[:space:]]+\z/, '')
   end
 
   CONTENT_TYPES = {

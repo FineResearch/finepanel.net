@@ -56,7 +56,7 @@ class RelabelExcelExportWorker
   include Sidekiq::Worker
   sidekiq_options retry: 3
 
-  # El Dictionary/Quotas/Report/completed_quotas (constantes incluidas, ver
+  # El Dictionary/Quotas/Report/quota_lines (constantes incluidas, ver
   # STATUS_VARIABLE/LOOP_STATUS_SUFFIX/etc ahi) vive en
   # ExportRelabeling::ExportMetadataBuilder -- compartido con
   # RelabelSpssExportWorker, que arma la misma info pero leyendo un .sps+.dat
@@ -72,14 +72,14 @@ class RelabelExcelExportWorker
     @permission_denied = false
     @missing_variables = []
 
-    output_paths, relabeled, includes_quotas, includes_report, includes_dictionary, completed_quotas, delivery_zip_name =
+    output_paths, relabeled, includes_quotas, includes_report, includes_dictionary, quota_lines, delivery_zip_name =
       build_output_paths(zip_path, project_id, email_body)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :excel, relabeled: relabeled,
       includes_quotas: includes_quotas, includes_report: includes_report, includes_dictionary: includes_dictionary,
       project_title: project_title, interview_status_filter: interview_status_filter,
-      completed_quotas: completed_quotas, delivery_zip_name: delivery_zip_name
+      quota_lines: quota_lines, delivery_zip_name: delivery_zip_name
     ).deliver_now
 
     ExportRelabeling::ProcessingAlertNotifier.call(
@@ -105,9 +105,9 @@ class RelabelExcelExportWorker
   # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, incluye_cuotas?, incluye_report?, incluye_dictionary?, cuotas_completas, delivery_zip_name].
   def build_output_paths(zip_path, project_id, email_body)
     extract_zip(zip_path, @work_dir)
-    output_paths, includes_quotas, includes_report, includes_dictionary, completed_quotas, delivery_zip_name =
+    output_paths, includes_quotas, includes_report, includes_dictionary, quota_lines, delivery_zip_name =
       relabel_all(project_id, email_body)
-    [output_paths, true, includes_quotas, includes_report, includes_dictionary, completed_quotas, delivery_zip_name]
+    [output_paths, true, includes_quotas, includes_report, includes_dictionary, quota_lines, delivery_zip_name]
   rescue StandardError => e
     Rails.logger.error("[RelabelExcelExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
     [[zip_path], false, false, false, false, [], nil]
@@ -124,7 +124,7 @@ class RelabelExcelExportWorker
       relabel(path, sheet, metadata[:parsed_by_path][path], metadata[:quota_rows], metadata[:report_rows], metadata[:dictionary_rows], lookup)
     end
     delivery_zip_name = main_file_basename(sheets)
-    [output_paths, metadata[:includes_quotas], metadata[:includes_report], metadata[:includes_dictionary], metadata[:completed_quotas], delivery_zip_name]
+    [output_paths, metadata[:includes_quotas], metadata[:includes_report], metadata[:includes_dictionary], metadata[:quota_lines], delivery_zip_name]
   end
 
   # Diego: mismo criterio que RelabelSpssExportWorker -- el zip de

@@ -284,8 +284,8 @@ RSpec.describe ExportDeliveryMailer do
     end
   end
 
-  describe 'Completed Quotas' do
-    it 'con completed_quotas presentes, agrega la seccion antes de "Best regards"' do
+  describe 'Quotas' do
+    it 'con quota_lines presentes, agrega la seccion (completas y abiertas, con pendiente) antes de "Best regards"' do
       Dir.mktmpdir do |dir|
         path = File.join(dir, 'p123456_def.xlsx')
         File.write(path, 'x')
@@ -293,24 +293,32 @@ RSpec.describe ExportDeliveryMailer do
         sent_mail = nil
         allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
 
-        completed_quotas = [
-          { quota: 'quota1', field: 'regiao', value: 'Sudeste', target: 50, achieved: 51 },
-          { quota: 'quota2', field: 's0', value: '1', target: 10, achieved: 10 }
+        quota_lines = [
+          { quota: 'quota1', field: 'regiao', value: 'Sudeste', target: 50, achieved: 51, pending: -1 },
+          { quota: 'quota1', field: 'regiao', value: "Região Norte ", target: 7, achieved: 5, pending: 2 },
+          { quota: 'quota2', field: 's0', value: '1', target: 10, achieved: 10, pending: 0 }
         ]
 
         described_class.new.relabeled_export_email(
-          ['a@cliente.com'], 'p123456', [path], export_type: :excel, completed_quotas: completed_quotas
+          ['a@cliente.com'], 'p123456', [path], export_type: :excel, quota_lines: quota_lines
         )
 
         body = sent_json(sent_mail)['content'].first['value']
-        expect(body).to include('Completed Quotas:')
-        expect(body).to include('quota1 | regiao: Sudeste | Target: 50 | Achieved: 51')
-        expect(body).to include('quota2 | s0: 1 | Target: 10 | Achieved: 10')
-        expect(body.index('Completed Quotas:')).to be < body.index('Best regards')
+        expect(body).to include("
+Quotas:
+")
+        expect(body).not_to include('Completed Quotas')
+        expect(body).to include('quota1 | regiao: Sudeste | Target: 50 | Achieved: 51 | Pending: -1')
+        # la cuota abierta tambien sale, sin el espacio duro final del label
+        expect(body).to include("quota1 | regiao: Região Norte | Target: 7 | Achieved: 5 | Pending: 2")
+        expect(body).to include('quota2 | s0: 1 | Target: 10 | Achieved: 10 | Pending: 0')
+        expect(body.index("
+Quotas:
+")).to be < body.index('Best regards')
       end
     end
 
-    it 'sin completed_quotas, no agrega la seccion' do
+    it 'sin quota_lines, no agrega la seccion' do
       Dir.mktmpdir do |dir|
         path = File.join(dir, 'p123456_def.xlsx')
         File.write(path, 'x')
@@ -320,7 +328,9 @@ RSpec.describe ExportDeliveryMailer do
 
         described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [path], export_type: :excel)
 
-        expect(sent_json(sent_mail)['content'].first['value']).not_to include('Completed Quotas')
+        expect(sent_json(sent_mail)['content'].first['value']).not_to include("
+Quotas:
+")
       end
     end
   end

@@ -302,9 +302,9 @@ RSpec.describe RelabelExcelExportWorker do
       expect(captured[:includes_quotas]).to be true
     end
 
-    # Diego: mostrar en el cuerpo del mail las cuotas ya completas (ver
-    # ExportRelabeling::CompletedQuotas), sin tener que abrir el Excel.
-    it 'pasa las cuotas ya completas (achieved >= goal) al mailer como completed_quotas' do
+    # Diego: mostrar en el cuerpo del mail todas las cuotas con su pendiente
+    # (ver ExportRelabeling::QuotaLines), sin tener que abrir el Excel.
+    it 'pasa todas las cuotas (con su pendiente) al mailer como quota_lines' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
       allow(lookup).to receive(:column_profile).and_return(nil)
@@ -316,14 +316,14 @@ RSpec.describe RelabelExcelExportWorker do
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
 
       captured = {}
-      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, _paths, completed_quotas:, **|
-        captured[:completed_quotas] = completed_quotas
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, _paths, quota_lines:, **|
+        captured[:quota_lines] = quota_lines
         instance_double(ActionMailer::MessageDelivery, deliver_now: true)
       end
 
       described_class.new.perform(zip_path_with_status, 'p123456', ['destino@cliente.com'])
 
-      expect(captured[:completed_quotas]).to eq([{ quota: 'quota1', field: 's0', value: '1', target: 2, achieved: 2 }])
+      expect(captured[:quota_lines]).to eq([{ quota: 'quota1', field: 's0', value: '1', target: 2, achieved: 2, pending: 0 }])
     end
 
     it 'no agrega hoja de cuotas si el lookup no resuelve (fetch de schema fallo)' do

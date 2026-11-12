@@ -66,7 +66,7 @@ class RelabelSpssExportWorker
       recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
       project_title: project_title, interview_status_filter: interview_status_filter,
       includes_quotas: metadata_info[:includes_quotas], includes_report: metadata_info[:includes_report],
-      includes_dictionary: metadata_info[:includes_dictionary], completed_quotas: metadata_info[:completed_quotas],
+      includes_dictionary: metadata_info[:includes_dictionary], quota_lines: metadata_info[:quota_lines],
       delivery_zip_name: delivery_zip_name
     ).deliver_now
 
@@ -210,12 +210,12 @@ class RelabelSpssExportWorker
       includes_quotas: metadata[:includes_quotas],
       includes_report: metadata[:includes_report],
       includes_dictionary: metadata[:includes_dictionary],
-      completed_quotas: metadata[:completed_quotas]
+      quota_lines: metadata[:quota_lines]
     }
   end
 
   def blank_metadata_info
-    { includes_quotas: false, includes_report: false, includes_dictionary: false, completed_quotas: [] }
+    { includes_quotas: false, includes_report: false, includes_dictionary: false, quota_lines: [] }
   end
 
   def build_lookup(project_id)

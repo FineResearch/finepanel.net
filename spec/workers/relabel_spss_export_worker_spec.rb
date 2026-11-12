@@ -323,8 +323,8 @@ RSpec.describe RelabelSpssExportWorker do
       stub_pspp_success
 
       captured = nil
-      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, includes_quotas:, completed_quotas:, **|
-        captured = { workbook: captured_metadata_workbook(output_paths), includes_quotas: includes_quotas, completed_quotas: completed_quotas }
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, includes_quotas:, quota_lines:, **|
+        captured = { workbook: captured_metadata_workbook(output_paths), includes_quotas: includes_quotas, quota_lines: quota_lines }
         instance_double(ActionMailer::MessageDelivery, deliver_now: true)
       end
 
@@ -334,7 +334,8 @@ RSpec.describe RelabelSpssExportWorker do
       expect(quotas_sheet.sheet_name).to eq('Quotas')
       expect(quotas_sheet[1].cells.map(&:value)).to eq(['quota1', 'Q1', '1', 10, 1, 9])
       expect(captured[:includes_quotas]).to be true
-      expect(captured[:completed_quotas]).to eq([])
+      # La cuota sigue abierta (1 de 10), y el cuerpo del mail las lista todas.
+      expect(captured[:quota_lines]).to eq([{ quota: 'quota1', field: 'Q1', value: '1', target: 10, achieved: 1, pending: 9 }])
     end
 
     it 'parsea Quotas:/Report: del cuerpo del mail (email_body), igual que Excel' do

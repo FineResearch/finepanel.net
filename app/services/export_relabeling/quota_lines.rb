@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 # Extrae, de las filas ya armadas por QuotaProgressBuilder (hoja "Quotas"),
-# las que estan COMPLETAS (conseguido >= meta, Pending <= 0) -- a pedido de
-# Diego, para listarlas en el cuerpo del mail de entrega ("Completed
-# Quotas"), asi el cliente/PM no tiene que abrir el Excel para ver que ya
-# se cumplio una cuota.
+# TODAS las cuotas con su avance (meta, conseguido, pendiente) -- a pedido de
+# Diego, para listarlas en el cuerpo del mail de entrega ("Quotas"), asi el
+# cliente/PM no tiene que abrir el Excel para ver como va el campo. Antes solo
+# se listaban las completas y las que seguian abiertas (ej. Nordeste y Norte
+# de p588393362171) faltaban en el cuerpo aunque estaban bien en el Excel.
+# Pending puede ser negativo (conseguido por encima de la meta), igual que en
+# la hoja Quotas.
 #
 # Las filas vienen con "Quota"/"Variable" vacios (nil) en todas menos la
 # PRIMERA linea de cada grupo (ver QuotaProgressBuilder#dedupe_leading_columns)
@@ -12,7 +15,7 @@
 # completa igual. Las filas de encabezado (HEADER repetido por bloque) y
 # las filas en blanco (separadoras entre bloques) se saltean.
 module ExportRelabeling
-  class CompletedQuotas
+  class QuotaLines
     def self.call(rows)
       new(rows).call
     end
@@ -38,9 +41,9 @@ module ExportRelabeling
       @current_quota = quota_name if quota_name.present?
       @current_field = field if field.present?
 
-      return unless achieved.is_a?(Integer) && pending.is_a?(Integer) && pending <= 0
+      return unless achieved.is_a?(Integer) && pending.is_a?(Integer)
 
-      { quota: @current_quota, field: @current_field, value: value, target: limit, achieved: achieved }
+      { quota: @current_quota, field: @current_field, value: value, target: limit, achieved: achieved, pending: pending }
     end
   end
 end
