@@ -108,6 +108,40 @@ class ExportDeliveryMailer < ApplicationMailer
     send_email(mail)
   end
 
+  DISCARD_REASONS = {
+    no_recipients: {
+      label: 'el mail no traia ninguna direccion de destinatario',
+      action: 'Agregar el email del destinatario en el cuerpo de la Rule de Confirmit y volver a enviar el export.'
+    },
+    unrecognized_zip: {
+      label: 'el zip no trae ningun .sps ni .xlsx (por ejemplo, un SPSS nativo .sav)',
+      action: 'Cambiar el formato de export de la Rule a SPSS (sps/dat) o a Excel, y volver a enviar el export.'
+    },
+    processing_error: {
+      label: 'error inesperado al recibir el mail',
+      action: 'Volver a enviar el export; si se repite, revisar los logs de la Api.'
+    }
+  }.freeze
+
+  # Alerta interna cuando MailerController#export_sync DESCARTA un mail sin
+  # procesarlo (ver ExportRelabeling::DiscardedExportNotifier): el cliente NO
+  # recibio ese export. Va a una casilla fija de Fine, nunca al cliente.
+  def export_discarded_alert_email(recipients, reason:, filename: nil, sender: nil, project_id: nil, project_title: nil, entry_names: [])
+    info = DISCARD_REASONS.fetch(reason)
+    reference = project_id.presence || project_title.presence || filename.presence || 'sin identificar'
+
+    mail = SendGrid::Mail.new
+    mail.from = Email.new(email: FROM)
+
+    personalization = generate_personalization(Array(recipients).join(','))
+    personalization.subject = "[ALERTA] Export descartado - #{reference}"
+    mail.add_personalization(personalization)
+
+    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: discarded_body(info, reason, filename, sender, project_id, project_title, entry_names)))
+
+    send_email(mail)
+  end
+
   MAX_MISSING_VARIABLES_LISTED = 100
 
   # Alerta interna aparte (ver ExportRelabeling::MissingVariablesDetector):
@@ -135,6 +169,18 @@ class ExportDeliveryMailer < ApplicationMailer
     lines = [ALERT_MESSAGES.fetch(alert_type)]
     lines << "Proyecto: #{project_id}" if project_id.present?
     lines.join("\n\n")
+  end
+
+  def discarded_body(info, _reason, filename, sender, project_id, project_title, entry_names)
+    lines = ['El cliente NO recibio este export: se descarto sin procesarlo.', '']
+    lines << "Motivo: #{info[:label]}"
+    lines << "Archivo: #{filename.presence || '(sin nombre)'}"
+    lines << "Proyecto: #{[project_id, project_title].select(&:present?).join(' - ').presence || 'no identificado'}"
+    lines << "Remitente: #{sender.presence || '(desconocido)'}"
+    lines << "Contenido del zip: #{Array(entry_names).join(', ')}" if Array(entry_names).any?
+    lines << ''
+    lines << "Que hacer: #{info[:action]}"
+    lines.join("\n")
   end
 
   def missing_variables_body(variables)

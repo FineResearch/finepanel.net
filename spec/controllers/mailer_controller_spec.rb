@@ -147,6 +147,73 @@ RSpec.describe MailerController do
       }
     end
 
+    # Un mail descartado dejaba al cliente sin su base y a nadie enterado (visto
+    # con un SPSS cuyo cuerpo no traia destinatarios) -- ahora se avisa a Fine.
+    describe 'aviso de export descartado' do
+      before { allow(ExportRelabeling::DiscardedExportNotifier).to receive(:call) }
+
+      it 'avisa si el cuerpo no trae ningun destinatario' do
+        post :export_sync, params: {
+          attachment1: upload_for(build_zip(filename: 'FP-1 - SPSS_20261111.sps')),
+          from: 'mailer@us.confirmit.com', text: 'sin destinatarios aca'
+        }
+
+        expect(ExportRelabeling::DiscardedExportNotifier).to have_received(:call)
+          .with(hash_including(reason: :no_recipients, filename: 'FP-1 - SPSS_20261111.sps'))
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'avisa si el zip no trae ni .sps ni .xlsx (ej. un .sav) e incluye su contenido' do
+        post :export_sync, params: {
+          attachment1: upload_for(build_zip(entry_name: 'datos.sav', filename: 'p123456_def_dcasar_1.sav')),
+          from: 'mailer@us.confirmit.com', text: 'dcasar@fine-research.com'
+        }
+
+        expect(ExportRelabeling::DiscardedExportNotifier).to have_received(:call)
+          .with(hash_including(reason: :unrecognized_zip, entry_names: ['datos.sav'], project_id: 'p123456'))
+      end
+
+      it 'no avisa cuando el export se procesa normalmente' do
+        allow(RelabelSpssExportWorker).to receive(:perform_async)
+
+        post :export_sync, params: {
+          attachment1: upload_for(build_zip), from: 'mailer@us.confirmit.com', text: 'dcasar@fine-research.com'
+        }
+
+        expect(ExportRelabeling::DiscardedExportNotifier).not_to have_received(:call)
+      end
+
+      it 'avisa si algo revienta inesperadamente despues de recibir el mail' do
+        upload = upload_for(build_zip)
+        allow(Zip::File).to receive(:open).and_raise(Zip::Error, 'adjunto no es un zip valido')
+
+        post :export_sync, params: { attachment1: upload, from: 'mailer@us.confirmit.com', text: 'dcasar@fine-research.com' }
+
+        expect(ExportRelabeling::DiscardedExportNotifier).to have_received(:call).with(hash_including(reason: :processing_error))
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'NO avisa por un remitente invalido (esa casilla recibe mails de cualquiera y se inundaria)' do
+        post :export_sync, params: {
+          attachment1: upload_for(build_zip), from: 'spam@desconocido.com', text: 'dcasar@fine-research.com'
+        }
+
+        expect(ExportRelabeling::DiscardedExportNotifier).not_to have_received(:call)
+      end
+
+      it 'si el aviso mismo falla, el endpoint igual contesta 200 y borra el zip' do
+        allow(ExportRelabeling::DiscardedExportNotifier).to receive(:call).and_call_original
+        allow(ExportDeliveryMailer).to receive(:export_discarded_alert_email).and_raise(StandardError, 'sendgrid caido')
+
+        post :export_sync, params: {
+          attachment1: upload_for(build_zip(filename: 'FP-2 - SPSS_20261111.sps')),
+          from: 'mailer@us.confirmit.com', text: 'sin destinatarios'
+        }
+
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
     # Antes de este fix, si algo revienta DESPUES de guardar el zip (ej. el
     # adjunto no es un zip valido) el archivo quedaba huerfano para siempre
     # en tmp/feed_files/export (EFS compartido).

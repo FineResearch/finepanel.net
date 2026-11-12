@@ -456,4 +456,44 @@ RSpec.describe ExportDeliveryMailer do
       expect(body).to include('Survey ID')
     end
   end
+
+  describe '#export_discarded_alert_email' do
+    def deliver(**args)
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+      described_class.new.export_discarded_alert_email(['panel@fine-research.com'], **args)
+      sent_json(sent_mail)
+    end
+
+    it 'explica que el cliente no recibio el export, con motivo, archivo, proyecto y que hacer' do
+      json = deliver(
+        reason: :no_recipients, filename: 'FP-18928G - SPSS_20261111.zip', sender: 'mailer@us.confirmit.com',
+        project_id: 'p588393362171', project_title: 'FP-18928G Hidradenite'
+      )
+
+      expect(json['personalizations'].first['to'].map { |t| t['email'] }).to eq(['panel@fine-research.com'])
+      expect(json['personalizations'].first['subject']).to eq('[ALERTA] Export descartado - p588393362171')
+      body = json['content'].first['value']
+      expect(body).to include('El cliente NO recibio este export')
+      expect(body).to include('ninguna direccion de destinatario')
+      expect(body).to include('Archivo: FP-18928G - SPSS_20261111.zip')
+      expect(body).to include('Proyecto: p588393362171 - FP-18928G Hidradenite')
+      expect(body).to include('Que hacer: Agregar el email del destinatario')
+    end
+
+    it 'para un zip sin .sps/.xlsx lista su contenido y sugiere cambiar el formato' do
+      json = deliver(reason: :unrecognized_zip, filename: 'x.zip', entry_names: ['a_SPSS.sav', 'a_SPSS_l1.sav'])
+
+      body = json['content'].first['value']
+      expect(body).to include('Contenido del zip: a_SPSS.sav, a_SPSS_l1.sav')
+      expect(body).to include('SPSS (sps/dat) o a Excel')
+    end
+
+    it 'sin proyecto identificado usa el nombre del archivo en el asunto' do
+      json = deliver(reason: :processing_error, filename: 'raro.zip')
+
+      expect(json['personalizations'].first['subject']).to eq('[ALERTA] Export descartado - raro.zip')
+      expect(json['content'].first['value']).to include('Proyecto: no identificado')
+    end
+  end
 end
