@@ -216,11 +216,18 @@ echo "[10/10] Prune leftover local images/build cache"
 # yarn install si se cachean/comparten, pero el codigo y el build
 # compilado son distintos en cada commit), y se van acumulando hasta
 # llenar el disco (confirmado 2026-09-20: 68GB acumulados en un dia de
-# deploys sin podar). Solo borra imagenes sin tag (huerfanas) y cache de
-# build de mas de un dia -- nunca toca imagenes tageadas, para no arriesgar
-# algo que el usuario este usando para otra cosa.
+# deploys sin podar). Solo prunear imagenes sin tag no alcanzaba: cada
+# deploy queda tageado deploy-<timestamp> y nunca se borraba (2026-11-11:
+# 47 imagenes + 15GB de build cache). Ahora borra las imagenes locales de
+# ${ECR_REPO} salvo la recien deployada (todas siguen en ECR; para un
+# rollback se bajan de ahi) y limita la build cache por tamano, no por
+# antiguedad. No toca imagenes de otros repos (node, redis, transcripts...).
+ECR_IMAGE_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+docker images "${ECR_IMAGE_REPO}" --format '{{.Repository}}:{{.Tag}}' \
+  | grep -v -e ":${IMAGE_TAG}\$" -e ':<none>$' \
+  | xargs -r docker rmi || true
 docker image prune -f || true
-docker builder prune -f --filter "until=24h" || true
+docker builder prune -f --max-used-space 5gb || true
 
 echo
 echo "================================================"
