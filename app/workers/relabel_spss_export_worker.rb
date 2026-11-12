@@ -43,16 +43,9 @@ class RelabelSpssExportWorker
   # que el log de pspp superara el limite de 6MB de respuesta sincronica
   # de Lambda. Se quita antes de compilar: no aporta nada al .sav final.
   LIST_COMMAND = /^[ \t]*LIST[ \t]*\.[ \t]*\r?\n?/i.freeze
-  # Confirmit a veces exporta el .asc/.dat con un BOM UTF-8 (3 bytes) al
-  # principio -- como DATA LIST FIXED lee por posicion de BYTE, esos 3
-  # bytes invisibles corren TODA la primera fila hacia la derecha.
-  # Confirmado contra un archivo real (p833174000229): el RESPONSEID y el
-  # RESPID de la primera fila terminaban pegados dentro de otras columnas
-  # (STATUS/FECHACOMPLETA), y esa fila se perdia/corrompia en el .sav
-  # resultante. No se toca el .asc ORIGINAL (el fallback a "se manda la
-  # base sin cambios" usa el zip tal cual llego) -- se compila una copia
-  # sin el BOM.
-  UTF8_BOM = "\xEF\xBB\xBF".b.freeze
+  # El .asc/.dat se prepara antes de compilar (BOM UTF-8, tildes que PSPP
+  # cuenta como 2 bytes y corren las columnas): ver
+  # ExportRelabeling::SpssDataFilePreparer.
   # Default de PSPP es 100 -- lo suficientemente bajo como para pisarse con
   # cualquier export real (confirmado: un archivo de 80 casos ya genera
   # >100 warnings de "VALUE LABELS: Truncating..."/formato no numerico).
@@ -247,10 +240,10 @@ class RelabelSpssExportWorker
     data_path = resolve_data_file_path(original)
     raise "Falta el archivo de datos #{data_path} para #{sps_path}" unless File.exist?(data_path)
 
-    clean_data_path = strip_bom(data_path)
+    prepared_data = ExportRelabeling::SpssDataFilePreparer.call(data_path)
 
     rewritten = ExportRelabeling::SpssSyntaxRewriter.call(original, lookup: lookup)
-    rewritten = rewritten.sub(FILE_HANDLE_NAME, "NAME = '#{ExportRelabeling::PsppLambdaClient::LAMBDA_DATA_PATH}'")
+    rewritten = rewritten.sub(FILE_HANDLE_NAME, file_handle_name_clause(prepared_data.encoding))
     rewritten = rewritten.gsub(LIST_COMMAND, '')
     rewritten = MXWARNS_DIRECTIVE + rewritten
     rewritten += "\nSAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}'.\n"
@@ -263,7 +256,7 @@ class RelabelSpssExportWorker
     # el nombre ORIGINAL del archivo que llego, nunca en project_id,
     # agregando "_relabeled" para distinguirlo del original.
     sav_path = sps_path.sub(/\.sps\z/, '_relabeled.sav')
-    ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: clean_data_path, output_path: sav_path)
+    ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: prepared_data.path, output_path: sav_path)
 
     sav_path
   end
@@ -276,12 +269,13 @@ class RelabelSpssExportWorker
     @work_dir.join(original_name).to_s
   end
 
-  def strip_bom(data_path)
-    content = File.read(data_path, mode: 'rb')
-    return data_path unless content.start_with?(UTF8_BOM)
-
-    clean_path = data_path.sub(/(\.[^.\/]+)\z/, '_nobom\1')
-    File.write(clean_path, content.byteslice(UTF8_BOM.bytesize..-1), mode: 'wb')
-    clean_path
+  # Apunta el FILE HANDLE al path fijo de la Lambda y, si el .asc se paso a
+  # un encoding de 1 byte por caracter (ver SpssDataFilePreparer), lo declara
+  # para que PSPP lo lea asi. Se agrega como subcomando propio del FILE HANDLE
+  # (/ENCODING='...'), antes del /LRECL que ya traiga el .sps.
+  def file_handle_name_clause(encoding)
+    clause = "NAME = '#{ExportRelabeling::PsppLambdaClient::LAMBDA_DATA_PATH}'"
+    clause += "\n /ENCODING='#{encoding}'" if encoding
+    clause
   end
 end

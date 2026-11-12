@@ -161,6 +161,38 @@ RSpec.describe RelabelSpssExportWorker do
     expect(File.basename(captured_data_path)).to eq('data.asc')
   end
 
+  # Caso real (p588393362171): 5 casos con las columnas corridas despues de
+  # un texto con tilde -- PSPP cuenta bytes (la tilde son 2 en UTF-8) y el
+  # DATA LIST de Confirmit cuenta caracteres. Ver SpssDataFilePreparer.
+  it 'con tildes en los datos: manda el .asc a 1 byte por caracter y declara el ENCODING en el FILE HANDLE' do
+    dir = Dir.mktmpdir
+    zip_with_accents = File.join(dir, 'test_export_accents.zip')
+    Zip::File.open(zip_with_accents, Zip::File::CREATE) do |zip|
+      zip.get_output_stream('data.sps') { |f| f.write(sps_content) }
+      zip.get_output_stream('data.asc') { |f| f.write("1 não\n".b) }
+    end
+
+    captured_sps = nil
+    captured_data = nil
+    stub_pspp_success { |sps_path, data_path| captured_sps = File.read(sps_path); captured_data = File.read(data_path, mode: 'rb') }
+    stub_mailer
+
+    described_class.new.perform(zip_with_accents, 'p123456', ['destino@cliente.com'])
+
+    expect(captured_data).to eq("1 n\xE3o\n".b)
+    expect(captured_sps).to include("NAME = '#{ExportRelabeling::PsppLambdaClient::LAMBDA_DATA_PATH}'\n /ENCODING='Windows-1252'\n /LRECL=10.")
+  end
+
+  it 'sin tildes en los datos: el FILE HANDLE no declara ENCODING (queda como siempre)' do
+    captured_sps = nil
+    stub_pspp_success { |sps_path, _data_path| captured_sps = File.read(sps_path) }
+    stub_mailer
+
+    described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+    expect(captured_sps).not_to include('ENCODING')
+  end
+
   it 'borra el zip original y el directorio de trabajo al terminar' do
     stub_pspp_success
     stub_mailer
