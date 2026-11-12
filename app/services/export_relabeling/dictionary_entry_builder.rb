@@ -27,7 +27,8 @@ module ExportRelabeling
     MULTI_OPTIONS = '0 = Not selected | 1 = Selected'
 
     TYPE_NAMES = {
-      single: 'Single', multi: 'Multi', numeric: 'Numeric', date: 'Date', text: 'Text', other_text: 'Text'
+      single: 'Single', multi: 'Multi', multi_numeric: 'Multi Numeric', numeric: 'Numeric', date: 'Date',
+      text: 'Text', other_text: 'Text'
     }.freeze
 
     def self.call(variable_name:, parsed:, values:, profile: nil)
@@ -60,7 +61,19 @@ module ExportRelabeling
     private
 
     def kind
-      @kind ||= @profile ? @profile[:type] : inferred_kind
+      @kind ||= @profile ? checked_against_data(@profile[:type]) : inferred_kind
+    end
+
+    # Una casilla de Multi solo puede valer 0/1 (o vacio). Si la columna trae
+    # otros numeros, el schema la clasifico mal para esa variable (ej. un campo
+    # numerico dentro de un contenedor tipo Multi): manda lo que muestran los
+    # datos. Solo se corrige hacia Multi Numeric y solo si TODOS los valores son
+    # numericos; si hay texto se respeta el schema.
+    def checked_against_data(schema_kind)
+      return schema_kind unless schema_kind == :multi
+      return schema_kind if non_blank_values.empty? || !all_numeric?
+
+      non_blank_values.all? { |value| [0.0, 1.0].include?(Float(value)) } ? schema_kind : :multi_numeric
     end
 
     # Sin schema: solo se afirma lo que los datos demuestran.
@@ -100,7 +113,7 @@ module ExportRelabeling
     end
 
     def numeric_stat(key)
-      kind == :numeric ? (@stats[key].nil? ? EMPTY : @stats[key]) : EMPTY
+      %i[numeric multi_numeric].include?(kind) ? (@stats[key].nil? ? EMPTY : @stats[key]) : EMPTY
     end
 
     def zeros
@@ -115,7 +128,7 @@ module ExportRelabeling
       when :single then format_options(@profile[:options])
       when :multi then MULTI_OPTIONS
       when :scale then scale_options
-      when :numeric, :date, :text then EMPTY
+      when :numeric, :multi_numeric, :date, :text then EMPTY
       when :other_text then "Open text linked to #{@profile[:linked_to]}"
       else EMPTY
       end

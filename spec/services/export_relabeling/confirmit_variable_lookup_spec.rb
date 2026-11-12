@@ -469,4 +469,38 @@ RSpec.describe ExportRelabeling::ConfirmitVariableLookup do
       expect(units(lookup).map { |unit| unit[:name] }).to eq(%w[f0])
     end
   end
+
+  # Confirmit marca con Numeric="true" a un Multi que pide un numero por opcion
+  # (visto en p588393362171: F8/F9/F10, % de tiempo, cantidad de pacientes...).
+  describe '#column_profile de un Multi numerico' do
+    let(:numeric_multi_lookup) do
+      described_class.new(<<~XML)
+        <Multi EntityId="1" Numeric="true" OpenText="true" AutoSum="true"><Name>f8</Name>
+          <FormTexts><FormText Language="1046"><Title>F8</Title><Text>Quantos pacientes?</Text></FormText></FormTexts>
+          <MultiAnswers><Answer Precode="1"><Texts><Text Language="1046">Corticoides</Text></Texts></Answer></MultiAnswers>
+        </Multi>
+        <Multi EntityId="2"><Name>f11</Name>
+          <FormTexts><FormText Language="1046"><Title>F11</Title></FormText></FormTexts>
+          <MultiAnswers><Answer Precode="1"><Texts><Text Language="1046">Abbvie</Text></Texts></Answer></MultiAnswers>
+        </Multi>
+        <Grid3D EntityId="3"><Name>gf10</Name>
+          <FormTexts><FormText Language="1046"><Title>F10</Title></FormText></FormTexts>
+          <Nodes><Multi EntityId="4" Numeric="true"><Name>f10</Name><MultiAnswers /></Multi></Nodes>
+          <Grid3DAnswers><Answer Precode="A"><Texts><Text Language="1046">1a linha</Text></Texts></Answer></Grid3DAnswers>
+        </Grid3D>
+      XML
+    end
+
+    it 'una opcion de un Multi con Numeric="true" es Multi Numeric, no una casilla 0/1' do
+      expect(numeric_multi_lookup.column_profile('f8_1')).to eq(type: :multi_numeric)
+    end
+
+    it 'un Multi comun sigue siendo Multi' do
+      expect(numeric_multi_lookup.column_profile('f11_1')).to eq(type: :multi)
+    end
+
+    it 'una fila numerica anidada en un Grid3D tambien es Multi Numeric (ej. f10_A)' do
+      expect(numeric_multi_lookup.column_profile('f10_A')).to eq(type: :multi_numeric)
+    end
+  end
 end

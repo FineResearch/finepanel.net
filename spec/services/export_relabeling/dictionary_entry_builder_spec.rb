@@ -117,4 +117,40 @@ RSpec.describe ExportRelabeling::DictionaryEntryBuilder do
     expect(row[9]).to eq('-')
     expect(row[11]).to eq('-')
   end
+
+  # El schema puede clasificar como Multi una columna que en los datos es numerica
+  # (visto con F8/F9/F10 de p588393362171): manda lo que muestran los datos.
+  describe 'Multi cuyos datos no son 0/1' do
+    it 'se muestra como Multi Numeric, con media/min/max' do
+      row = build(variable_name: 'f8_1', values: %w[29 14 0 23], profile: { type: :multi })
+
+      expect(row[4..6]).to eq([16.5, 0.0, 29.0])
+      expect(row[10..11]).to eq(['Multi Numeric', '-'])
+    end
+
+    it 'una opcion de Multi con Numeric="true" en el schema es Multi Numeric aunque aun no tenga datos' do
+      row = build(variable_name: 'f8_1', values: ['', nil], profile: { type: :multi_numeric })
+
+      expect(row[10..11]).to eq(['Multi Numeric', '-'])
+    end
+
+    it 'una casilla real (0/1/vacio) sigue siendo Multi' do
+      row = build(variable_name: 'f11_1', values: ['0', '1', '', '1'], profile: { type: :multi })
+
+      expect(row[10..11]).to eq(['Multi', '0 = Not selected | 1 = Selected'])
+      expect(row[4]).to eq('-')
+    end
+
+    it 'si hay texto en la columna se respeta el schema (no se adivina)' do
+      row = build(variable_name: 'x_1', values: %w[Sim Nao], profile: { type: :multi })
+
+      expect(row[10]).to eq('Multi')
+    end
+
+    it 'una columna sin respuestas sigue siendo Multi' do
+      row = build(variable_name: 'x_2', values: ['', nil], profile: { type: :multi })
+
+      expect(row[10]).to eq('Multi')
+    end
+  end
 end

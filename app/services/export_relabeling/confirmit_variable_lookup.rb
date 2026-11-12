@@ -337,10 +337,21 @@ module ExportRelabeling
 
       case node.name
       when 'Single' then { type: :single, options: single_options(node) }
-      when 'Multi' then { type: :multi }
+      when 'Multi' then multi_profile(node)
       when 'Grid' then grid_profile(node)
       when 'Open' then open_profile(node)
       end
+    end
+
+    # Un <Multi Numeric="true"> NO es una casilla 0/1: pide un numero por opcion
+    # (ej. % del tiempo en cada lugar, cantidad de pacientes por linea). Confirmado
+    # con p588393362171: F2, F3, F4, F5, F7, F7a, F8, F9, F10... son asi, y el
+    # Dictionary los mostraba como "Multi" con "0 = Not selected | 1 = Selected".
+    # Se muestra como "Multi Numeric": sigue siendo una pregunta de multiple opcion
+    # (RM) pero cada opcion lleva un numero.
+    # Las filas de un Grid3D son Multi anidados, asi que esto tambien las cubre.
+    def multi_profile(node)
+      node['Numeric'] == 'true' ? { type: :multi_numeric } : { type: :multi }
     end
 
     def open_profile(node)
@@ -385,7 +396,8 @@ module ExportRelabeling
       return nil unless parent && QUESTION_TAGS.include?(parent.name)
 
       case parent.name
-      when 'Multi', 'Grid3D' then { type: :multi }
+      when 'Multi' then multi_profile(parent)
+      when 'Grid3D' then { type: :multi }
       when 'Grid' then grid_profile(parent)
       end
     end
