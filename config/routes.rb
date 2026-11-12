@@ -59,6 +59,10 @@ end
     post 'team_contacts_destroy', to: 'setup#team_contacts_destroy'
     post 'incentive_rates_list', to: 'setup#incentive_rates_index'
     post 'incentive_rates_update', to: 'setup#incentive_rates_bulk_update'
+    post 'export_settings_list', to: 'setup#export_settings_index'
+    post 'export_settings_show', to: 'setup#export_settings_show'
+    post 'export_settings_save', to: 'setup#export_settings_save'
+    post 'export_settings_destroy', to: 'setup#export_settings_destroy'
   end
 
   get 'auth/whoami', to: 'auth#whoami'

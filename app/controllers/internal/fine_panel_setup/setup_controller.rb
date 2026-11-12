@@ -443,7 +443,72 @@ class Internal::FinePanelSetup::SetupController < ApplicationController
     render json: { ok: false, error: e.message }, status: :internal_server_error
   end
 
+  # Configuracion de envio del export por proyecto (ProjectExportSetting): el
+  # texto que un PM escribia en el Comment de la Rule de Confirmit (limitado a
+  # 255 caracteres), cargado aca sin limite. Un export que llega con el cuerpo
+  # vacio usa esto -- ver MailerController#apply_wizard_settings.
+  def export_settings_index
+    settings = ProjectExportSetting.order(:project_id)
+    render json: { ok: true, settings: settings.map { |setting| export_setting_summary(setting) } }
+  rescue StandardError => e
+    Rails.logger.error("[FinePanelSetup::SetupController#export_settings_index] #{e.class} - #{e.message}")
+    render json: { ok: false, error: e.message }, status: :internal_server_error
+  end
+
+  def export_settings_show
+    setting = ProjectExportSetting.for_project(params[:project_id])
+    render json: { ok: true, setting: setting && export_setting_detail(setting) }
+  rescue StandardError => e
+    Rails.logger.error("[FinePanelSetup::SetupController#export_settings_show] #{e.class} - #{e.message}")
+    render json: { ok: false, error: e.message }, status: :internal_server_error
+  end
+
+  def export_settings_save
+    setting = ProjectExportSetting.find_or_initialize_by(project_id: params[:project_id].to_s.strip.downcase)
+    setting.body = params[:body].to_s.strip
+    setting.updated_by = @current_internal_user&.email
+
+    if setting.save
+      render json: { ok: true, setting: export_setting_detail(setting) }
+    else
+      render json: { ok: false, error: export_setting_errors(setting) }, status: :unprocessable_entity
+    end
+  rescue StandardError => e
+    Rails.logger.error("[FinePanelSetup::SetupController#export_settings_save] #{e.class} - #{e.message}")
+    render json: { ok: false, error: e.message }, status: :internal_server_error
+  end
+
+  def export_settings_destroy
+    setting = ProjectExportSetting.for_project(params[:project_id])
+    return render json: { ok: false, error: 'No encontrado' }, status: :not_found unless setting
+
+    setting.destroy
+    render json: { ok: true }
+  rescue StandardError => e
+    Rails.logger.error("[FinePanelSetup::SetupController#export_settings_destroy] #{e.class} - #{e.message}")
+    render json: { ok: false, error: e.message }, status: :internal_server_error
+  end
+
   private
+
+  def export_setting_summary(setting)
+    {
+      project_id: setting.project_id, recipients_count: setting.recipients.length,
+      updated_by: setting.updated_by, updated_at: setting.updated_at
+    }
+  end
+
+  # Mensajes en espanol claro: el nombre interno del campo ("Project", "Body") no le dice
+  # nada al PM.
+  def export_setting_errors(setting)
+    labels = { project_id: 'El ID del proyecto', body: 'El texto' }
+    setting.errors.map { |attribute, message| "#{labels.fetch(attribute, attribute.to_s)} #{message}" }.join('. ')
+  end
+
+  def export_setting_detail(setting)
+    export_setting_summary(setting).merge(body: setting.body, preview: setting.preview)
+  end
+
 
   # Mismo patron que Api::V1::ApiController#resolve_jwt_token: no valida la
   # firma del JWT, solo lee el claim "jti" y lo busca en la tabla -- el jti

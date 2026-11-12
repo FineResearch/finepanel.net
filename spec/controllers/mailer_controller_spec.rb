@@ -147,6 +147,91 @@ RSpec.describe MailerController do
       }
     end
 
+    # Un Comment de la Rule limitado a 255 caracteres no alcanza para muchas
+    # direcciones: si el cuerpo viene VACIO se usa lo cargado en el Wizard para ese
+    # proyecto (ProjectExportSetting); si trae cualquier cosa, se usa tal cual.
+    describe 'configuracion cargada en el Wizard' do
+      let(:wizard_body) do
+        "ana@iqvia.com, beto@iqvia.com\nQuotas:\nq0tipo: A=40; B=80\nReport:\nquotaregiao x q0tipo"
+      end
+      let(:confirmit_boilerplate) do
+        "Attached to this email you will find the survey data export of \"X\"\nSurvey ID: p123456\n" \
+          "Comment: \n\nThe information contained in this email may be privileged. Contact info@fine-research.com"
+      end
+
+      before do
+        ProjectExportSetting.create!(project_id: 'p123456', body: wizard_body)
+        allow(ExportRelabeling::DiscardedExportNotifier).to receive(:call)
+      end
+
+      def capture_enqueue
+        captured = {}
+        allow(RelabelSpssExportWorker).to receive(:perform_async) do |_zip, project_id, recipients, email_body, *_rest|
+          captured.merge!(project_id: project_id, recipients: recipients, email_body: email_body)
+        end
+        captured
+      end
+
+      def send_export(text, filename: 'p123456_def_dcasar_1.sps')
+        post :export_sync, params: {
+          attachment1: upload_for(build_zip(filename: filename)), from: 'mailer@us.confirmit.com', text: text
+        }
+      end
+
+      it 'con el Comment vacio usa los destinatarios, cuotas y Report del Wizard' do
+        captured = capture_enqueue
+
+        send_export(confirmit_boilerplate)
+
+        expect(captured[:recipients]).to eq(%w[ana@iqvia.com beto@iqvia.com])
+        manual = ExportRelabeling::ManualQuotaRequestParser.call(captured[:email_body])
+        expect(manual[:quotas].first[:variable]).to eq('q0tipo')
+        expect(manual[:crosses].first).to eq(variable_a: 'quotaregiao', variable_b: 'q0tipo')
+      end
+
+      it 'si el mail trae una direccion propia (una prueba), usa SOLO esa y nunca la lista del Wizard' do
+        captured = capture_enqueue
+
+        send_export("#{confirmit_boilerplate}\nComment: dcasar@fine-research.com")
+
+        expect(captured[:recipients]).to eq(%w[dcasar@fine-research.com])
+        expect(ExportRelabeling::ManualQuotaRequestParser.call(captured[:email_body])[:quotas]).to eq([])
+      end
+
+      it 'si el mail trae solo cuotas (sin direcciones) no es "vacio": no se mezcla con el Wizard' do
+        capture_enqueue
+
+        send_export("#{confirmit_boilerplate}\nQuotas:\nq1: 1=10")
+
+        expect(ExportRelabeling::DiscardedExportNotifier).to have_received(:call).with(hash_including(reason: :no_recipients))
+      end
+
+      it 'con el Comment vacio pero un proyecto sin configuracion, descarta y avisa' do
+        capture_enqueue
+
+        send_export(confirmit_boilerplate, filename: 'p999999_def_dcasar_1.sps')
+
+        expect(ExportRelabeling::DiscardedExportNotifier).to have_received(:call).with(hash_including(reason: :no_recipients))
+      end
+
+      it 'con el Comment vacio y sin poder identificar el proyecto, descarta y avisa' do
+        capture_enqueue
+
+        send_export('Comment: ', filename: 'export_personalizado.sps')
+
+        expect(ExportRelabeling::DiscardedExportNotifier).to have_received(:call).with(hash_including(reason: :no_recipients))
+      end
+
+      it 'toma el proyecto tambien del "Survey ID:" del cuerpo cuando el nombre del archivo no lo trae' do
+        captured = capture_enqueue
+
+        send_export(confirmit_boilerplate, filename: 'FP-18874N - SPSS_20261111.sps')
+
+        expect(captured[:project_id]).to eq('p123456')
+        expect(captured[:recipients]).to eq(%w[ana@iqvia.com beto@iqvia.com])
+      end
+    end
+
     # Un mail descartado dejaba al cliente sin su base y a nadie enterado (visto
     # con un SPSS cuyo cuerpo no traia destinatarios) -- ahora se avisa a Fine.
     describe 'aviso de export descartado' do

@@ -4,11 +4,6 @@ class MailerController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:sync, :whatsapp_mailer, :update_user_mailer, :export_sync]
 
   EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.freeze
-  # El disclaimer legal que Confirmit agrega al final del mail de la Rule
-  # (ver ExportRelabeling::ConfirmitExportEmailParser) menciona esta
-  # direccion como contacto -- nunca un destinatario real del reenvio, pero
-  # el scan de EMAIL_REGEX sobre el cuerpo completo la agarraba igual.
-  EXCLUDED_RECIPIENT_EMAILS = ['info@fine-research.com'].freeze
   # Solo para #export_sync (ver #valid_export_sender?) -- las demas casillas
   # del mailer siguen con la lista blanca original de #valid_send?.
   FINE_RESEARCH_DOMAIN = '@fine-research.com'
@@ -147,7 +142,8 @@ class MailerController < ApplicationController
     # pasa de verdad (un envio real llego con el project_id vacio).
     project_id = file.original_filename[/p\d+/] || metadata[:survey_id]
     project_title = metadata[:project_title] || ExportRelabeling::ConfirmitExportEmailParser.title_from_filename(file.original_filename)
-    recipients = body_text.scan(EMAIL_REGEX).uniq.reject { |email| EXCLUDED_RECIPIENT_EMAILS.include?(email.downcase) }
+    recipients = ExportRelabeling::ExportRecipients.extract(body_text)
+    body_text, recipients = apply_wizard_settings(body_text, recipients, project_id)
 
     if recipients.empty?
       Rails.logger.error("[export_sync] no se encontraron destinatarios en el cuerpo del mail, se descarta #{zip_path}")
@@ -185,6 +181,29 @@ class MailerController < ApplicationController
   end
 
   private
+
+  # Cuerpo vacio -- sin direcciones ni secciones "Quotas:"/"Report:" -- significa
+  # que el PM dejo en blanco el Comment de la Rule (que Confirmit limita a 255
+  # caracteres): se usa lo cargado en el Wizard para ese proyecto (ver
+  # ProjectExportSetting), sin limite de largo. Si el mail trae CUALQUIER cosa,
+  # se usa tal cual y el Wizard no interviene -- asi una prueba con la direccion
+  # propia nunca le llega a la lista del cliente.
+  def apply_wizard_settings(body_text, recipients, project_id)
+    return [body_text, recipients] unless empty_comment?(body_text, recipients)
+
+    setting = ProjectExportSetting.for_project(project_id)
+    return [body_text, recipients] unless setting
+
+    Rails.logger.info("[export_sync] cuerpo vacio: se usa la configuracion del Wizard de #{project_id}")
+    ["#{body_text}\n\n#{setting.body}", setting.recipients]
+  end
+
+  def empty_comment?(body_text, recipients)
+    return false if recipients.any?
+
+    manual = ExportRelabeling::ManualQuotaRequestParser.call(body_text)
+    manual[:quotas].empty? && manual[:crosses].empty?
+  end
 
   # Aviso interno de un mail que se descarto sin procesar (ver
   # ExportRelabeling::DiscardedExportNotifier, de mejor esfuerzo: nunca rompe la

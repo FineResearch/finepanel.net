@@ -475,10 +475,10 @@ RSpec.describe ExportDeliveryMailer do
       expect(json['personalizations'].first['subject']).to eq('[ALERTA] Export descartado - p588393362171')
       body = json['content'].first['value']
       expect(body).to include('El cliente NO recibio este export')
-      expect(body).to include('ninguna direccion de destinatario')
+      expect(body).to include('no hay destinatarios')
       expect(body).to include('Archivo: FP-18928G - SPSS_20261111.zip')
       expect(body).to include('Proyecto: p588393362171 - FP-18928G Hidradenite')
-      expect(body).to include('Que hacer: Agregar el email del destinatario')
+      expect(body).to include('Que hacer: Cargar las direcciones del proyecto en el Wizard')
     end
 
     it 'para un zip sin .sps/.xlsx lista su contenido y sugiere cambiar el formato' do

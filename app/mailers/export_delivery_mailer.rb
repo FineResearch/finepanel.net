@@ -110,8 +110,9 @@ class ExportDeliveryMailer < ApplicationMailer
 
   DISCARD_REASONS = {
     no_recipients: {
-      label: 'el mail no traia ninguna direccion de destinatario',
-      action: 'Agregar el email del destinatario en el cuerpo de la Rule de Confirmit y volver a enviar el export.'
+      label: 'no hay destinatarios: el mail no traia ninguna direccion y el proyecto no tiene direcciones cargadas en el Wizard',
+      action: 'Cargar las direcciones del proyecto en el Wizard (Envio de exports) y dejar el Comment de la Rule vacio, ' \
+              'o escribirlas en el Comment; despues volver a enviar el export.'
     },
     unrecognized_zip: {
       label: 'el zip no trae ningun .sps ni .xlsx (por ejemplo, un SPSS nativo .sav)',

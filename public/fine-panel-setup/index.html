@@ -131,6 +131,31 @@
     <button type="button" id="incentiveRatesSaveBtn" class="btn-small" style="margin-top:8px;">💾 Guardar cambios</button>
     <div id="incentiveRatesError" style="font-size:12px; margin-top:8px;"></div>
   </div>
+
+  <button type="button" id="exportSettingsToggleBtn" class="btn-small" style="background:#6b7280; margin-left:8px;">📧 Envío de exports por proyecto</button>
+  <div id="exportSettingsPanel" style="display:none; margin-top:10px; padding:14px; border:1px solid #ddd; border-radius:6px; background:#fafafa;">
+    <div class="hint" style="margin-bottom:10px;">
+      Cargá acá lo que antes iba en el Comment de la Rule de Confirmit (limitado a 255 caracteres): las direcciones de los destinatarios y, si querés, las secciones <b>Quotas:</b> y <b>Report:</b>.
+      Si el export de este proyecto llega con el Comment <b>vacío</b>, se usa esto. Si el Comment trae cualquier cosa (por ejemplo una prueba con tu propia dirección), se usa solo lo que trae el mail y esto no interviene.
+    </div>
+    <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+      <div>
+        <label for="exportSettingsProjectId" style="margin-top:0;">Proyecto de Confirmit</label>
+        <input type="text" id="exportSettingsProjectId" placeholder="p588393362171" style="width:230px;">
+      </div>
+      <button type="button" id="exportSettingsLoadBtn" class="btn-small">Cargar</button>
+    </div>
+    <label for="exportSettingsBody">Texto (direcciones, Quotas:, Report:)</label>
+    <textarea id="exportSettingsBody" rows="10" style="width:100%; font-family:Consolas, monospace; font-size:12px; padding:8px; box-sizing:border-box;" placeholder="natalia.mendez@fine-research.com, otra.persona@iqvia.com&#10;Quotas:&#10;q0tipo: A=40; B=80&#10;Report:&#10;quotaregiao x q0tipo"></textarea>
+    <div style="margin-top:8px; display:flex; gap:8px;">
+      <button type="button" id="exportSettingsSaveBtn" class="btn-small">💾 Guardar</button>
+      <button type="button" id="exportSettingsDeleteBtn" class="btn-small" style="background:#b00020;">Borrar</button>
+    </div>
+    <div id="exportSettingsMessage" style="font-size:12px; margin-top:8px;"></div>
+    <div id="exportSettingsPreview" style="font-size:13px; margin-top:8px;"></div>
+    <div style="margin-top:14px; font-weight:bold; font-size:13px;">Proyectos con configuración cargada</div>
+    <div id="exportSettingsList"></div>
+  </div>
 </div>
 
 <div class="layout">
@@ -4099,6 +4124,146 @@ document.getElementById('teamContactAddBtn').addEventListener('click', function 
     errorEl.textContent = 'Error: ' + err.message;
   });
 });
+
+// Configuracion de envio del export por proyecto (tabla ProjectExportSetting): el
+// texto que antes iba en el Comment de la Rule de Confirmit (limitado a 255
+// caracteres), cargado aca sin limite. Un export que llega con el Comment vacio
+// usa esto (MailerController#apply_wizard_settings).
+function exportSettingsMessage(text, isError) {
+  const el = document.getElementById('exportSettingsMessage');
+  el.style.color = isError ? '#b00020' : '#0a7a2f';
+  el.textContent = text || '';
+}
+
+// Muestra lo que el sistema entendio del texto guardado, para que el PM vea si
+// las direcciones, cuotas y cruces se interpretaron como queria.
+function renderExportSettingsPreview(preview) {
+  const el = document.getElementById('exportSettingsPreview');
+  if (!preview) { el.innerHTML = ''; return; }
+
+  const recipients = preview.recipients || [];
+  const quotas = (preview.quotas || []).map(function (q) {
+    const targets = q.targets.map(function (t) { return escapeHtml(t.precode) + '=' + escapeHtml(String(t.meta)); }).join('; ');
+    return '<li>' + escapeHtml(q.variable) + ': ' + targets + '</li>';
+  }).join('');
+  const reports = (preview.reports || []).map(function (r) {
+    return '<li>' + escapeHtml(r.variable_a) + ' x ' + escapeHtml(r.variable_b) + '</li>';
+  }).join('');
+
+  let html = '<div><b>Destinatarios (' + recipients.length + '):</b> ' +
+    (recipients.length ? recipients.map(escapeHtml).join(', ')
+      : '<span style="color:#b00020;">no se detectó ninguna dirección: sin direcciones, el export de este proyecto no tendría a quién enviarse.</span>') +
+    '</div>';
+  html += '<div style="margin-top:6px;"><b>Quotas:</b> ' + (quotas ? '<ul style="margin:4px 0 0 18px; padding:0;">' + quotas + '</ul>' : 'ninguna') + '</div>';
+  html += '<div style="margin-top:6px;"><b>Report:</b> ' + (reports ? '<ul style="margin:4px 0 0 18px; padding:0;">' + reports + '</ul>' : 'ninguno') + '</div>';
+  el.innerHTML = html;
+}
+
+function renderExportSettingsList(settings) {
+  const list = document.getElementById('exportSettingsList');
+  if (!settings.length) {
+    list.innerHTML = '<div class="hint">Todavía no hay ningún proyecto con configuración.</div>';
+    return;
+  }
+
+  const rows = settings.map(function (s) {
+    const when = s.updated_at ? new Date(s.updated_at).toLocaleString('es-AR') : '';
+    return '<tr>' +
+      '<td style="padding:4px 8px;"><a href="#" class="exportSettingsOpen" data-project="' + escapeHtml(s.project_id) + '">' + escapeHtml(s.project_id) + '</a></td>' +
+      '<td style="padding:4px 8px;">' + s.recipients_count + '</td>' +
+      '<td style="padding:4px 8px;">' + escapeHtml(s.updated_by || '') + '</td>' +
+      '<td style="padding:4px 8px;">' + escapeHtml(when) + '</td>' +
+      '</tr>';
+  }).join('');
+  list.innerHTML = '<table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr>' +
+    '<th style="text-align:left; padding:4px 8px;">Proyecto</th><th style="text-align:left; padding:4px 8px;">Destinatarios</th>' +
+    '<th style="text-align:left; padding:4px 8px;">Actualizado por</th><th style="text-align:left; padding:4px 8px;">Fecha</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+  list.querySelectorAll('.exportSettingsOpen').forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      document.getElementById('exportSettingsProjectId').value = link.dataset.project;
+      loadExportSetting();
+    });
+  });
+}
+
+function loadExportSettingsList() {
+  return postJson('/internal/fine_panel_setup/export_settings_list', {}).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    renderExportSettingsList(result.data.settings);
+  }).catch(function (err) {
+    exportSettingsMessage('Error al listar: ' + err.message, true);
+  });
+}
+
+function exportSettingsProjectId() {
+  return document.getElementById('exportSettingsProjectId').value.trim().toLowerCase();
+}
+
+function loadExportSetting() {
+  const projectId = exportSettingsProjectId();
+  if (!projectId) { exportSettingsMessage('Escribí el ID del proyecto (ej. p588393362171).', true); return; }
+
+  postJson('/internal/fine_panel_setup/export_settings_show', { project_id: projectId }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    const setting = result.data.setting;
+    document.getElementById('exportSettingsBody').value = setting ? setting.body : '';
+    renderExportSettingsPreview(setting ? setting.preview : null);
+    exportSettingsMessage(setting ? 'Cargado. Última edición: ' + (setting.updated_by || '—') : 'Este proyecto todavía no tiene configuración: pegá el texto y guardá.', false);
+  }).catch(function (err) {
+    exportSettingsMessage('Error: ' + err.message, true);
+  });
+}
+
+function saveExportSetting() {
+  const projectId = exportSettingsProjectId();
+  const body = document.getElementById('exportSettingsBody').value;
+  if (!projectId) { exportSettingsMessage('Escribí el ID del proyecto (ej. p588393362171).', true); return; }
+  if (!body.trim()) { exportSettingsMessage('El texto está vacío: pegá las direcciones (y las cuotas si querés). Para quitar la configuración usá Borrar.', true); return; }
+
+  postJson('/internal/fine_panel_setup/export_settings_save', { project_id: projectId, body: body }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    renderExportSettingsPreview(result.data.setting.preview);
+    exportSettingsMessage('Guardado ✓', false);
+    return loadExportSettingsList();
+  }).catch(function (err) {
+    exportSettingsMessage('Error: ' + err.message, true);
+  });
+}
+
+function deleteExportSetting() {
+  const projectId = exportSettingsProjectId();
+  if (!projectId) { exportSettingsMessage('Escribí el ID del proyecto.', true); return; }
+  if (!confirm('¿Borrar la configuración de envío de ' + projectId + '? Sus exports con el Comment vacío dejarán de enviarse.')) return;
+
+  postJson('/internal/fine_panel_setup/export_settings_destroy', { project_id: projectId }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    document.getElementById('exportSettingsBody').value = '';
+    renderExportSettingsPreview(null);
+    exportSettingsMessage('Borrado ✓', false);
+    return loadExportSettingsList();
+  }).catch(function (err) {
+    exportSettingsMessage('Error: ' + err.message, true);
+  });
+}
+
+document.getElementById('exportSettingsToggleBtn').addEventListener('click', function () {
+  const panel = document.getElementById('exportSettingsPanel');
+  const wasHidden = panel.style.display === 'none';
+  panel.style.display = wasHidden ? 'block' : 'none';
+  if (!wasHidden) return;
+
+  // Si el proyecto recien se duplico en este Wizard, se sugiere su ID.
+  const projectField = document.getElementById('exportSettingsProjectId');
+  const created = document.getElementById('targetProjectId');
+  if (!projectField.value && created && created.value) projectField.value = created.value;
+  loadExportSettingsList();
+});
+document.getElementById('exportSettingsLoadBtn').addEventListener('click', loadExportSetting);
+document.getElementById('exportSettingsSaveBtn').addEventListener('click', saveExportSetting);
+document.getElementById('exportSettingsDeleteBtn').addEventListener('click', deleteExportSetting);
 
 document.getElementById('scriptIQVIAMSD').addEventListener('change', render);
 
