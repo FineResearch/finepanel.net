@@ -62,10 +62,10 @@
     <p>Personal identifiable information (PII) is automatically masked in transcripts (e.g., Pedro becomes Ped**), while speaker diarization preserves the structure of the conversation. In addition, automated adverse event (AE) screening identifies potential safety-related mentions and flags them for human review, supporting pharmacovigilance compliance.</p>
   </div>
   <div class="card">
-    <h3 style="margin-top:0;">Traducir documento (Word)</h3>
-    <p style="font-size:13px; color:#51606e; margin-top:0;">Traducción directa de un .docx a otro .docx, sin transcripción, diarización, anonimización ni detección de eventos adversos -- solo el texto, traducido manteniendo el formato (negrita, cursiva, etc.) donde sea posible.</p>
-    <label for="docFile">Archivo Word (.docx)</label>
-    <input type="file" id="docFile" accept=".docx">
+    <h3 style="margin-top:0;">Traducir documento (Word, Excel o PowerPoint)</h3>
+    <p style="font-size:13px; color:#51606e; margin-top:0;">Traducción directa de un .docx, .xlsx o .pptx al mismo formato, sin transcripción, diarización, anonimización ni detección de eventos adversos -- solo el texto, traducido manteniendo el formato (negrita, cursiva, etc.) donde sea posible.</p>
+    <label for="docFile">Archivo (.docx, .xlsx o .pptx)</label>
+    <input type="file" id="docFile" accept=".docx,.xlsx,.pptx">
     <label for="docSourceSelect">Idioma de origen</label>
     <select id="docSourceSelect">
       <option value="es">Español</option>
@@ -249,6 +249,8 @@ document.getElementById('uploadBtn').addEventListener('click', function () {
   if (file) { fileInput.value = ''; }
 });
 
+var DOC_TRANSLATE_EXTENSIONS = ['.docx', '.xlsx', '.pptx'];
+
 document.getElementById('docUploadBtn').addEventListener('click', function () {
   var fileInput = document.getElementById('docFile');
   var errorEl = document.getElementById('docUploadError');
@@ -259,6 +261,15 @@ document.getElementById('docUploadBtn').addEventListener('click', function () {
     errorEl.textContent = 'El idioma de origen y de destino deben ser distintos.';
     errorEl.style.display = 'block';
     return;
+  }
+  if (file) {
+    var name = file.name.toLowerCase();
+    var validExt = DOC_TRANSLATE_EXTENSIONS.some(function (ext) { return name.endsWith(ext); });
+    if (!validExt) {
+      errorEl.textContent = 'El archivo debe ser .docx, .xlsx o .pptx.';
+      errorEl.style.display = 'block';
+      return;
+    }
   }
   var payload = {
     filename: file ? file.name : '',
@@ -348,6 +359,9 @@ function refreshJobs() {
         }
 
         var fileCell = (job.input_key || '').split('/').pop();
+        var docTypeLabels = { '.docx': 'Traducción Word', '.xlsx': 'Traducción Excel', '.pptx': 'Traducción PPT' };
+        var docExt = isDocJob ? fileCell.slice(fileCell.lastIndexOf('.')).toLowerCase() : '';
+        var typeLabel = isDocJob ? (docTypeLabels[docExt] || 'Traducción doc.') : 'Transcripción';
         if (job.adverse_event_detected) {
           tr.className = 'row-adverse-event';
           var aeTitle = (job.adverse_event_summary || '').replace(/"/g, '&quot;');
@@ -355,7 +369,7 @@ function refreshJobs() {
         }
 
         tr.innerHTML = '<td class="file-cell">' + fileCell + '</td>' +
-          '<td>' + (isDocJob ? 'Traducción doc.' : 'Transcripción') + '</td>' +
+          '<td>' + typeLabel + '</td>' +
           '<td>' + formatDate(job.created_at) + '</td>' +
           '<td class="status-' + job.status + '">' + (STATUS_LABELS[job.status] || job.status) + '</td>' +
           '<td>' + elapsedLabel(job) + '</td>' +
