@@ -24,23 +24,36 @@
 # preguntas del cuestionario que faltan en el export (ver
 # MissingVariablesDetector), para corregir el Data Template.
 #
-# Los destinatarios de la alerta son SOLO las direcciones @fine-research.com
-# que ya estaban en el cuerpo del mail original (nunca el cliente, nunca
-# una lista aparte) -- si ninguna de las direcciones del envio es de ese
-# dominio, no hay a quien avisar y no se manda nada.
+# Los destinatarios de la alerta son las direcciones @fine-research.com del
+# envio (nunca el cliente) y, si no hay ninguna, la casilla por default de Fine
+# (ver InternalAlertRecipients) -- asi un fallo nunca queda sin aviso.
 module ExportRelabeling
   class ProcessingAlertNotifier
-    FINE_RESEARCH_DOMAIN = '@fine-research.com'
-
-    def self.call(recipients:, project_id:, export_type:, permission_denied: false, relabeled: true, missing_variables: [], project_unidentified: false)
+    def self.call(recipients:, project_id:, export_type:, permission_denied: false, relabeled: true, missing_variables: [], project_unidentified: false, schema_unavailable: false)
       new(
         recipients: recipients, project_id: project_id, export_type: export_type,
         permission_denied: permission_denied, relabeled: relabeled, missing_variables: missing_variables,
-        project_unidentified: project_unidentified
+        project_unidentified: project_unidentified, schema_unavailable: schema_unavailable
       ).call
     end
 
-    def initialize(recipients:, project_id:, export_type:, permission_denied:, relabeled:, missing_variables:, project_unidentified:)
+    # Retiene el export: avisa que NO se envio al cliente y por que (Diego: "siempre
+    # que se pueda hacer un aviso prefiero el aviso que un envio", asi el cliente no
+    # recibe como relabelled algo que no lo esta). Devuelve true si el aviso salio;
+    # si no se pudo mandar (mail caido, etc.) devuelve false y el worker entrega el
+    # export como antes, porque sin aviso nadie se enteraria de que quedo retenido.
+    def self.hold(recipients:, project_id:, export_type:, alert_type:, detail: nil, filename: nil)
+      ExportDeliveryMailer.processing_alert_email(
+        InternalAlertRecipients.call(recipients), project_id, export_type: export_type, alert_type: alert_type,
+        held: true, detail: detail, filename: filename, intended_recipients: Array(recipients)
+      ).deliver_now
+      true
+    rescue StandardError => e
+      Rails.logger.error("[ProcessingAlertNotifier] no se pudo avisar la retencion de #{project_id} (#{alert_type}), se entrega el export: #{e.class} #{e.message}")
+      false
+    end
+
+    def initialize(recipients:, project_id:, export_type:, permission_denied:, relabeled:, missing_variables:, project_unidentified:, schema_unavailable: false)
       @recipients = recipients
       @project_id = project_id
       @export_type = export_type
@@ -48,6 +61,7 @@ module ExportRelabeling
       @relabeled = relabeled
       @missing_variables = Array(missing_variables)
       @project_unidentified = project_unidentified
+      @schema_unavailable = schema_unavailable
     end
 
     # Los avisos son de mejor esfuerzo: si algo falla aca (mail, base) se loguea y
@@ -56,7 +70,6 @@ module ExportRelabeling
     # duplicado.
     def call
       targets = internal_recipients
-      return if targets.empty?
 
       send_processing_alert(targets) if alert_type
       send_missing_variables_alert(targets) if @missing_variables.any?
@@ -110,6 +123,7 @@ module ExportRelabeling
 
     def alert_type
       return :permission_denied if @permission_denied
+      return :schema_unavailable if @schema_unavailable
       return :processing_error unless @relabeled
       return :project_unidentified if @project_unidentified
 
@@ -117,7 +131,7 @@ module ExportRelabeling
     end
 
     def internal_recipients
-      Array(@recipients).select { |email| email.to_s.downcase.end_with?(FINE_RESEARCH_DOMAIN) }
+      InternalAlertRecipients.call(@recipients)
     end
   end
 end

@@ -73,6 +73,7 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
     # ConfirmitVariableLookup, no en el resolver ni en el rewriter.
     lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
     allow(lookup).to receive(:call).and_return(nil)
+    allow(lookup).to receive(:column_profile).and_return(nil)
     allow(lookup).to receive(:call).with('F4_1').and_return(code: 'F4', attribute: 'Atributo de la API', question: 'Pregunta de la API')
 
     result = described_class.call(sps_text, lookup: lookup)
@@ -83,6 +84,7 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
   it 'no usa el lookup dentro de VALUE LABELS (el token ahi es un codigo de respuesta, no una variable)' do
     lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
     allow(lookup).to receive(:call).and_return(nil)
+    allow(lookup).to receive(:column_profile).and_return(nil)
 
     described_class.call(sps_text, lookup: lookup)
 
@@ -119,6 +121,7 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
   it 'colapsa saltos de linea reales del texto resuelto por la API a un espacio, sin romper la sintaxis' do
     lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
     allow(lookup).to receive(:call).and_return(nil)
+    allow(lookup).to receive(:column_profile).and_return(nil)
     allow(lookup).to receive(:call).with('RESPONSEID').and_return(
       code: nil, attribute: nil, question: "9. Obrigações\nQuando aplicável, é sua obrigação...\n10. Propriedade"
     )
@@ -129,6 +132,80 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
     expect(rewritten_line).to eq(
       " RESPONSEID 'RESPONSEID : 9. Obrigações Quando aplicável, é sua obrigação... 10. Propriedade'\n"
     )
+  end
+
+  # FP-18918N: en una pregunta de respuesta multiple (RM) la casilla marcada (1) se
+  # etiquetaba con el texto compuesto de la variable ("S9.1 | | pregunta (Melanoma)").
+  # Para una RM el value label es solo el atributo: "Melanoma".
+  describe 'value label de la casilla marcada de una RM' do
+    let(:rm_sps) do
+      <<~SPS
+        VARIABLE LABELS
+         S91_1 'S9.1 - Pensando em sua pratica clinica, qual(is) tipo(s) de cancer? (Melanoma)'
+         S2 'S2 - Qual a especialidade?'
+        .
+        VALUE LABELS
+         S91_1
+          1 'S9.1 - Pensando em sua pratica clinica, qual(is) tipo(s) de cancer? (Melanoma)'
+         /
+         S2
+          1 'Oncologia'
+          2 'Dermatologia (S2 - Qual a especialidade?)'
+         /
+        .
+      SPS
+    end
+
+    def rm_lookup(type: :multi, attribute: 'Melanoma')
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:call).with('S91_1').and_return(code: 'S9.1', attribute: attribute, question: 'Pensando em sua pratica clinica')
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_profile).with('S91_1').and_return(type: type)
+      lookup
+    end
+
+    it 'deja solo el atributo como value label del 1' do
+      result = described_class.call(rm_sps, lookup: rm_lookup)
+
+      expect(result).to include("  1 'Melanoma'\n")
+    end
+
+    it 'el label de la variable sigue con el formato completo (atributo | titulo. pregunta)' do
+      result = described_class.call(rm_sps, lookup: rm_lookup)
+
+      expect(result).to include(" S91_1 'S91_1 : Melanoma")
+    end
+
+    it 'no toca las opciones de una Single ni las demas variables' do
+      result = described_class.call(rm_sps, lookup: rm_lookup)
+
+      expect(result).to include("  1 'Oncologia'\n")
+    end
+
+    it 'una pregunta numerica (Multi Numeric) no es una casilla 0/1: no se toca' do
+      result = described_class.call(rm_sps, lookup: rm_lookup(type: :multi_numeric))
+
+      expect(result).not_to include("  1 'Melanoma'\n")
+    end
+
+    it 'sin atributo en el schema, queda como estaba' do
+      result = described_class.call(rm_sps, lookup: rm_lookup(attribute: nil))
+
+      expect(result).not_to include("  1 'Melanoma'\n")
+    end
+
+    it 'sin lookup (sin schema) no cambia el criterio de siempre' do
+      expect(described_class.call(rm_sps)).not_to include("  1 'Melanoma'\n")
+    end
+
+    it 'un atributo largo se limita a 120 bytes, el maximo de un value label' do
+      result = described_class.call(rm_sps, lookup: rm_lookup(attribute: 'é' * 100))
+
+      label = result.lines.find { |line| line.start_with?("  1 'é") }.chomp[/'(.*)'/, 1]
+      expect(label.bytesize).to be <= 120
+      expect(label).to be_valid_encoding
+    end
   end
 
   # SPSS corta el label alrededor de 250 caracteres (el cliente lo menciono en
@@ -142,6 +219,7 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
     it 'limita el label a 250 bytes y conserva el atributo' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:column_profile).and_return(nil)
       allow(lookup).to receive(:call).with('F4_1').and_return(
         code: 'F4', attribute: 'Atributo corto', question: 'Pergunta muito longa. ' * 40
       )
@@ -155,6 +233,7 @@ RSpec.describe ExportRelabeling::SpssSyntaxRewriter do
     it 'no parte un caracter multibyte al cortar' do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:column_profile).and_return(nil)
       allow(lookup).to receive(:call).with('F4_1').and_return(code: 'F4', attribute: nil, question: 'é' * 300)
 
       label = label_of(described_class.call(sps_text, lookup: lookup), 'F4_1')

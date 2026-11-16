@@ -66,14 +66,27 @@ class RelabelExcelExportWorker
 
   WORK_ROOT = Rails.root.join('tmp', 'relabel_excel')
 
+  EXPORT_TYPE = :excel
+
   def perform(zip_path, project_id, recipients, email_body = nil, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
     @permission_denied = false
+    @schema_unavailable = false
     @missing_variables = []
+    alert_project = project_id.presence || project_title
+
+    # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida) el export no
+    # se puede re-etiquetar bien: se retiene con un aviso en vez de mandarlo como
+    # "_relabeled" sin serlo (ver #hold_export).
+    schema = ExportRelabeling::SchemaFetch.call(project_id)
+    @permission_denied = schema.failure == :permission_denied
+    @schema_unavailable = schema.failure == :schema_unavailable
+    return if schema.failure && hold_export(recipients, alert_project, schema.failure, schema.detail, zip_path)
 
     output_paths, relabeled, includes_quotas, includes_report, includes_dictionary, quota_lines, delivery_zip_name =
-      build_output_paths(zip_path, project_id, email_body)
+      build_output_paths(zip_path, schema.lookup, email_body)
+    return if !relabeled && hold_export(recipients, alert_project, :processing_error, @pipeline_error, zip_path)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :excel, relabeled: relabeled,
@@ -83,9 +96,9 @@ class RelabelExcelExportWorker
     ).deliver_now
 
     ExportRelabeling::ProcessingAlertNotifier.call(
-      recipients: recipients, project_id: project_id.presence || project_title, export_type: :excel,
+      recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE,
       permission_denied: @permission_denied, relabeled: relabeled, missing_variables: @missing_variables,
-      project_unidentified: project_id.blank?
+      project_unidentified: project_id.blank?, schema_unavailable: @schema_unavailable
     )
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
@@ -103,19 +116,22 @@ class RelabelExcelExportWorker
   # llegar aca -- se manda el zip original TAL CUAL LLEGO en vez de no
   # mandar nada.
   # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, incluye_cuotas?, incluye_report?, incluye_dictionary?, cuotas_completas, delivery_zip_name].
-  def build_output_paths(zip_path, project_id, email_body)
+  def build_output_paths(zip_path, lookup, email_body)
     extract_zip(zip_path, @work_dir)
     output_paths, includes_quotas, includes_report, includes_dictionary, quota_lines, delivery_zip_name =
-      relabel_all(project_id, email_body)
+      relabel_all(lookup, email_body)
     [output_paths, true, includes_quotas, includes_report, includes_dictionary, quota_lines, delivery_zip_name]
   rescue StandardError => e
-    Rails.logger.error("[RelabelExcelExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
+    @pipeline_error = "#{e.class}: #{e.message}"
+    Rails.logger.error("[RelabelExcelExportWorker] fallo el pipeline de re-etiquetado: #{@pipeline_error}")
     [[zip_path], false, false, false, false, [], nil]
   end
 
-  def relabel_all(project_id, email_body)
-    lookup = build_lookup(project_id)
-    sheets = xlsx_files.map { |path| [path, ExportRelabeling::ExcelReader.call(path)] }
+  def relabel_all(lookup, email_body)
+    # Columnas en el orden del cuestionario, no en el que trae el Excel de
+    # Confirmit (ver ExportRelabeling::ColumnOrder); antes de armar Dictionary y
+    # demas para que todo salga con el mismo orden.
+    sheets = xlsx_files.map { |path| [path, ExportRelabeling::ColumnOrder.call(ExportRelabeling::ExcelReader.call(path), lookup)] }
 
     metadata = ExportRelabeling::ExportMetadataBuilder.call(sheets: sheets, lookup: lookup, email_body: email_body)
     @missing_variables = metadata[:missing_variables] || []
@@ -138,11 +154,17 @@ class RelabelExcelExportWorker
     "#{File.basename(main_path, File.extname(main_path))}_relabeled"
   end
 
-  def build_lookup(project_id)
-    ExportRelabeling::ConfirmitSchemaFetcher.call(project_id)
-  rescue ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError
-    @permission_denied = true
-    nil
+  # Retiene el export en vez de entregarlo (Diego: "siempre que se pueda hacer un
+  # aviso prefiero el aviso que un envio" -- el cliente no tiene que recibir como
+  # relabelled algo que no lo esta). Avisa a Fine con el motivo y el error; devuelve
+  # true si el aviso salio. Si no se pudo avisar devuelve false y el export se
+  # entrega como antes, porque sin aviso nadie sabria que quedo retenido.
+  def hold_export(recipients, alert_project, alert_type, detail, zip_path)
+    Rails.logger.error("[#{self.class.name}] export retenido (#{alert_type}) de #{alert_project.presence || 'proyecto no identificado'}: #{detail}")
+    ExportRelabeling::ProcessingAlertNotifier.hold(
+      recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE, alert_type: alert_type,
+      detail: detail, filename: File.basename(zip_path.to_s)
+    )
   end
 
   def extract_zip(zip_path, work_dir)

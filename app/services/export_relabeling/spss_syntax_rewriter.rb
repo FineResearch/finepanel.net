@@ -18,12 +18,13 @@
 # final, igual que el resto de la sintaxis SPSS).
 #
 # Si se le pasa un lookup (ConfirmitVariableLookup, ver
-# VariableLabelResolver), se usa SOLO dentro de VARIABLE LABELS -- ahi el
-# "token" de cada linea es un nombre de variable real, buscable en la API.
-# Dentro de VALUE LABELS el "token" es un codigo de respuesta ('1', 'a'),
-# no una variable, asi que esas lineas siguen usando unicamente LabelParser
-# sobre el texto ya compuesto -- trackear en que variable esta cada bloque
-# de VALUE LABELS para poder usar el lookup ahi tambien queda pendiente.
+# VariableLabelResolver), se usa dentro de VARIABLE LABELS -- ahi el "token" de
+# cada linea es un nombre de variable real, buscable en la API. Dentro de VALUE
+# LABELS el "token" es un codigo de respuesta ('1', 'a'), asi que esas lineas
+# usan LabelParser sobre el texto ya compuesto, con una excepcion: la casilla
+# marcada de una pregunta de respuesta multiple se reemplaza por su atributo (ver
+# #selected_option_label), para lo que se trackea en que variable esta cada
+# sub-bloque de VALUE LABELS.
 module ExportRelabeling
   class SpssSyntaxRewriter
     VARIABLE_LABELS_HEADER = 'VARIABLE LABELS'
@@ -31,6 +32,12 @@ module ExportRelabeling
     BLOCK_HEADERS = /\A(#{VARIABLE_LABELS_HEADER}|#{VALUE_LABELS_HEADER})\z/
     BLOCK_END = /\A\s*\.\s*\z/
     LABEL_LINE = /\A(\s*)(\S+)(\s+)'((?:[^']|'')*)'(\s*)\z/
+    # En VALUE LABELS cada sub-bloque arranca con una linea que es SOLO el nombre de la
+    # variable (" S91_1"), seguida de sus lineas de codigo ("  1 'label'") y cerrada
+    # con " /".
+    VALUE_LABELS_VARIABLE_LINE = /\A\s*([^\s\/'][^\s']*)\s*\z/
+    # SPSS trunca un value label a 120 bytes (PSPP avisa "Truncating value label").
+    MAX_VALUE_LABEL_BYTES = 120
 
     # SPSS corta el label de una variable alrededor de 250 caracteres (el
     # cliente lo menciono en la reunion del 06/11/2026) -- se limita en BYTES
@@ -51,6 +58,7 @@ module ExportRelabeling
 
     def call
       current_block = nil
+      @value_variable = nil
 
       @sps_text.each_line.map do |line|
         stripped = line.chomp
@@ -67,6 +75,7 @@ module ExportRelabeling
 
         next line unless current_block
 
+        track_value_labels_variable(stripped) if current_block == VALUE_LABELS_HEADER
         rewrite_label_line(line, use_lookup: current_block == VARIABLE_LABELS_HEADER)
       end.join
     end
@@ -85,9 +94,35 @@ module ExportRelabeling
         raw_label: raw_label,
         lookup: use_lookup ? @lookup : nil
       )
-      new_label = escape_sps_string(build_label(token, parsed, use_lookup))
+      new_label = escape_sps_string(selected_option_label(token, use_lookup) || build_label(token, parsed, use_lookup))
 
       "#{leading}#{token}#{gap}'#{new_label}'#{trailing}#{trailing_newline}"
+    end
+
+    def track_value_labels_variable(stripped)
+      if (match = VALUE_LABELS_VARIABLE_LINE.match(stripped))
+        @value_variable = match[1]
+      elsif stripped.strip == '/'
+        @value_variable = nil
+      end
+    end
+
+    # Pregunta de respuesta multiple (RM): Confirmit etiqueta la casilla marcada (1) con
+    # el MISMO texto compuesto que la variable ("S9.1 - pregunta (Melanoma)"), que quedaba
+    # en el layout viejo con el atributo al final. Para una RM el value label es solo el
+    # atributo -- "Melanoma" -- porque la pregunta ya esta en el label de la variable
+    # (FP-18918N). Solo con schema (hay que saber que es una RM y cual es su atributo);
+    # sin eso queda como estaba.
+    def selected_option_label(code, variable_labels_block)
+      return nil if variable_labels_block || @lookup.nil? || @value_variable.nil? || code != '1'
+
+      profile = @lookup.column_profile(@value_variable)
+      return nil unless profile && profile[:type] == :multi
+
+      attribute = @lookup.call(@value_variable)&.dig(:attribute).to_s.gsub(/\s+/, ' ').strip
+      return nil if attribute.empty?
+
+      truncate_bytes(attribute, MAX_VALUE_LABEL_BYTES)
     end
 
     # VARIABLE LABELS: el mismo texto que el encabezado del Excel ("VARIABLE :
@@ -105,10 +140,10 @@ module ExportRelabeling
       truncate_bytes(label)
     end
 
-    def truncate_bytes(text)
-      return text if text.bytesize <= MAX_VARIABLE_LABEL_BYTES
+    def truncate_bytes(text, limit = MAX_VARIABLE_LABEL_BYTES)
+      return text if text.bytesize <= limit
 
-      text.byteslice(0, MAX_VARIABLE_LABEL_BYTES).scrub('').strip
+      text.byteslice(0, limit).scrub('').strip
     end
 
     def unescape_sps_string(text)

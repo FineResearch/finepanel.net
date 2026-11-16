@@ -258,6 +258,18 @@ RSpec.describe MailerController do
           .with(hash_including(reason: :unrecognized_zip, entry_names: ['datos.sav'], project_id: 'p123456'))
       end
 
+      # Diego: el aviso va a todos los @fine-research.com del mail (y a panel@ si no
+      # hay ninguno) -- por eso el controlador le pasa al notifier los destinatarios.
+      it 'le pasa al aviso los destinatarios del mail para que avise a los @fine-research.com' do
+        post :export_sync, params: {
+          attachment1: upload_for(build_zip(entry_name: 'datos.sav', filename: 'p123456_def_dcasar_1.sav')),
+          from: 'mailer@us.confirmit.com', text: 'cliente@iqvia.com, natalia@fine-research.com'
+        }
+
+        expect(ExportRelabeling::DiscardedExportNotifier).to have_received(:call)
+          .with(hash_including(recipients: %w[cliente@iqvia.com natalia@fine-research.com]))
+      end
+
       it 'no avisa cuando el export se procesa normalmente' do
         allow(RelabelSpssExportWorker).to receive(:perform_async)
 

@@ -54,13 +54,26 @@ class RelabelSpssExportWorker
   # tests contra datos reales, pero es barato subirlo preventivamente.
   MXWARNS_DIRECTIVE = "SET MXWARNS=100000.\n"
 
+  EXPORT_TYPE = :spss
+
   def perform(zip_path, project_id, recipients, email_body = nil, project_title = nil, interview_status_filter = nil)
     @work_dir = WORK_ROOT.join(SecureRandom.uuid)
     FileUtils.mkdir_p(@work_dir)
     @permission_denied = false
+    @schema_unavailable = false
     @missing_variables = []
+    alert_project = project_id.presence || project_title
 
-    output_paths, relabeled, metadata_info, delivery_zip_name = build_output_paths(zip_path, project_id, email_body)
+    # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida) el export no
+    # se puede re-etiquetar bien: se retiene con un aviso en vez de mandarlo como
+    # "_relabeled" sin serlo (ver #hold_export).
+    schema = ExportRelabeling::SchemaFetch.call(project_id)
+    @permission_denied = schema.failure == :permission_denied
+    @schema_unavailable = schema.failure == :schema_unavailable
+    return if schema.failure && hold_export(recipients, alert_project, schema.failure, schema.detail, zip_path)
+
+    output_paths, relabeled, metadata_info, delivery_zip_name = build_output_paths(zip_path, schema.lookup, email_body)
+    return if !relabeled && hold_export(recipients, alert_project, :processing_error, @pipeline_error, zip_path)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
@@ -71,9 +84,9 @@ class RelabelSpssExportWorker
     ).deliver_now
 
     ExportRelabeling::ProcessingAlertNotifier.call(
-      recipients: recipients, project_id: project_id.presence || project_title, export_type: :spss,
+      recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE,
       permission_denied: @permission_denied, relabeled: relabeled, missing_variables: @missing_variables,
-      project_unidentified: project_id.blank?
+      project_unidentified: project_id.blank?, schema_unavailable: @schema_unavailable
     )
   ensure
     FileUtils.rm_rf(@work_dir) if @work_dir
@@ -92,8 +105,7 @@ class RelabelSpssExportWorker
   # (Dictionary/Quotas/Report) SI es una mejora opcional aparte -- si
   # falla, los .sav igual se mandan (ver #build_metadata_excel).
   # Devuelve [paths_a_adjuntar, se_pudo_reetiquetar?, metadata_info].
-  def build_output_paths(zip_path, project_id, email_body)
-    lookup = build_lookup(project_id)
+  def build_output_paths(zip_path, lookup, email_body)
     extract_zip(zip_path, @work_dir)
     # Capturado ANTES de compilar a proposito: #build_sav escribe un
     # "..._relabeled.sps" por cada archivo, en el MISMO @work_dir -- si
@@ -109,7 +121,8 @@ class RelabelSpssExportWorker
 
     [output_paths, true, metadata_info, delivery_zip_name]
   rescue StandardError => e
-    Rails.logger.error("[RelabelSpssExportWorker] fallo el pipeline de re-etiquetado, se manda la base sin cambios: #{e.class} #{e.message}")
+    @pipeline_error = "#{e.class}: #{e.message}"
+    Rails.logger.error("[RelabelSpssExportWorker] fallo el pipeline de re-etiquetado: #{@pipeline_error}")
     [[zip_path], false, blank_metadata_info, nil]
   end
 
@@ -133,7 +146,7 @@ class RelabelSpssExportWorker
   # etc.) se omite la planilla entera en vez de tirar abajo el envio de
   # los .sav ya compilados.
   def build_metadata_excel(sps_files, email_body, lookup)
-    sheets = sps_files.map { |sps_path| metadata_sheet_for(sps_path) }.compact
+    sheets = sps_files.map { |sps_path| metadata_sheet_for(sps_path, lookup) }.compact
     return [nil, blank_metadata_info] if sheets.empty?
 
     metadata = ExportRelabeling::ExportMetadataBuilder.call(sheets: sheets, lookup: lookup, email_body: email_body)
@@ -164,12 +177,14 @@ class RelabelSpssExportWorker
     (main || sheets.first).first
   end
 
-  def metadata_sheet_for(sps_path)
+  def metadata_sheet_for(sps_path, lookup)
     original = File.read(sps_path, encoding: 'bom|utf-8')
     data_path = resolve_data_file_path(original)
     return nil unless File.exist?(data_path)
 
-    [sps_path, ExportRelabeling::SpssDataListReader.call(sps_text: original, data_path: data_path)]
+    sheet = ExportRelabeling::SpssDataListReader.call(sps_text: original, data_path: data_path)
+    # Mismo orden (el del cuestionario) que el .sav y el Excel, ver ColumnOrder.
+    [sps_path, ExportRelabeling::ColumnOrder.call(sheet, lookup)]
   rescue StandardError => e
     Rails.logger.error("[RelabelSpssExportWorker] no se pudo leer #{sps_path} para la planilla de metadata, se omite ese archivo: #{e.class} #{e.message}")
     nil
@@ -218,11 +233,17 @@ class RelabelSpssExportWorker
     { includes_quotas: false, includes_report: false, includes_dictionary: false, quota_lines: [] }
   end
 
-  def build_lookup(project_id)
-    ExportRelabeling::ConfirmitSchemaFetcher.call(project_id)
-  rescue ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError
-    @permission_denied = true
-    nil
+  # Retiene el export en vez de entregarlo (Diego: "siempre que se pueda hacer un
+  # aviso prefiero el aviso que un envio" -- el cliente no tiene que recibir como
+  # relabelled algo que no lo esta). Avisa a Fine con el motivo y el error; devuelve
+  # true si el aviso salio. Si no se pudo avisar devuelve false y el export se
+  # entrega como antes, porque sin aviso nadie sabria que quedo retenido.
+  def hold_export(recipients, alert_project, alert_type, detail, zip_path)
+    Rails.logger.error("[#{self.class.name}] export retenido (#{alert_type}) de #{alert_project.presence || 'proyecto no identificado'}: #{detail}")
+    ExportRelabeling::ProcessingAlertNotifier.hold(
+      recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE, alert_type: alert_type,
+      detail: detail, filename: File.basename(zip_path.to_s)
+    )
   end
 
   def extract_zip(zip_path, work_dir)
@@ -242,6 +263,8 @@ class RelabelSpssExportWorker
 
     prepared_data = ExportRelabeling::SpssDataFilePreparer.call(data_path)
 
+    # Variables en el orden del cuestionario, igual que el Excel (ver ColumnOrder).
+    original = ExportRelabeling::SpssDataListOrder.call(original, lookup)
     rewritten = ExportRelabeling::SpssSyntaxRewriter.call(original, lookup: lookup)
     rewritten = rewritten.sub(FILE_HANDLE_NAME, file_handle_name_clause(prepared_data.encoding))
     rewritten = rewritten.gsub(LIST_COMMAND, '')

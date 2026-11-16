@@ -148,7 +148,7 @@ class MailerController < ApplicationController
     if recipients.empty?
       Rails.logger.error("[export_sync] no se encontraron destinatarios en el cuerpo del mail, se descarta #{zip_path}")
       File.delete(zip_path)
-      notify_discarded_export(:no_recipients, file, sender, project_id, project_title)
+      notify_discarded_export(:no_recipients, file, sender, project_id, project_title, [], recipients)
       return head :ok
     end
 
@@ -163,7 +163,7 @@ class MailerController < ApplicationController
     else
       Rails.logger.error("[export_sync] zip sin .sps ni .xlsx reconocible, se descarta: #{entry_names}")
       File.delete(zip_path)
-      notify_discarded_export(:unrecognized_zip, file, sender, project_id, project_title, entry_names)
+      notify_discarded_export(:unrecognized_zip, file, sender, project_id, project_title, entry_names, recipients)
     end
 
     head :ok
@@ -176,7 +176,7 @@ class MailerController < ApplicationController
     File.delete(zip_path) if zip_path && File.exist?(zip_path)
     # Solo si el remitente era valido: sin esto cualquiera que le escriba a la
     # casilla de export generaria un aviso.
-    notify_discarded_export(:processing_error, file, sender, project_id, project_title) if sender && valid_export_sender?(sender)
+    notify_discarded_export(:processing_error, file, sender, project_id, project_title, [], recipients) if sender && valid_export_sender?(sender)
     head :ok
   end
 
@@ -208,10 +208,10 @@ class MailerController < ApplicationController
   # Aviso interno de un mail que se descarto sin procesar (ver
   # ExportRelabeling::DiscardedExportNotifier, de mejor esfuerzo: nunca rompe la
   # respuesta de este endpoint).
-  def notify_discarded_export(reason, file, sender, project_id, project_title, entry_names = [])
+  def notify_discarded_export(reason, file, sender, project_id, project_title, entry_names = [], recipients = [])
     ExportRelabeling::DiscardedExportNotifier.call(
       reason: reason, filename: file&.original_filename, sender: sender,
-      project_id: project_id, project_title: project_title, entry_names: entry_names
+      project_id: project_id, project_title: project_title, entry_names: entry_names, recipients: recipients
     )
   end
 

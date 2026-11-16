@@ -467,6 +467,45 @@ Quotas:
     end
   end
 
+  # Export retenido: el cliente NO lo recibe (ver ProcessingAlertNotifier.hold).
+  describe '#processing_alert_email con el export retenido' do
+    def deliver(alert_type, **extra)
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+      described_class.new.processing_alert_email(
+        ['dcasar@fine-research.com'], 'p862488762089', export_type: :excel, alert_type: alert_type, held: true,
+        filename: 'FP-18915G - EXCEL_20261113.zip', intended_recipients: ['cliente@iqvia.com', 'dcasar@fine-research.com'], **extra
+      )
+      sent_json(sent_mail)
+    end
+
+    it 'avisa que el cliente NO recibio el export, con proyecto, archivo, error y a quienes iba' do
+      json = deliver(:permission_denied, detail: 'Server was unable to process request. ---> Permission denied.')
+
+      expect(json['personalizations'].first['subject']).to eq('[ALERTA - EXPORT NO ENVIADO] p862488762089 - Excel Export')
+      body = json['content'].first['value']
+      expect(body).to include('EXPORT NO ENVIADO: el cliente NO recibio este export')
+      expect(body).to include('el usuario de la API no tiene acceso')
+      expect(body).to include('dar acceso al usuario de la API al proyecto')
+      expect(body).to include('Proyecto: p862488762089')
+      expect(body).to include('Archivo: FP-18915G - EXCEL_20261113.zip')
+      expect(body).to include('Error: Server was unable to process request. ---> Permission denied.')
+      expect(body).to include('Destinatarios que no lo recibieron: cliente@iqvia.com, dcasar@fine-research.com')
+    end
+
+    it 'cada motivo trae su propia instruccion para destrabarlo' do
+      expect(deliver(:schema_unavailable)['content'].first['value']).to include('volver a enviar el export')
+      expect(deliver(:project_unidentified)['content'].first['value']).to include('Survey ID: pXXXX')
+      expect(deliver(:processing_error)['content'].first['value']).to include('fallo el re-etiquetado')
+    end
+
+    it 'recorta un error larguisimo' do
+      body = deliver(:processing_error, detail: "x#{'y' * 2000}")['content'].first['value']
+
+      expect(body.lines.find { |line| line.start_with?('Error:') }.length).to be < 600
+    end
+  end
+
   describe '#export_discarded_alert_email' do
     def deliver(**args)
       sent_mail = nil

@@ -198,10 +198,11 @@ RSpec.describe ExportRelabeling::ConfirmitVariableLookup do
   end
 
   it 'resuelve una fila de un Grid3D subiendo al ancestro (ej. f18x1_1 -> Grid3D gf18, no la Multi propia vacia)' do
+    # Formato "fila | columna | titulo. enunciado del Grid3D".
     expect(lookup.call('f18x1_1')).to eq(
       code: 'F18',
-      attribute: '1ª linha de tratamento',
-      question: 'Não realizaram esse teste'
+      attribute: 'Não realizaram esse teste | 1ª linha de tratamento',
+      question: 'Titulo del Grid3D, no se usa para las filas'
     )
   end
 
@@ -501,6 +502,201 @@ RSpec.describe ExportRelabeling::ConfirmitVariableLookup do
 
     it 'una fila numerica anidada en un Grid3D tambien es Multi Numeric (ej. f10_A)' do
       expect(numeric_multi_lookup.column_profile('f10_A')).to eq(type: :multi_numeric)
+    end
+  end
+
+  # p588393362171: el .sps trae los nombres en MAYUSCULA y el lookup los baja a
+  # minuscula ("f5_a"), pero el schema guarda el precode con letra en
+  # mayuscula (Precode="A"). Sin resolverlos, el SPSS dejaba el label crudo de
+  # Confirmit y el Dictionary sin Attribute (el Excel si lo tenia).
+  describe '#call con precodes en letra y otro-especifique de una Single' do
+    let(:letter_lookup) do
+      described_class.new(<<~XML)
+        <Multi EntityId="1" Numeric="true"><Name>f5</Name>
+          <FormTexts><FormText Language="1046"><Title>F5</Title><Text>Total de pacientes</Text></FormText></FormTexts>
+          <MultiAnswers><Answer Precode="A"><Texts><Text Language="1046">Psor&#237;ase</Text></Texts></Answer></MultiAnswers>
+        </Multi>
+        <Grid3D EntityId="3"><Name>gf10</Name>
+          <FormTexts><FormText Language="1046"><Title>F10</Title></FormText></FormTexts>
+          <Nodes><Multi EntityId="4" Numeric="true"><Name>f10</Name>
+            <FormTexts><FormText Language="1046"><Title>F10</Title><Text>Pacientes tratados</Text></FormText></FormTexts>
+            <MultiAnswers /></Multi></Nodes>
+          <Grid3DAnswers><Answer Precode="A"><Texts><Text Language="1046">Recursos p&#250;blicos</Text></Texts></Answer></Grid3DAnswers>
+        </Grid3D>
+        <Single EntityId="5"><Name>f1</Name>
+          <FormTexts><FormText Language="1046"><Title>F1</Title><Text>Qual a especialidade?</Text></FormText></FormTexts>
+          <SingleAnswers>
+            <Answer Precode="1"><Texts><Text Language="1046">Dermatologista</Text></Texts></Answer>
+            <Answer Precode="99"><Texts><Text Language="1046">Outro. Especifique:</Text></Texts></Answer>
+          </SingleAnswers>
+        </Single>
+      XML
+    end
+
+    it 'resuelve la opcion de un Multi con precode en letra aunque el nombre llegue en mayuscula o minuscula' do
+      expected = { code: 'F5', attribute: 'Psoríase', question: 'Total de pacientes' }
+
+      expect(letter_lookup.call('F5_A')).to eq(expected)
+      expect(letter_lookup.call('f5_a')).to eq(expected)
+    end
+
+    it 'resuelve la columna de un Grid3D con precode en letra (ej. f10_A)' do
+      expect(letter_lookup.call('F10_A')).to eq(code: 'F10', attribute: 'Recursos públicos', question: 'Pacientes tratados')
+    end
+
+    it 'resuelve el otro-especifique de una Single (f1_99_other) con el texto de la opcion como atributo' do
+      expect(letter_lookup.call('F1_99_OTHER')).to eq(code: 'F1', attribute: 'Outro. Especifique:', question: 'Qual a especialidade?')
+    end
+
+    it 'un otro-especifique cuya opcion no existe en la Single sigue sin resolverse' do
+      expect(letter_lookup.call('F1_77_OTHER')).to be_nil
+    end
+  end
+
+  # p378408306422, bloque B1.1 ("lb11"): las columnas del Grid3D (los tratamientos) estan en
+  # una lista compartida (<Predefined ListSource>) mas una opcion directa. Solo se resolvia
+  # la directa y el Excel quedaba sin el tratamiento en el label.
+  describe 'Grid3D con las columnas en una lista compartida' do
+    let(:grid_lookup) do
+      described_class.new(<<~XML)
+        <Grid3D EntityId="1"><Name>lb11</Name>
+          <FormTexts><FormText Language="1046"><Title>B1.1</Title><Text>Agora, gostariamos de saber quais atributos</Text></FormText></FormTexts>
+          <Nodes>
+            <Multi EntityId="2"><Name>lb11_1</Name><FormTexts><FormText Language="1046"><Text>Alta taxa de resposta</Text></FormText></FormTexts><MultiAnswers /></Multi>
+            <Multi EntityId="3"><Name>lb11_2</Name><FormTexts><FormText Language="1046"><Text>Longa duracao</Text></FormText></FormTexts><MultiAnswers /></Multi>
+          </Nodes>
+          <Grid3DAnswers><Predefined ListSource="9" /><Answer Precode="19"><Texts><Text Language="1046">Nenhum dos tratamentos</Text></Texts></Answer></Grid3DAnswers>
+        </Grid3D>
+        <PredefinedList EntityId="9"><PredefinedListAnswers>
+          <Answer Precode="1"><Texts><Text Language="1046">FOLFOX</Text></Texts></Answer>
+          <Answer Precode="98"><Texts><Text Language="1046">Outro</Text></Texts></Answer>
+        </PredefinedListAnswers></PredefinedList>
+      XML
+    end
+
+    it 'sigue la lista compartida y arma "fila | columna" + "TITULO. enunciado del Grid3D"' do
+      expect(grid_lookup.call('lb11_1_1')).to eq(
+        code: 'B1.1', attribute: 'Alta taxa de resposta | FOLFOX', question: 'Agora, gostariamos de saber quais atributos'
+      )
+      expect(grid_lookup.call('LB11_2_98')[:attribute]).to eq('Longa duracao | Outro')
+    end
+
+    it 'sigue resolviendo la columna directa del Grid3D' do
+      expect(grid_lookup.call('lb11_1_19')[:attribute]).to eq('Alta taxa de resposta | Nenhum dos tratamentos')
+    end
+
+    it 'una columna que no esta en la lista ni directa no se resuelve' do
+      expect(grid_lookup.call('lb11_1_50')).to be_nil
+    end
+  end
+
+  # p378408306422: a3a ("CONHECE") y a4a ("PRESCREVE") salian con labels identicos porque el
+  # enunciado real vive en un <Info> anterior ("A3", "A4") y la pregunta repite un texto corto.
+  describe 'enunciado del <Info> que precede a la pregunta' do
+    let(:info_lookup) do
+      described_class.new(<<~XML)
+        <Info EntityId="1"><Name>a3</Name><FormTexts><FormText Language="1046"><Title>A3</Title><Text>Selecione os regimes que CONHECE:</Text></FormText></FormTexts></Info>
+        <Multi EntityId="2"><Name>a3a</Name><FormTexts><FormText Language="1046"><Title>A3 - 1a Linha</Title><Text>CANCER em 1a Linha</Text></FormText></FormTexts>
+          <MultiAnswers><Answer Precode="1"><Texts><Text Language="1046">FOLFOX</Text></Texts></Answer></MultiAnswers></Multi>
+        <Multi EntityId="3"><Name>a3b</Name><FormTexts><FormText Language="1046"><Title>A3 - 2a Linha</Title><Text>CANCER em 2a Linha</Text></FormText></FormTexts>
+          <MultiAnswers><Answer Precode="1"><Texts><Text Language="1046">FOLFOX</Text></Texts></Answer></MultiAnswers></Multi>
+        <Info EntityId="4"><Name>a4</Name><FormTexts><FormText Language="1046"><Title>A4</Title><Text>E quais o Dr. PRESCREVE</Text></FormText></FormTexts></Info>
+        <Multi EntityId="5"><Name>a4a</Name><FormTexts><FormText Language="1046"><Title>A4 - 1a Linha</Title><Text>CANCER em 1a Linha</Text></FormText></FormTexts>
+          <MultiAnswers><Answer Precode="1"><Texts><Text Language="1046">FOLFOX</Text></Texts></Answer></MultiAnswers></Multi>
+        <Info EntityId="6"><Name>nota</Name><FormTexts><FormText Language="1046"><Title>Nota</Title><Text>Texto suelto</Text></FormText></FormTexts></Info>
+        <Single EntityId="7"><Name>p1</Name><FormTexts><FormText Language="1046"><Title>P1</Title><Text>Pergunta comum</Text></FormText></FormTexts></Single>
+      XML
+    end
+
+    it 'antepone el enunciado del Info cuyo titulo es el codigo de la pregunta, asi a3a y a4a dejan de ser identicas' do
+      expect(info_lookup.call('a3a_1')[:question]).to eq('Selecione os regimes que CONHECE: CANCER em 1a Linha')
+      expect(info_lookup.call('a4a_1')[:question]).to eq('E quais o Dr. PRESCREVE - CANCER em 1a Linha')
+    end
+
+    it 'tambien alcanza a una pregunta que no esta pegada al Info (a3b, con a3a en el medio)' do
+      expect(info_lookup.call('a3b_1')[:question]).to eq('Selecione os regimes que CONHECE: CANCER em 2a Linha')
+    end
+
+    it 'no toca una pregunta cuyo titulo no empieza con el codigo del Info (aunque haya un Info antes)' do
+      expect(info_lookup.call('p1')[:question]).to eq('Pergunta comum')
+    end
+  end
+
+  describe 'CSS/JavaScript pegado en el texto de una pregunta' do
+    let(:code_lookup) do
+      described_class.new(<<~XML)
+        <Single EntityId="1"><Name>f8</Name><FormTexts><FormText Language="1046"><Title>F8</Title>
+          <Text>Qual a porcentagem?&#10;&#10;(function(){&#10;var s=document.createElement('style');&#10;})();</Text></FormText></FormTexts></Single>
+        <Single EntityId="2"><Name>s11</Name><FormTexts><FormText Language="1046"><Title>S11</Title>
+          <Text>Destes pacientes, quantos:&#10;&#10;&#10;th#gs11_header0::after {&#10;  content: '';&#10;}</Text></FormText></FormTexts></Single>
+      XML
+    end
+
+    it 'corta el JavaScript del final del texto' do
+      expect(code_lookup.call('f8')[:question]).to eq('Qual a porcentagem?')
+    end
+
+    it 'corta el CSS del final del texto' do
+      expect(code_lookup.call('s11')[:question]).to eq('Destes pacientes, quantos:')
+    end
+  end
+
+  # Orden del cuestionario (ver ExportRelabeling::ColumnOrder).
+  describe '#column_position' do
+    let(:order_lookup) do
+      described_class.new(<<~XML)
+        <Folder EntityId="100"><Name>Background and Hidden</Name>
+          <Nodes><Open EntityId="1"><Name>timesurvey</Name></Open></Nodes>
+        </Folder>
+        <Folder EntityId="101"><Name>questionnaire</Name>
+          <Nodes>
+            <Single EntityId="2"><Name>f0</Name>
+              <SingleAnswers><Answer Precode="1"><Texts><Text Language="1046">Sim</Text></Texts></Answer><Answer Precode="99"><Texts><Text Language="1046">Outro</Text></Texts></Answer></SingleAnswers>
+            </Single>
+            <Multi EntityId="3"><Name>p5</Name>
+              <MultiAnswers>
+                <Answer Precode="1"><Texts><Text Language="1046">A</Text></Texts></Answer>
+                <Answer Precode="9"><Texts><Text Language="1046">B</Text></Texts></Answer>
+                <Answer Precode="10"><Texts><Text Language="1046">C</Text></Texts></Answer>
+              </MultiAnswers>
+            </Multi>
+            <Grid3D EntityId="4"><Name>gs11</Name>
+              <Nodes><Multi EntityId="5"><Name>s11a</Name><MultiAnswers /></Multi><Multi EntityId="6"><Name>s11b</Name><MultiAnswers /></Multi></Nodes>
+              <Grid3DAnswers><Answer Precode="1" /><Answer Precode="2" /></Grid3DAnswers>
+            </Grid3D>
+            <Open EntityId="7"><Name>s11aa</Name></Open>
+          </Nodes>
+        </Folder>
+      XML
+    end
+
+    it 'ordena por pregunta del cuestionario y despues por opcion (en el orden del schema, no el numerico)' do
+      names = %w[f0 p5_1 p5_9 p5_10 s11a_1 s11a_2 s11b_1 s11b_2 s11aa]
+      positions = names.map { |name| order_lookup.column_position(name) }
+
+      expect(positions).to eq(positions.sort)
+      expect(positions.map(&:first).uniq.length).to eq(5)
+    end
+
+    it 'las filas de un Grid3D usan las opciones del Grid3D (s11a_1, s11a_2, despues s11b_1...)' do
+      expect(order_lookup.column_position('s11a_2') <=> order_lookup.column_position('s11b_1')).to eq(-1)
+    end
+
+    it 'el campo "other" va despues de TODAS las opciones de su pregunta, como lo exporta Confirmit' do
+      expect(order_lookup.column_position('p5_9_other') <=> order_lookup.column_position('p5_10')).to eq(1)
+      expect(order_lookup.column_position('p5_9_other') <=> order_lookup.column_position('s11a_1')).to eq(-1)
+    end
+
+    it 'las variables fuera de la carpeta "questionnaire" (sistema/ocultas) y las que no estan en el schema no tienen posicion' do
+      expect(order_lookup.column_position('timesurvey')).to be_nil
+      expect(order_lookup.column_position('responseid')).to be_nil
+      expect(order_lookup.column_position('')).to be_nil
+    end
+
+    it 'un schema sin carpeta "questionnaire" no ordena nada' do
+      plain = described_class.new('<Single EntityId="2"><Name>f0</Name></Single>')
+
+      expect(plain.column_position('f0')).to be_nil
     end
   end
 end

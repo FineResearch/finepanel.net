@@ -92,18 +92,46 @@ class ExportDeliveryMailer < ApplicationMailer
       'Para corregirlo: dar acceso al usuario de la API al proyecto en Confirmit y volver a enviar el export.'
     ].join(' '),
     processing_error: 'Por algun motivo el archivo no pudo procesar integralmente, por favor chequear que el cliente reciba su export.',
-    project_unidentified: 'No se pudo identificar el proyecto de Confirmit (el nombre del archivo no trae pXXXX y el cuerpo del mail no trae "Survey ID: pXXXX"). El export se entrego igual, pero sin consultar el schema: sin tipos en el Dictionary, sin traducir las cuotas y sin deteccion de variables faltantes. Revisar el texto de la Rule en Confirmit.'
+    project_unidentified: 'No se pudo identificar el proyecto de Confirmit (el nombre del archivo no trae pXXXX y el cuerpo del mail no trae "Survey ID: pXXXX"). El export se entrego igual, pero sin consultar el schema: sin tipos en el Dictionary, sin traducir las cuotas y sin deteccion de variables faltantes. Revisar el texto de la Rule en Confirmit.',
+    schema_unavailable: 'No se pudo leer el schema del proyecto en Confirmit. El export se entrego igual, pero sin consultar el schema: sin tipos en el Dictionary, sin traducir las cuotas y sin deteccion de variables faltantes.'
   }.freeze
 
-  def processing_alert_email(recipients, project_id, export_type:, alert_type:)
+  # Mismos motivos, pero cuando el export se RETIENE en vez de entregarse (pedido de
+  # Diego: "siempre que se pueda hacer un aviso prefiero el aviso que un envio" --
+  # el cliente no tiene que recibir como relabelled algo que no lo esta). Cada
+  # mensaje dice que NO se envio y que hacer para destrabarlo.
+  HELD_MESSAGES = {
+    permission_denied: [
+      'Confirmit respondio "Permission denied" al leer el schema del proyecto: el usuario de la API no tiene acceso a el.',
+      'Para corregirlo: dar acceso al usuario de la API al proyecto en Confirmit y volver a enviar el export.'
+    ].join(' '),
+    schema_unavailable: [
+      'No se pudo leer el schema del proyecto en Confirmit (la API no respondio o devolvio un error).',
+      'Para corregirlo: volver a enviar el export; si se repite, revisar la API de Confirmit y los logs del Sidekiq.'
+    ].join(' '),
+    project_unidentified: [
+      'No se pudo identificar el proyecto de Confirmit: el nombre del archivo no trae pXXXX y el cuerpo del mail no trae "Survey ID: pXXXX".',
+      'Para corregirlo: revisar el texto y el nombre de archivo de la Rule en Confirmit y volver a enviar el export.'
+    ].join(' '),
+    processing_error: [
+      'El export no pudo procesarse integralmente (fallo el re-etiquetado).',
+      'Para corregirlo: volver a enviar el export; si se repite, revisar los logs del Sidekiq.'
+    ].join(' ')
+  }.freeze
+  HELD_NOTICE = 'EXPORT NO ENVIADO: el cliente NO recibio este export, para no entregarle como relabelled algo que no lo esta.'
+
+  # held: true = el export se retuvo (ver HELD_MESSAGES); detail es el error tecnico,
+  # filename el archivo original e intended_recipients quienes lo iban a recibir.
+  def processing_alert_email(recipients, project_id, export_type:, alert_type:, held: false, detail: nil, filename: nil, intended_recipients: [])
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: FROM)
 
     personalization = generate_personalization(Array(recipients).join(','))
-    personalization.subject = "[ALERTA] #{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
+    personalization.subject = "[ALERTA#{held ? ' - EXPORT NO ENVIADO' : ''}] #{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
     mail.add_personalization(personalization)
 
-    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: alert_body(alert_type, project_id)))
+    body = held ? held_alert_body(alert_type, project_id, detail, filename, intended_recipients) : alert_body(alert_type, project_id)
+    mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
     send_email(mail)
   end
@@ -166,6 +194,17 @@ class ExportDeliveryMailer < ApplicationMailer
 
   # El mensaje de cada tipo de alerta, con el proyecto al que se refiere (sin
   # eso habia que deducirlo del asunto).
+  MAX_ALERT_DETAIL_LENGTH = 500
+
+  def held_alert_body(alert_type, project_id, detail, filename, intended_recipients)
+    lines = [HELD_NOTICE, '', HELD_MESSAGES.fetch(alert_type), '']
+    lines << "Proyecto: #{project_id.presence || 'no identificado'}"
+    lines << "Archivo: #{filename}" if filename.present?
+    lines << "Error: #{detail.to_s.squish.truncate(MAX_ALERT_DETAIL_LENGTH)}" if detail.present?
+    lines << "Destinatarios que no lo recibieron: #{Array(intended_recipients).join(', ')}" if Array(intended_recipients).any?
+    lines.join("\n")
+  end
+
   def alert_body(alert_type, project_id)
     lines = [ALERT_MESSAGES.fetch(alert_type)]
     lines << "Proyecto: #{project_id}" if project_id.present?

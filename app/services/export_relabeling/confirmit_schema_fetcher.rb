@@ -4,8 +4,8 @@
 # para usar -- usado por los 2 workers de relabeling (SPSS y Excel, cada
 # uno independiente, ver la conversacion sobre por que son 2 procesos
 # separados). Si la API no responde o el proyecto no tiene schema
-# accesible, no hay que frenar el re-etiquetado por eso -- se devuelve nil
-# y el llamador sigue sin lookup (cae 100% al parseo del texto del export).
+# accesible, el llamador no entrega el export a medias: lo retiene con un aviso
+# (ver SchemaUnavailableError).
 module ExportRelabeling
   class ConfirmitSchemaFetcher
     # Distinguido aparte de cualquier otro fallo (timeout, proyecto sin
@@ -15,6 +15,11 @@ module ExportRelabeling
     # process request. ---> Permission denied." (confirmado contra un
     # proyecto real, p833174000229).
     class PermissionDeniedError < StandardError; end
+
+    # Cualquier otro fallo al leer el schema (la API no respondio, timeout, proyecto
+    # sin schema, etc.): el export no se puede re-etiquetar bien y se retiene con un
+    # aviso (ver ProcessingAlertNotifier.hold), en vez de entregarse a medias.
+    class SchemaUnavailableError < StandardError; end
 
     PERMISSION_DENIED_PATTERN = /Permission denied/i.freeze
 
@@ -27,7 +32,7 @@ module ExportRelabeling
       Rails.logger.error("[ConfirmitSchemaFetcher] no se pudo traer el schema de #{project_id}: #{e.class} #{e.message}")
       raise PermissionDeniedError, e.message if e.message.to_s.match?(PERMISSION_DENIED_PATTERN)
 
-      nil
+      raise SchemaUnavailableError, "#{e.class}: #{e.message}"
     end
   end
 end

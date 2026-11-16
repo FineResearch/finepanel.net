@@ -148,11 +148,47 @@ RSpec.describe RelabelExcelExportWorker do
     )
   end
 
+  # Diego: "ordenemos siempre segun orden del cuestionario" (ver ExportRelabeling::ColumnOrder).
+  describe 'orden de columnas del cuestionario' do
+    let(:sheet_xml) do
+      <<~XML
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+        <row r="1"><c r="A1" t="str"><v>responseid</v></c><c r="B1" t="str"><v>f4_2 : Dos | F4. Pregunta</v></c><c r="C1" t="str"><v>f4_1 : Uno | F4. Pregunta</v></c></row>
+        <row r="2"><c r="A2" t="str"><v>1</v></c><c r="B2" t="str"><v>dato_dos</v></c><c r="C2" t="str"><v>dato_uno</v></c></row>
+        </sheetData></worksheet>
+      XML
+    end
+
+    it 'deja las columnas en el orden del cuestionario, con sus datos, y no mueve las que el schema no conoce' do
+      positions = { 'f4_1' => [1, 0, 0], 'f4_2' => [1, 1, 0] }
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position) { |name| positions[name.to_s.downcase] }
+      allow(lookup).to receive(:quotas).and_return([])
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
+
+      captured = nil
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, **|
+        sheet = RubyXL::Parser.parse(output_paths.first).worksheets[0]
+        captured = { header: sheet[0].cells.map(&:value), row: sheet[1].cells.map(&:value) }
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
+
+      described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+      expect(captured[:header]).to eq(['responseid', 'f4_1 : Uno | F4. Pregunta', 'f4_2 : Dos | F4. Pregunta'])
+      expect(captured[:row]).to eq(%w[1 dato_uno dato_dos])
+    end
+  end
+
   describe 'variables faltantes del cuestionario' do
     def lookup_double(units)
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
       allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:quotas).and_return([])
       allow(lookup).to receive(:questionnaire_variables).and_return(units)
       lookup
@@ -216,27 +252,6 @@ RSpec.describe RelabelExcelExportWorker do
     expect(File.exist?(zip_path)).to be false
   end
 
-  # Diego: "lo mas seguro seria que si algo falla se envie lo mismo que se
-  # recibio... cubrimos el riesgo de que los datos se enviaron aunque el
-  # formato no fuera perfecto". Si el pipeline CENTRAL revienta (no una
-  # mejora opcional, ya cubiertas por #safely en otros tests), el worker
-  # manda el zip original tal cual en vez de no mandar nada.
-  it 'si el pipeline central revienta (ej. el Excel no se puede leer), manda el zip original sin cambios en vez de nada' do
-    allow(ExportRelabeling::ExcelReader).to receive(:call).and_raise(StandardError, 'archivo corrupto')
-
-    captured = {}
-    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
-      captured[:output_paths] = output_paths
-      captured[:relabeled] = relabeled
-      instance_double(ActionMailer::MessageDelivery, deliver_now: true)
-    end
-
-    expect { described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com']) }.not_to raise_error
-
-    expect(captured[:output_paths]).to eq([zip_path])
-    expect(captured[:relabeled]).to be false
-  end
-
   context 'con cuotas (ver ExportRelabeling::QuotaProgressBuilder)' do
     let(:sheet_xml_with_status) do
       <<~XML
@@ -277,6 +292,7 @@ RSpec.describe RelabelExcelExportWorker do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
       allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
       allow(lookup).to receive(:quotas).and_return(
@@ -308,6 +324,7 @@ RSpec.describe RelabelExcelExportWorker do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
       allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
       allow(lookup).to receive(:quotas).and_return(
@@ -344,6 +361,7 @@ RSpec.describe RelabelExcelExportWorker do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
       allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('qregion').and_return('Grid')
       allow(lookup).to receive(:quotas).and_return(
@@ -370,6 +388,7 @@ RSpec.describe RelabelExcelExportWorker do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
       allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:quotas).and_raise(StandardError, 'schema inesperado')
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
@@ -456,6 +475,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:column_profile).and_return(nil)
+        allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:variable_type).with('qestado_1').and_return('Multi')
         allow(lookup).to receive(:answer_option_matching).with('fichaestado', %w[completa complete c]).and_return([nil, 'completa'])
@@ -484,6 +504,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:column_profile).and_return(nil)
+        allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
@@ -510,6 +531,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:column_profile).and_return(nil)
+        allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:variable_type).with('s0').and_return('Single')
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
@@ -542,6 +564,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:column_profile).and_return(nil)
+        allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
@@ -592,6 +615,7 @@ RSpec.describe RelabelExcelExportWorker do
         lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
         allow(lookup).to receive(:call).and_return(nil)
         allow(lookup).to receive(:column_profile).and_return(nil)
+        allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
         allow(lookup).to receive(:answer_option_matching).and_return([nil, 'completa'])
         allow(lookup).to receive(:quotas).and_return([])
@@ -615,19 +639,107 @@ RSpec.describe RelabelExcelExportWorker do
     end
   end
 
-  # Diego: "vamos a generar alertas para no tener fallos silenciosos" --
-  # ver ExportRelabeling::ProcessingAlertNotifier.
-  it 'si el fetch del schema falla por permisos, avisa a los destinatarios @fine-research.com (y el pipeline sigue igual)' do
-    allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
-      .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
-    stub_mailer
+  # Diego: "siempre que se pueda hacer un aviso prefiero el aviso que un envio": si el
+  # export no se puede procesar bien, NO se manda al cliente como "relabelled" -- se
+  # avisa a Fine con el error (ver ProcessingAlertNotifier.hold). Solo si el aviso no
+  # sale se entrega como antes, porque sin aviso nadie sabria que quedo retenido.
+  describe 'export retenido con aviso (en vez de entregarlo sin relabellear)' do
+    let(:recipients) { ['destino@cliente.com', 'dcasar@fine-research.com'] }
+    let(:alert_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_now: true) }
 
-    alert_delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
-    allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(alert_delivery)
+    before do
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(alert_delivery)
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email)
+        .and_return(instance_double(ActionMailer::MessageDelivery, deliver_now: true))
+    end
 
-    described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com', 'dcasar@fine-research.com'])
+    def expect_held_alert(project_id, alert_type, **extra)
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email).with(
+        ['dcasar@fine-research.com'], project_id,
+        hash_including(export_type: :excel, alert_type: alert_type, held: true, intended_recipients: recipients, **extra)
+      )
+      expect(ExportDeliveryMailer).not_to have_received(:relabeled_export_email)
+    end
 
-    expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
-      .with(['dcasar@fine-research.com'], 'p123456', export_type: :excel, alert_type: :permission_denied)
+    it 'sin permiso en Confirmit: avisa a los @fine-research.com con el motivo y no se lo manda al cliente' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect_held_alert('p123456', :permission_denied, detail: 'Permission denied', filename: 'test_export.zip')
+    end
+
+    it 'si Confirmit no responde (otro error al leer el schema): lo retiene con el error' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::SchemaUnavailableError, 'RuntimeError: timeout')
+
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect_held_alert('p123456', :schema_unavailable, detail: 'RuntimeError: timeout')
+    end
+
+    it 'sin ID de proyecto: lo retiene (usa el titulo para nombrarlo en el aviso) y ni intenta leer el schema' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+
+      described_class.new.perform(zip_path, nil, recipients, nil, 'FP-18928G - Hidradenite')
+
+      expect(ExportRelabeling::ConfirmitSchemaFetcher).not_to have_received(:call)
+      expect_held_alert('FP-18928G - Hidradenite', :project_unidentified)
+    end
+
+    it 'si el pipeline central revienta (ej. el Excel no se puede leer): lo retiene con el error' do
+      allow(ExportRelabeling::ExcelReader).to receive(:call).and_raise(StandardError, 'archivo corrupto')
+
+      expect { described_class.new.perform(zip_path, 'p123456', recipients) }.not_to raise_error
+
+      expect_held_alert('p123456', :processing_error, detail: 'StandardError: archivo corrupto')
+    end
+
+    it 'si la lista del envio no tiene ningun @fine-research.com, el aviso va a panel@fine-research.com' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+
+      described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(['panel@fine-research.com'], 'p123456', hash_including(held: true))
+      expect(ExportDeliveryMailer).not_to have_received(:relabeled_export_email)
+    end
+
+    context 'cuando el aviso NO se puede mandar' do
+      before { allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_raise(StandardError, 'sendgrid caido') }
+
+      it 'sin permiso: entrega el export como antes (sin relabellear a fondo), porque nadie se enteraria de la retencion' do
+        allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+          .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+
+        described_class.new.perform(zip_path, 'p123456', recipients)
+
+        expect(ExportDeliveryMailer).to have_received(:relabeled_export_email)
+      end
+
+      it 'si el pipeline revienta: manda el zip original sin cambios, marcado como no relabelleado' do
+        allow(ExportRelabeling::ExcelReader).to receive(:call).and_raise(StandardError, 'archivo corrupto')
+        captured = {}
+        allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
+          captured[:output_paths] = output_paths
+          captured[:relabeled] = relabeled
+          instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+        end
+
+        expect { described_class.new.perform(zip_path, 'p123456', recipients) }.not_to raise_error
+
+        expect(captured[:output_paths]).to eq([zip_path])
+        expect(captured[:relabeled]).to be false
+      end
+    end
+
+    it 'con todo en orden no retiene nada: el export se entrega' do
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect(ExportDeliveryMailer).to have_received(:relabeled_export_email)
+      expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email).with(anything, anything, hash_including(held: true))
+    end
   end
 end

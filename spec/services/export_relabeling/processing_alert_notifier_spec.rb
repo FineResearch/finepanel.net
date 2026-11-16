@@ -56,7 +56,10 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
     expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email)
   end
 
-  it 'no manda nada si ninguno de los destinatarios es @fine-research.com' do
+  # Diego: si no hay ningun @fine-research.com, el aviso va a panel@ por default
+  # (antes no se mandaba nada y el fallo quedaba silencioso, ej. listas cargadas
+  # en el Wizard con solo direcciones del cliente).
+  it 'si ninguno de los destinatarios es @fine-research.com, avisa a panel@fine-research.com (nunca al cliente)' do
     stub_mailer
 
     described_class.call(
@@ -64,7 +67,8 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
       permission_denied: true, relabeled: true
     )
 
-    expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email)
+    expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+      .with(['panel@fine-research.com'], 'p123456', export_type: :spss, alert_type: :permission_denied)
   end
 
   describe 'variables faltantes del cuestionario' do
@@ -89,7 +93,7 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
       expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email)
     end
 
-    it 'nunca avisa al cliente: sin destinatarios @fine-research.com no manda nada' do
+    it 'nunca avisa al cliente: sin destinatarios @fine-research.com avisa a panel@fine-research.com' do
       stub_missing_mailer
 
       described_class.call(
@@ -97,7 +101,8 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
         relabeled: true, missing_variables: missing
       )
 
-      expect(ExportDeliveryMailer).not_to have_received(:missing_variables_alert_email)
+      expect(ExportDeliveryMailer).to have_received(:missing_variables_alert_email)
+        .with(['panel@fine-research.com'], 'p123456', export_type: :excel, variables: missing)
     end
 
     it 'no manda nada si no falta ninguna variable' do

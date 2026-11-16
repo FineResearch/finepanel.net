@@ -202,46 +202,109 @@ RSpec.describe RelabelSpssExportWorker do
     expect(File.exist?(zip_path)).to be false
   end
 
-  # Antes de esta feature, un fallo de PSPP hacia que #perform levantara y
-  # Sidekiq reintentara -- si segia fallando, el cliente nunca recibia
-  # nada. Diego: "lo mas seguro seria que si algo falla se envie lo mismo
-  # que se recibio... cubrimos el riesgo de que los datos se enviaron
-  # aunque el formato no fuera perfecto". Ahora ese fallo (la Lambda no
-  # responde, el compile revienta, etc.) cae al zip original, sin
-  # re-etiquetar, en vez de no mandar nada.
-  it 'si la Lambda de PSPP falla, manda el zip original sin cambios en vez de nada' do
-    allow(ExportRelabeling::PsppLambdaClient).to receive(:compile).and_raise(StandardError, 'PSPP Lambda fallo')
+  # Diego: "siempre que se pueda hacer un aviso prefiero el aviso que un envio": si el
+  # export no se puede procesar bien, NO se manda al cliente como "relabelled" -- se
+  # avisa a Fine con el error (ver ProcessingAlertNotifier.hold). Solo si el aviso no
+  # sale se entrega como antes, porque sin aviso nadie sabria que quedo retenido.
+  describe 'export retenido con aviso (en vez de entregarlo sin relabellear)' do
+    let(:recipients) { ['destino@cliente.com', 'dcasar@fine-research.com'] }
+    let(:alert_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_now: true) }
 
-    captured = {}
-    allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
-      captured[:output_paths] = output_paths
-      captured[:relabeled] = relabeled
-      instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+    before do
+      stub_pspp_success
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(alert_delivery)
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email)
+        .and_return(instance_double(ActionMailer::MessageDelivery, deliver_now: true))
     end
 
-    expect { described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com']) }.not_to raise_error
+    def expect_held_alert(project_id, alert_type, **extra)
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email).with(
+        ['dcasar@fine-research.com'], project_id,
+        hash_including(export_type: :spss, alert_type: alert_type, held: true, intended_recipients: recipients, **extra)
+      )
+      expect(ExportDeliveryMailer).not_to have_received(:relabeled_export_email)
+    end
 
-    expect(captured[:output_paths]).to eq([zip_path])
-    expect(captured[:relabeled]).to be false
-  end
+    it 'sin permiso en Confirmit: avisa a los @fine-research.com con el motivo y no se lo manda al cliente' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
 
-  # Diego: "vamos a generar alertas para no tener fallos silenciosos" --
-  # ver ExportRelabeling::ProcessingAlertNotifier. El pipeline sigue
-  # (lookup nil, fallback a texto) pero alguien de Fine Research tiene que
-  # enterarse de que hay que autorizar la API.
-  it 'si el fetch del schema falla por permisos, avisa a los destinatarios @fine-research.com (y el pipeline sigue igual)' do
-    allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
-      .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
-    stub_pspp_success
-    stub_mailer
+      described_class.new.perform(zip_path, 'p123456', recipients)
 
-    alert_delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
-    allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(alert_delivery)
+      expect_held_alert('p123456', :permission_denied, detail: 'Permission denied', filename: 'test_export.zip')
+    end
 
-    described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com', 'dcasar@fine-research.com'])
+    it 'si Confirmit no responde (otro error al leer el schema): lo retiene con el error' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::SchemaUnavailableError, 'RuntimeError: timeout')
 
-    expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
-      .with(['dcasar@fine-research.com'], 'p123456', export_type: :spss, alert_type: :permission_denied)
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect_held_alert('p123456', :schema_unavailable, detail: 'RuntimeError: timeout')
+    end
+
+    it 'sin ID de proyecto: lo retiene (usa el titulo para nombrarlo en el aviso) y ni intenta leer el schema' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+
+      described_class.new.perform(zip_path, nil, recipients, nil, 'FP-18928G - Hidradenite')
+
+      expect(ExportRelabeling::ConfirmitSchemaFetcher).not_to have_received(:call)
+      expect_held_alert('FP-18928G - Hidradenite', :project_unidentified)
+    end
+
+    it 'si la Lambda de PSPP falla: lo retiene con el error' do
+      allow(ExportRelabeling::PsppLambdaClient).to receive(:compile).and_raise(StandardError, 'PSPP Lambda fallo')
+
+      expect { described_class.new.perform(zip_path, 'p123456', recipients) }.not_to raise_error
+
+      expect_held_alert('p123456', :processing_error, detail: 'StandardError: PSPP Lambda fallo')
+    end
+
+    it 'si la lista del envio no tiene ningun @fine-research.com, el aviso va a panel@fine-research.com' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+
+      described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(['panel@fine-research.com'], 'p123456', hash_including(held: true))
+      expect(ExportDeliveryMailer).not_to have_received(:relabeled_export_email)
+    end
+
+    context 'cuando el aviso NO se puede mandar' do
+      before { allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_raise(StandardError, 'sendgrid caido') }
+
+      it 'sin permiso: entrega el export como antes (sin relabellear a fondo), porque nadie se enteraria de la retencion' do
+        allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+          .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+
+        described_class.new.perform(zip_path, 'p123456', recipients)
+
+        expect(ExportDeliveryMailer).to have_received(:relabeled_export_email)
+      end
+
+      it 'si la Lambda de PSPP falla: manda el zip original sin cambios, marcado como no relabelleado' do
+        allow(ExportRelabeling::PsppLambdaClient).to receive(:compile).and_raise(StandardError, 'PSPP Lambda fallo')
+        captured = {}
+        allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
+          captured[:output_paths] = output_paths
+          captured[:relabeled] = relabeled
+          instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+        end
+
+        expect { described_class.new.perform(zip_path, 'p123456', recipients) }.not_to raise_error
+
+        expect(captured[:output_paths]).to eq([zip_path])
+        expect(captured[:relabeled]).to be false
+      end
+    end
+
+    it 'con todo en orden no retiene nada: el export se entrega' do
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect(ExportDeliveryMailer).to have_received(:relabeled_export_email)
+      expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email).with(anything, anything, hash_including(held: true))
+    end
   end
 
   # Diego: "seria posible que en el zip del spss se habilitara tambien
@@ -314,6 +377,7 @@ RSpec.describe RelabelSpssExportWorker do
       lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
       allow(lookup).to receive(:call).and_return(nil)
       allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position).and_return(nil)
       allow(lookup).to receive(:questionnaire_variables).and_return(nil)
       allow(lookup).to receive(:variable_type).with('Q1').and_return('Single')
       allow(lookup).to receive(:quotas).and_return(
@@ -336,6 +400,58 @@ RSpec.describe RelabelSpssExportWorker do
       expect(captured[:includes_quotas]).to be true
       # La cuota sigue abierta (1 de 10), y el cuerpo del mail las lista todas.
       expect(captured[:quota_lines]).to eq([{ quota: 'quota1', field: 'Q1', value: '1', target: 10, achieved: 1, pending: 9 }])
+    end
+
+    # Diego: "ordenemos siempre segun orden del cuestionario" (ver ExportRelabeling::ColumnOrder).
+    it 'ordena las variables como el cuestionario: el DATA LIST del .sav y el Dictionary salen en el mismo orden' do
+      sps_desordenado = <<~SPS
+        FILE HANDLE F1
+         /NAME = 'c:\\temp\\data.asc'
+         /LRECL=10.
+        DATA LIST
+         FIXED FILE = F1
+         RECORDS=1
+        /1
+         STATUS 1-8 (A)
+         Q2 9-9
+         Q1 10-10
+        .
+        VARIABLE LABELS
+         STATUS 'status'
+         Q1 'Pergunta 1 (F1 - Texto)'
+         Q2 'Pergunta 2 (F2 - Texto)'
+        .
+      SPS
+      dir = Dir.mktmpdir
+      zip_desordenado = File.join(dir, 'test_export_orden.zip')
+      Zip::File.open(zip_desordenado, Zip::File::CREATE) do |zip|
+        zip.get_output_stream('data.sps') { |f| f.write(sps_desordenado) }
+        zip.get_output_stream('data.asc') { |f| f.write("complete21\n") }
+      end
+
+      positions = { 'q1' => [1, 0, 0], 'q2' => [2, 0, 0] }
+      lookup = instance_double(ExportRelabeling::ConfirmitVariableLookup)
+      allow(lookup).to receive(:call).and_return(nil)
+      allow(lookup).to receive(:column_profile).and_return(nil)
+      allow(lookup).to receive(:column_position) { |name| positions[name.to_s.downcase] }
+      allow(lookup).to receive(:quotas).and_return([])
+      allow(lookup).to receive(:questionnaire_variables).and_return(nil)
+      allow(lookup).to receive(:variable_type).and_return(nil)
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(lookup)
+
+      compiled_sps = nil
+      stub_pspp_success { |sps_path, _data_path| compiled_sps = File.read(sps_path) }
+      dictionary_names = nil
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_r, _p, output_paths, **|
+        dictionary = captured_metadata_workbook(output_paths).worksheets[0]
+        dictionary_names = dictionary.sheet_data.rows.compact.map { |row| row.cells.first.value }
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
+
+      described_class.new.perform(zip_desordenado, 'p123456', ['destino@cliente.com'])
+
+      expect(compiled_sps).to include(" STATUS 1-8 (A)\n Q1 10-10\n Q2 9-9\n")
+      expect(dictionary_names.index('Q1')).to be < dictionary_names.index('Q2')
     end
 
     it 'parsea Quotas:/Report: del cuerpo del mail (email_body), igual que Excel' do

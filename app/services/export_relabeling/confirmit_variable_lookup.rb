@@ -314,6 +314,22 @@ module ExportRelabeling
         .map { |node| questionnaire_unit(node) }
     end
 
+    POSITION_TAGS = %w[Single Multi Grid Grid3D Open Info].freeze
+
+    # Lugar de una columna exportada en el CUESTIONARIO, para ordenar el Excel
+    # como el SPSS (Confirmit arma el .xlsx en el orden en que se crearon las
+    # columnas en la base, no el del cuestionario: en p378408306422 salian
+    # s11x1b_2 en medio de s11x1a, o s11x3aa dentro de s12). Devuelve
+    # [posicion de la pregunta, posicion de la opcion, 0/1 si es el "otro
+    # especifique" de esa opcion], o nil si la variable no esta en el schema
+    # (variables de sistema, loops que el schema principal no trae).
+    def column_position(variable_name)
+      name = variable_name.to_s.downcase
+      return nil if name.blank?
+
+      question_position(name) || sub_answer_position(name) || other_specify_position(name)
+    end
+
     private
 
     QUESTIONNAIRE_UNIT_TAGS = %w[Single Multi Open Grid Grid3D].freeze
@@ -471,14 +487,32 @@ module ExportRelabeling
       match = OTHER_SUFFIX.match(name)
       return nil unless match
 
-      call(match[1])
+      call(match[1]) || single_other_specify_entry(match[1])
+    end
+
+    # "Otro. Especifique" de una pregunta Single (ej. f1_99_other, con f1
+    # Single y precode 99): la columna del texto libre cuelga de una opcion de
+    # la Single, que #sub_answer_entry no resuelve a proposito (ver
+    # ANSWER_CONTAINERS). Sin esto el label del SPSS quedaba como
+    # "... pregunta (Outro. Especifique:)" y el Dictionary sin Attribute.
+    def single_other_specify_entry(name)
+      match = SUB_ANSWER_NAME.match(name)
+      return nil unless match
+
+      parent_node = find_question_node(match[1])
+      return nil unless parent_node && parent_node.name == 'Single'
+
+      option_text = answer_label(match[1], match[2])
+      return nil unless option_text
+
+      { code: clean_text(title_of(parent_node)), attribute: option_text, question: question_text(parent_node) }
     end
 
     def standalone_entry(variable_name)
       node = find_question_node(variable_name)
       return nil unless node
 
-      { code: clean_text(title_of(node)), attribute: nil, question: clean_text(text_of(node)) }
+      { code: clean_text(title_of(node)), attribute: nil, question: question_text(node) }
     end
 
     def sub_answer_entry(variable_name)
@@ -505,7 +539,7 @@ module ExportRelabeling
       {
         code: clean_text(title_of(parent_node)),
         attribute: clean_text(answer_text_of(answer_node)),
-        question: clean_text(text_of(parent_node))
+        question: question_text(parent_node)
       }
     end
 
@@ -514,18 +548,36 @@ module ExportRelabeling
     # (definidas una sola vez en el <Grid3DAnswers> del Grid3D contenedor,
     # no en cada fila) -- confirmado con "f18x1_1".."f18x3_5". Por eso hay
     # que subir al ancestro en vez de bajar como en el resto de los casos.
+    #
+    # Las columnas pueden estar en una lista compartida (<Predefined
+    # ListSource>) en vez de directo en el <Grid3DAnswers> -- caso real del bloque
+    # B1.1 de p378408306422 ("lb11": 18 tratamientos en una lista + "Nenhum dos
+    # tratamentos" directo). Sin seguir la lista, solo se resolvia el directo y el
+    # Excel quedaba sin el tratamiento en el label.
+    #
+    # Formato (el mismo que ya traia el SPSS de Confirmit para este bloque, y el
+    # que pidio el cliente): "fila | columna | TITULO. enunciado del Grid3D", ej.
+    # "lb11_1_1 : Alta taxa de resposta objetiva | FOLFOX | B1.1. Agora, gostariamos...".
+    # Si no hay fila o enunciado del Grid3D para mostrar, queda como antes
+    # (columna | titulo. texto de la fila).
     def grid3d_answer_entry(parent_node, precode)
       grid3d = parent_node.name == 'Grid3D' ? parent_node : parent_node.ancestors('Grid3D').first
       return nil unless grid3d
 
-      answer_node = grid3d.at_xpath("./Grid3DAnswers/Answer[@Precode='#{precode}']")
+      answer_node = find_answer(grid3d.at_xpath('./Grid3DAnswers'), PREDEFINED_ANSWER_TAG, precode)
       return nil unless answer_node
 
-      {
-        code: clean_text(title_of(parent_node)) || clean_text(title_of(grid3d)),
-        attribute: clean_text(answer_text_of(answer_node)),
-        question: clean_text(text_of(parent_node))
-      }
+      answer_text = clean_text(answer_text_of(answer_node))
+      row_text = parent_node.equal?(grid3d) ? nil : clean_text(text_of(parent_node))
+      grid_text = question_text(grid3d)
+      # Un Grid3D sin texto propio devuelve el de su primera fila (title_of/text_of buscan
+      # en descendientes): no repetirlo como fila y como enunciado.
+      row_text = nil if row_text == grid_text
+      code = clean_text(title_of(parent_node)) || clean_text(title_of(grid3d))
+
+      return { code: code, attribute: [row_text, answer_text].compact.join(' | '), question: grid_text } if row_text && grid_text
+
+      { code: code, attribute: answer_text, question: row_text || grid_text }
     end
 
     # Recursivo: una PredefinedList puede reenviar a otra en vez de (o
@@ -535,7 +587,9 @@ module ExportRelabeling
     # el nivel anterior era Multi o Grid -- confirmado que las listas
     # compartidas siempre usan ese tag, no "GridAnswer".
     def find_answer(container_node, answer_tag, precode)
-      direct = container_node.at_xpath("./#{answer_tag}[@Precode='#{precode}']")
+      return nil unless container_node
+
+      direct = answer_with_precode(container_node, answer_tag, precode)
       return direct if direct
 
       predefined = container_node.at_xpath('./Predefined')
@@ -550,6 +604,22 @@ module ExportRelabeling
 
     UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     LOWER = 'abcdefghijklmnopqrstuvwxyz'
+
+    # El precode de una sub-respuesta sale del NOMBRE de la columna, que se
+    # normaliza a minuscula ("f5_a"), pero en el schema los precodes con letra
+    # van en mayuscula (Precode="A"). Comparar tal cual dejaba sin resolver
+    # TODAS las grillas con precodes en letra (F5_A, F7_A, F9_A, F10_A de
+    # p588393362171): el .sav quedaba con el label crudo de Confirmit y el
+    # Dictionary del SPSS sin Attribute, a diferencia del Excel. Se prefiere el
+    # match exacto y, si no hay, el que ignora mayusculas.
+    def answer_with_precode(container_node, answer_tag, precode)
+      return nil unless container_node
+
+      exact = container_node.at_xpath("./#{answer_tag}[@Precode='#{precode}']")
+      return exact if exact
+
+      container_node.at_xpath("./#{answer_tag}[translate(@Precode, '#{UPPER}', '#{LOWER}')='#{precode.to_s.downcase}']")
+    end
 
     # La mayoria de los nombres ya vienen en minuscula en el schema, pero no
     # es una garantia absoluta -- confirmado con "LinkFarmaco" (variable
@@ -577,6 +647,104 @@ module ExportRelabeling
       (preferred || name_nodes.first).parent
     end
 
+    def question_position(name)
+      index = question_positions[name]
+      index && [index, 0, 0]
+    end
+
+    def sub_answer_position(name)
+      match = SUB_ANSWER_NAME.match(name)
+      return nil unless match
+
+      parent_name = match[1]
+      index = question_positions[parent_name]
+      return nil unless index
+
+      [index, answer_index(question_nodes[parent_name], match[2]), 0]
+    end
+
+    def other_specify_position(name)
+      match = OTHER_SUFFIX.match(name)
+      return nil unless match
+
+      # Confirmit exporta los campos "otro" despues de TODAS las opciones de su
+      # pregunta (p5_9, p5_10, p5_9_other), no pegados a la opcion que los origina.
+      base = question_position(match[1]) || sub_answer_position(match[1])
+      base && [base[0], OTHER_POSITION_OFFSET + base[1], 1]
+    end
+
+    OTHER_POSITION_OFFSET = 1_000_000
+
+    # Nombre de pregunta -> lugar (orden de documento) y nodo, una sola vez: el
+    # schema pesa varios MB y esto se consulta por cada columna del export.
+    def question_positions
+      build_question_index unless @question_positions
+      @question_positions
+    end
+
+    def question_nodes
+      build_question_index unless @question_nodes
+      @question_nodes
+    end
+
+    def build_question_index
+      @question_positions = {}
+      @question_nodes = {}
+      @doc.xpath(POSITION_TAGS.map { |tag| "//#{tag}" }.join(' | ')).each_with_index do |node, index|
+        name = node.at_xpath('./Name')&.text.to_s.downcase
+        next if name.empty? || @question_positions.key?(name) || !in_questionnaire?(node)
+
+        @question_positions[name] = index
+        @question_nodes[name] = node
+      end
+    end
+
+    QUESTIONNAIRE_FOLDER = 'questionnaire'
+
+    # Solo se ordena lo que esta DENTRO de la carpeta "questionnaire" del schema.
+    # Las variables de sistema/ocultas (FechaCompleta, timesurvey, intentos,
+    # LinkFarmaco...) viven en otras carpetas, repartidas por todo el schema, y
+    # Confirmit las exporta siempre juntas al principio en su propio orden --
+    # moverlas por la posicion que tienen en el arbol las desordenaria respecto
+    # del SPSS (confirmado en p588393362171 y p378408306422).
+    def in_questionnaire?(node)
+      node.ancestors('Folder').any? { |folder| folder.at_xpath('./Name')&.text.to_s.casecmp?(QUESTIONNAIRE_FOLDER) }
+    end
+
+    def answer_index(node, precode)
+      precodes = answer_precodes(node)
+      precodes.index(precode.to_s.downcase) || precodes.length
+    end
+
+    # Precodes de una pregunta en el orden del schema (las listas compartidas se
+    # expanden donde estan). Las filas de un Grid3D no tienen respuestas propias:
+    # usan las del Grid3D que las contiene.
+    def answer_precodes(node)
+      @answer_precodes ||= {}
+      @answer_precodes[node] ||= begin
+        config = DIRECT_ANSWER_CONTAINERS[node.name]
+        precodes = config ? ordered_precodes(node.at_xpath(".//#{config[:container]}"), config[:answer_tag]) : []
+        grid3d = node.name == 'Grid3D' ? node : node.ancestors('Grid3D').first
+        precodes = ordered_precodes(grid3d.at_xpath('./Grid3DAnswers'), PREDEFINED_ANSWER_TAG) if precodes.empty? && grid3d
+        precodes.map(&:downcase)
+      end
+    end
+
+    def ordered_precodes(container_node, answer_tag)
+      return [] unless container_node
+
+      container_node.element_children.flat_map do |child|
+        if child.name == answer_tag
+          [child['Precode'].to_s]
+        elsif child.name == 'Predefined'
+          list = @doc.at_xpath("//PredefinedList[@EntityId='#{child['ListSource']}']/PredefinedListAnswers")
+          ordered_precodes(list, PREDEFINED_ANSWER_TAG)
+        else
+          []
+        end
+      end
+    end
+
     def title_of(node)
       node.at_xpath(".//FormTexts/FormText[@Language='#{LANGUAGE}']/Title")&.text
     end
@@ -596,8 +764,65 @@ module ExportRelabeling
     def clean_text(raw)
       return nil if raw.nil?
 
-      plain = Nokogiri::HTML.fragment(raw).text.strip
+      plain = strip_embedded_code(Nokogiri::HTML.fragment(raw).text.strip).strip
       plain.presence
+    end
+
+    # Algunos textos de Confirmit traen CSS/JavaScript pegado al final (visto en
+    # F8 de p588393362171, "(function(){ var s=document.createElement('style')...",
+    # y en S11.3 de p378408306422, "th#gs11x3_header0::after { ... }"), y eso
+    # terminaba dentro del label de cada columna. Se corta donde empieza el codigo.
+    # Un texto de cuestionario real no lleva llaves ni "(function(".
+    def strip_embedded_code(text)
+      cut = [text.index(/\(\s*function\s*\(/), css_start(text)].compact.min
+      cut ? text[0...cut] : text
+    end
+
+    def css_start(text)
+      brace = text.index('{')
+      return nil unless brace
+
+      text.rindex("\n", brace) || brace
+    end
+
+    INFO_LOOKBEHIND = 15
+
+    # Texto de la pregunta, con el enunciado de su <Info> si lo tiene. En algunos
+    # cuestionarios el enunciado real vive en un nodo <Info> que va justo antes
+    # (p378408306422: Info "A3" = "...que CONHECE por linha de tratamento...",
+    # Info "A4" = "...o(a) Dr.(a) PRESCREVE..."), y la pregunta solo repite el
+    # texto corto ("CANCER COLORRETAL... em 1a Linha") -- los labels de a3a y a4a
+    # salian identicos. El Info va PRIMERO a proposito: SPSS corta el label cerca
+    # de los 250 bytes, y lo que distingue a las preguntas esta en el enunciado.
+    def question_text(node)
+      own = clean_text(text_of(node))
+      info = preceding_info_text(node)
+      return own if info.blank? || own.to_s.include?(info)
+      return info if own.blank?
+
+      info.match?(/[:.?!][[:space:]]*\z/) ? "#{info} #{own}" : "#{info} - #{own}"
+    end
+
+    # Info anterior (hermano, hasta INFO_LOOKBEHIND nodos atras) cuyo titulo es el
+    # codigo con el que empieza el de la pregunta: "A3" para "A3 - 1a Linha".
+    # Sin coincidencia de titulo no se toca nada.
+    def preceding_info_text(node)
+      title = clean_text(title_of(node))
+      return nil if title.blank?
+
+      node.xpath('preceding-sibling::*[Name]').reverse.first(INFO_LOOKBEHIND).each do |sibling|
+        next unless sibling.name == 'Info'
+
+        info_title = clean_text(title_of(sibling))
+        return clean_text(text_of(sibling)) if info_title && title_starts_with_code?(title, info_title)
+      end
+      nil
+    end
+
+    def title_starts_with_code?(title, code)
+      return false unless title.downcase.start_with?(code.downcase)
+
+      title.length == code.length || !title[code.length].match?(/[[:alnum:]]/)
     end
   end
 end

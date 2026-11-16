@@ -30,10 +30,11 @@ RSpec.describe ExportRelabeling::ConfirmitSchemaFetcher do
     expect { described_class.call('p123456') }.to raise_error(described_class::PermissionDeniedError)
   end
 
-  it 'devuelve nil (sin levantar nada) para cualquier otro error' do
+  it 'levanta SchemaUnavailableError (con el error original) para cualquier otro fallo, asi el export se retiene con aviso' do
     allow(client).to receive(:send).with(:get_raw_survey_schema, project_id: 'p123456', key: 'key123')
                                     .and_raise(RuntimeError, 'timeout')
 
-    expect(described_class.call('p123456')).to be_nil
+    expect { described_class.call('p123456') }
+      .to raise_error(ExportRelabeling::ConfirmitSchemaFetcher::SchemaUnavailableError, /RuntimeError: timeout/)
   end
 end

@@ -7,7 +7,8 @@
 # envio), asi que el cliente se quedaba sin su base y nadie se enteraba (visto
 # con un SPSS de FP-18928G cuyo cuerpo no traia destinatarios).
 #
-# Va a una casilla interna FIJA (Diego: panel@fine-research.com), nunca al
+# Va a las direcciones @fine-research.com del mail (si las traia) y, si no hay
+# ninguna, a panel@fine-research.com (ver InternalAlertRecipients), nunca al
 # cliente. No se avisa por "remitente invalido": esa casilla recibe mails de
 # cualquiera, y avisar cada uno la inundaria.
 #
@@ -15,11 +16,9 @@
 # tiene que contestar 200 pase lo que pase.
 module ExportRelabeling
   class DiscardedExportNotifier
-    RECIPIENT = ENV.fetch('EXPORT_DISCARD_ALERT_EMAIL', 'panel@fine-research.com')
-
-    def self.call(reason:, filename: nil, sender: nil, project_id: nil, project_title: nil, entry_names: [])
+    def self.call(reason:, filename: nil, sender: nil, project_id: nil, project_title: nil, entry_names: [], recipients: [])
       ExportDeliveryMailer.export_discarded_alert_email(
-        [RECIPIENT], reason: reason, filename: filename, sender: sender,
+        InternalAlertRecipients.call(recipients), reason: reason, filename: filename, sender: sender,
         project_id: project_id, project_title: project_title, entry_names: entry_names
       ).deliver_now
     rescue StandardError => e
