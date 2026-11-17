@@ -1,0 +1,25 @@
+FILE HANDLE F1
+ /NAME = '/tmp/data.asc'
+ /ENCODING='Windows-1252'
+ /LRECL=232.
+DATA LIST
+ FIXED FILE = F1
+ RECORDS=1
+/1
+ ID 1-4
+ NAME 5-24 (A)
+ SCORE 25-27
+ FLAG 28
+ NOTE_TEXT_LONG 29-228 (A)
+ DEC 229-232
+.
+VARIABLE LABELS
+ ID 'Identificação'
+.
+VALUE LABELS
+ FLAG
+  0 'Não'
+  1 'Sim'
+ /
+.
+SAVE OUTFILE='/tmp/out.sav'.

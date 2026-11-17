@@ -75,6 +75,10 @@ class RelabelExcelExportWorker
     @schema_unavailable = false
     @missing_variables = []
     alert_project = project_id.presence || project_title
+    @failure_type = nil
+    # Copia del zip original de Confirmit para poder reproducir un reclamo despues (ver
+    # EvidenceStore); de mejor esfuerzo.
+    @evidence_key = ExportRelabeling::EvidenceStore.save(zip_path: zip_path, project_id: project_id, export_type: EXPORT_TYPE)
 
     # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida) el export no
     # se puede re-etiquetar bien: se retiene con un aviso en vez de mandarlo como
@@ -163,7 +167,7 @@ class RelabelExcelExportWorker
     Rails.logger.error("[#{self.class.name}] export retenido (#{alert_type}) de #{alert_project.presence || 'proyecto no identificado'}: #{detail}")
     ExportRelabeling::ProcessingAlertNotifier.hold(
       recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE, alert_type: alert_type,
-      detail: detail, filename: File.basename(zip_path.to_s)
+      detail: detail, filename: File.basename(zip_path.to_s), evidence: @evidence_key
     )
   end
 

@@ -238,4 +238,40 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
       end.not_to raise_error
     end
   end
+
+  describe '.hold: a quien le llega el aviso de un export retenido' do
+    def hold(recipients, alert_type)
+      delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(delivery)
+      described_class.hold(recipients: recipients, project_id: 'p123456', export_type: :spss, alert_type: alert_type)
+    end
+
+    it 'un desfasaje de datos (data_mismatch) va SIEMPRE tambien a dcasar@fine-research.com' do
+      hold(['cliente@iqvia.com', 'natalia@fine-research.com'], :data_mismatch)
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(['natalia@fine-research.com', 'dcasar@fine-research.com'], 'p123456', hash_including(held: true, alert_type: :data_mismatch))
+    end
+
+    it 'sin ninguna direccion de Fine en el envio: panel@ y ademas dcasar@' do
+      hold(['cliente@iqvia.com'], :data_mismatch)
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(['panel@fine-research.com', 'dcasar@fine-research.com'], 'p123456', anything)
+    end
+
+    it 'si dcasar@ ya estaba en el envio no se repite (sin importar mayusculas)' do
+      hold(['DCasar@Fine-Research.com', 'cliente@iqvia.com'], :data_mismatch)
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(['DCasar@Fine-Research.com'], 'p123456', anything)
+    end
+
+    it 'los demas motivos NO suman a nadie: solo los @fine-research.com del envio (o panel@)' do
+      hold(['cliente@iqvia.com', 'natalia@fine-research.com'], :permission_denied)
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(['natalia@fine-research.com'], 'p123456', anything)
+    end
+  end
 end

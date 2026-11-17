@@ -11,6 +11,8 @@ RSpec.describe RelabelSpssExportWorker do
   # ConfirmitSchemaFetcher). Devolver nil reproduce el comportamiento sin
   # API (fallback 100% a LabelParser), que es lo que validan estos tests.
   before { allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(nil) }
+  # El zip original se guarda en S3 (ver EvidenceStore): en los tests no se toca la red.
+  before { allow(ExportRelabeling::EvidenceStore).to receive(:save).and_return(nil) }
 
   let(:sps_content) do
     <<~SPS
@@ -297,6 +299,82 @@ RSpec.describe RelabelSpssExportWorker do
         expect(captured[:output_paths]).to eq([zip_path])
         expect(captured[:relabeled]).to be false
       end
+    end
+
+    # Verificacion de datos (ver SavVerifier): un .sav con las columnas corridas respecto del .dat
+    # original -- el caso de FP-18810G -- no se entrega y el aviso va SIEMPRE tambien a Diego.
+    context 'verificacion del .sav contra el .dat' do
+      it 'si los datos no coinciden: retiene el export con aviso data_mismatch, tambien a dcasar@fine-research.com' do
+        allow(ExportRelabeling::SavVerifier).to receive(:call)
+          .and_raise(ExportRelabeling::SavVerifier::MismatchError, '120 de 21251 celdas no coinciden')
+
+        described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
+
+        expect(ExportDeliveryMailer).to have_received(:processing_alert_email).with(
+          ['panel@fine-research.com', 'dcasar@fine-research.com'], 'p123456',
+          hash_including(alert_type: :data_mismatch, held: true, detail: /120 de 21251 celdas/)
+        )
+        expect(ExportDeliveryMailer).not_to have_received(:relabeled_export_email)
+      end
+
+      it 'si en la lista ya esta dcasar@fine-research.com no se repite' do
+        allow(ExportRelabeling::SavVerifier).to receive(:call)
+          .and_raise(ExportRelabeling::SavVerifier::MismatchError, 'desfasaje')
+
+        described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com', 'DCasar@fine-research.com'])
+
+        expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+          .with(['DCasar@fine-research.com'], 'p123456', hash_including(alert_type: :data_mismatch))
+      end
+
+      it 'si el aviso del desfasaje no sale, entrega el zip ORIGINAL de Confirmit (nunca el .sav dudoso)' do
+        allow(ExportRelabeling::SavVerifier).to receive(:call)
+          .and_raise(ExportRelabeling::SavVerifier::MismatchError, 'desfasaje')
+        allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_raise(StandardError, 'sendgrid caido')
+        captured = {}
+        allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
+          captured[:output_paths] = output_paths
+          captured[:relabeled] = relabeled
+          instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+        end
+
+        described_class.new.perform(zip_path, 'p123456', recipients)
+
+        expect(captured[:output_paths]).to eq([zip_path])
+        expect(captured[:relabeled]).to be false
+      end
+
+      it 'si la verificacion misma no se puede hacer (formato no soportado, error al leer), entrega como siempre' do
+        allow(ExportRelabeling::SavVerifier).to receive(:call).and_raise(ExportRelabeling::SavVerifier::UnverifiableError, 'zlib')
+
+        described_class.new.perform(zip_path, 'p123456', recipients)
+
+        expect(ExportDeliveryMailer).to have_received(:relabeled_export_email)
+        expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email).with(anything, anything, hash_including(held: true))
+      end
+
+      it 'verifica con el .sps (en el orden del cuestionario) y el .dat ORIGINAL' do
+        verified = nil
+        allow(ExportRelabeling::SavVerifier).to receive(:call) { |**args| verified = args }
+
+        described_class.new.perform(zip_path, 'p123456', recipients)
+
+        expect(verified[:sps_text]).to include('DATA LIST')
+        expect(File.basename(verified[:data_path])).to eq('data.asc')
+        expect(File.basename(verified[:sav_path])).to eq('data_relabeled.sav')
+      end
+    end
+
+    it 'guarda una copia del zip original y la cita en el aviso (para reproducir el reclamo despues)' do
+      allow(ExportRelabeling::EvidenceStore).to receive(:save).and_return('evidence/2026/11/16/p123456/spss_ab12_x.zip')
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect(ExportRelabeling::EvidenceStore).to have_received(:save).with(hash_including(project_id: 'p123456', export_type: :spss))
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(anything, 'p123456', hash_including(evidence: 'evidence/2026/11/16/p123456/spss_ab12_x.zip'))
     end
 
     it 'con todo en orden no retiene nada: el export se entrega' do

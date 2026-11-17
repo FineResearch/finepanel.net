@@ -523,7 +523,31 @@ module ExportRelabeling
       parent_node = find_question_node(parent_name)
       return nil unless parent_node
 
-      own_answer_entry(parent_node, precode) || grid3d_answer_entry(parent_node, precode)
+      if parent_node.ancestors('Grid3D').any?
+        nested_row_entry(parent_node, precode)
+      else
+        own_answer_entry(parent_node, precode) || grid3d_answer_entry(parent_node, precode)
+      end
+    end
+
+    # Una fila anidada en un Grid3D se exporta como "fila_columna": la columna es una
+    # respuesta del GRID3D (Leve/Moderada/Grave), aunque la fila arrastre una lista propia
+    # de respuestas. En p803162949296 las filas de F6a/F7/F8 traen la lista de diagnosticos
+    # (Predefined) y se usaba esa antes que las columnas reales, dejando F6A1_2 como
+    # "Espondilite Anquilosante | Artrite Psoriasica". Por eso la columna del Grid3D gana
+    # cuando la fila no tiene esa respuesta o dice OTRA cosa.
+    #
+    # Cuando ambas listas dicen lo mismo (F5 y F7 de p588393362171: la fila repite las
+    # opciones del Grid3D) queda el formato de siempre, para no cambiar labels que ya se
+    # entregaron sin necesidad.
+    def nested_row_entry(parent_node, precode)
+      own = own_answer_entry(parent_node, precode)
+      grid = grid3d_answer_entry(parent_node, precode)
+      return own || grid unless own && grid
+
+      grid_answer = find_answer(parent_node.ancestors('Grid3D').first.at_xpath('./Grid3DAnswers'), PREDEFINED_ANSWER_TAG, precode)
+      same_answer = grid_answer && clean_text(answer_text_of(grid_answer)) == own[:attribute]
+      same_answer ? own : grid
     end
 
     def own_answer_entry(parent_node, precode)
@@ -568,7 +592,7 @@ module ExportRelabeling
       return nil unless answer_node
 
       answer_text = clean_text(answer_text_of(answer_node))
-      row_text = parent_node.equal?(grid3d) ? nil : clean_text(text_of(parent_node))
+      row_text = parent_node.equal?(grid3d) ? nil : grid3d_row_text(parent_node)
       grid_text = question_text(grid3d)
       # Un Grid3D sin texto propio devuelve el de su primera fila (title_of/text_of buscan
       # en descendientes): no repetirlo como fila y como enunciado.
@@ -578,6 +602,41 @@ module ExportRelabeling
       return { code: code, attribute: [row_text, answer_text].compact.join(' | '), question: grid_text } if row_text && grid_text
 
       { code: code, attribute: answer_text, question: row_text || grid_text }
+    end
+
+    # (^...^ pacientes) al final del texto de una fila: piping de Confirmit con un conteo
+    # ("Artrite Psoriasica (^f('f6')['1']^ pacientes)"). En el label no aporta, solo ensucia.
+    TRAILING_PIPING = /[[:space:]]*\([[:space:]]*\^.*?\^[^()]*\)[[:space:]]*\z/m.freeze
+
+    # Texto de una fila de Grid3D para el label: sin el piping de conteo del final y, si ese
+    # piping referencia a OTRA fila de un Grid3D (F8: "Setor privado (^Sum(f('f7x1')['1'])^
+    # pacientes)" -> f7x1 es "Artrite Psoriasica"), con esa fila como contexto delante
+    # ("Artrite Psoriasica - Setor privado"): sin eso F8X1 y F8A1 (Artrite / Espondilite) no se
+    # distinguen. Si el texto ya contiene ese contexto (F7: "Artrite Psoriasica (^Sum(f('f6a1')...")
+    # no se repite.
+    def grid3d_row_text(row_node)
+      text = clean_text(text_of(row_node))
+      return text unless text
+
+      piped = text[TRAILING_PIPING]
+      return text unless piped
+
+      base = text.sub(TRAILING_PIPING, '').strip
+      context = piped_row_context(piped, row_node)
+      return base if context.nil? || base.downcase.include?(context.downcase)
+
+      "#{context} - #{base}"
+    end
+
+    def piped_row_context(piped_text, row_node)
+      piped_text.scan(/f\(\s*'([^']+)'\s*\)/).flatten.map(&:downcase).uniq.each do |name|
+        node = find_question_node(name)
+        next unless node && !node.equal?(row_node) && node.ancestors('Grid3D').any?
+
+        context = clean_text(text_of(node))&.sub(TRAILING_PIPING, '')&.strip
+        return context if context.present?
+      end
+      nil
     end
 
     # Recursivo: una PredefinedList puede reenviar a otra en vez de (o

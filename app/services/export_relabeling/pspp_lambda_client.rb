@@ -27,6 +27,24 @@ module ExportRelabeling
     FUNCTION_NAME = ENV.fetch('PSPP_LAMBDA_FUNCTION', 'finepanel-pspp-compiler')
     REGION = ENV.fetch('AWS_REGION', 'us-east-1')
 
+    # Fallos de INFRAESTRUCTURA de la Lambda (no de PSPP): el arranque en frio de la imagen,
+    # un timeout, el throttling, un error del servicio. PSPP compila un archivo como el de
+    # FP-18810G en milisegundos, asi que un "Task timed out after 90 seconds" (visto con
+    # p803162949296) es la Lambda y no los datos: el reenvio posterior funciono sin tocar nada.
+    # Se reintenta antes de dar el export por fallido. Un fallo de PSPP (no genero el .sav,
+    # sintaxis invalida) NO se reintenta: fallaria igual.
+    class TransientLambdaError < RuntimeError; end
+
+    TRANSIENT_PAYLOAD = /Sandbox\.Timedout|Task timed out|Runtime\.(ExitError|OutOfMemory)|Rate Exceeded|ServiceException|TooManyRequests/i.freeze
+    TRANSIENT_ERRORS = [
+      TransientLambdaError,
+      Aws::Lambda::Errors::TooManyRequestsException,
+      Aws::Lambda::Errors::ServiceException,
+      Seahorse::Client::NetworkingError
+    ].freeze
+    MAX_ATTEMPTS = 3
+    RETRY_DELAYS = [5, 15].freeze
+
     def self.compile(sps_path:, data_path:, output_path:)
       new(sps_path, data_path, output_path).compile
     end
@@ -42,7 +60,7 @@ module ExportRelabeling
       upload(@sps_path, sps_key)
       upload(@data_path, data_key)
 
-      invoke_lambda
+      invoke_lambda_with_retries
       download(sav_key, @output_path)
     ensure
       cleanup
@@ -55,6 +73,21 @@ module ExportRelabeling
     # que tarda compilar. http_read_timeout mas generoso que el default del
     # SDK, para no cortar la espera antes de que Lambda termine con un
     # archivo de datos grande.
+    def invoke_lambda_with_retries
+      attempt = 0
+      begin
+        attempt += 1
+        invoke_lambda
+      rescue *TRANSIENT_ERRORS => e
+        raise if attempt >= MAX_ATTEMPTS
+
+        delay = RETRY_DELAYS[attempt - 1] || RETRY_DELAYS.last
+        Rails.logger.warn("[PsppLambdaClient] intento #{attempt}/#{MAX_ATTEMPTS} fallo (#{e.class}: #{e.message.to_s[0, 200]}), reintento en #{delay}s")
+        sleep(delay)
+        retry
+      end
+    end
+
     def invoke_lambda
       response = lambda_client.invoke(
         function_name: FUNCTION_NAME,
@@ -62,7 +95,11 @@ module ExportRelabeling
         payload: { bucket: BUCKET, sps_key: sps_key, data_key: data_key, sav_key: sav_key }.to_json
       )
 
-      raise "PSPP Lambda fallo: #{response.payload.read}" if response.function_error
+      return unless response.function_error
+
+      payload = response.payload.read
+      error_class = payload.match?(TRANSIENT_PAYLOAD) ? TransientLambdaError : RuntimeError
+      raise error_class, "PSPP Lambda fallo: #{payload}"
     end
 
     def sps_key

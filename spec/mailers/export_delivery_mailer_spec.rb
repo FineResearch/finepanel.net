@@ -499,6 +499,18 @@ Quotas:
       expect(deliver(:processing_error)['content'].first['value']).to include('fallo el re-etiquetado')
     end
 
+    it 'un desfasaje de datos explica la verificacion y cita el zip original guardado' do
+      body = deliver(:data_mismatch, detail: '120 de 21251 celdas no coinciden', evidence: 'evidence/2026/11/16/p1/spss_ab_x.zip')['content'].first['value']
+
+      expect(body).to include('NO coinciden con los del .dat original')
+      expect(body).to include('Error: 120 de 21251 celdas no coinciden')
+      expect(body).to include("Zip original guardado en s3://#{ExportRelabeling::PsppLambdaClient::BUCKET}/evidence/2026/11/16/p1/spss_ab_x.zip (se conserva unos 30 dias)")
+    end
+
+    it 'sin evidencia guardada no menciona ningun zip' do
+      expect(deliver(:permission_denied)['content'].first['value']).not_to include('Zip original guardado')
+    end
+
     it 'recorta un error larguisimo' do
       body = deliver(:processing_error, detail: "x#{'y' * 2000}")['content'].first['value']
 

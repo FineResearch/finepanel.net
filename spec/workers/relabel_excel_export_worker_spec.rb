@@ -9,6 +9,8 @@ RSpec.describe RelabelExcelExportWorker do
   # Ver mismo comentario en relabel_spss_export_worker_spec.rb -- sin esto
   # cada test pegaria a la API real de Confirmit.
   before { allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call).and_return(nil) }
+  # El zip original se guarda en S3 (ver EvidenceStore): en los tests no se toca la red.
+  before { allow(ExportRelabeling::EvidenceStore).to receive(:save).and_return(nil) }
 
   let(:sheet_xml) do
     <<~XML
@@ -733,6 +735,18 @@ RSpec.describe RelabelExcelExportWorker do
         expect(captured[:output_paths]).to eq([zip_path])
         expect(captured[:relabeled]).to be false
       end
+    end
+
+    it 'guarda una copia del zip original y la cita en el aviso (para reproducir el reclamo despues)' do
+      allow(ExportRelabeling::EvidenceStore).to receive(:save).and_return('evidence/2026/11/16/p123456/excel_ab12_x.zip')
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect(ExportRelabeling::EvidenceStore).to have_received(:save).with(hash_including(project_id: 'p123456', export_type: :excel))
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
+        .with(anything, 'p123456', hash_including(evidence: 'evidence/2026/11/16/p123456/excel_ab12_x.zip'))
     end
 
     it 'con todo en orden no retiene nada: el export se entrega' do

@@ -699,4 +699,99 @@ RSpec.describe ExportRelabeling::ConfirmitVariableLookup do
       expect(plain.column_position('f0')).to be_nil
     end
   end
+
+  # p803162949296 (FP-18810G), preguntas F6a/F7/F8: las filas anidadas de un Grid3D traen
+  # una lista propia de respuestas (la de diagnosticos), pero las columnas exportadas
+  # ("f6a1_2") son las respuestas del Grid3D (Leve/Moderada/Grave). Se usaba la lista de la fila
+  # y F6A1_2 salia como "Espondilite Anquilosante | Artrite Psoriasica (^f('f6')['1']^ pacientes)".
+  describe 'filas de un Grid3D que arrastran una lista propia de respuestas' do
+    let(:nbsp) { " " }
+    let(:rows_lookup) do
+      described_class.new(<<~XML)
+        <Grid3D EntityId="1"><Name>gf6a</Name>
+          <FormTexts><FormText Language="1046"><Title>F6a</Title><Text>Considerando os seus pacientes, como os distribuiria entre as severidades?</Text></FormText></FormTexts>
+          <Nodes>
+            <Multi EntityId="2"><Name>f6a1</Name>
+              <FormTexts><FormText Language="1046"><Title></Title><Text>Artrite Psori&#225;sica&#160;(^f('f6')['1']^ pacientes)</Text></FormText></FormTexts>
+              <MultiAnswers><Predefined ListSource="9" /></MultiAnswers></Multi>
+          </Nodes>
+          <Grid3DAnswers>
+            <Answer Precode="1"><Texts><Text Language="1046">Leve</Text></Texts></Answer>
+            <Answer Precode="2"><Texts><Text Language="1046">Moderada</Text></Texts></Answer>
+          </Grid3DAnswers>
+        </Grid3D>
+        <PredefinedList EntityId="9"><PredefinedListAnswers>
+          <Answer Precode="1"><Texts><Text Language="1046">Artrite Psori&#225;sica</Text></Texts></Answer>
+          <Answer Precode="2"><Texts><Text Language="1046">Espondilite Anquilosante</Text></Texts></Answer>
+        </PredefinedListAnswers></PredefinedList>
+        <Grid3D EntityId="3"><Name>gf7</Name>
+          <FormTexts><FormText Language="1046"><Title>F7</Title><Text>Considerando os seus pacientes moderados a graves, como os distribuiria entre os setores?</Text></FormText></FormTexts>
+          <Nodes>
+            <Multi EntityId="4"><Name>f7x1</Name>
+              <FormTexts><FormText Language="1046"><Title></Title><Text>Artrite Psori&#225;sica&#160;(^Sum(f('f6a1')['2'],f('f6a1')['3'])^ pacientes)</Text></FormText></FormTexts>
+              <MultiAnswers><Predefined ListSource="9" /></MultiAnswers></Multi>
+          </Nodes>
+          <Grid3DAnswers><Answer Precode="1"><Texts><Text Language="1046">&lt;strong&gt;Setor privado&lt;/strong&gt;&lt;br /&gt;(custeado pelo convenio)</Text></Texts></Answer></Grid3DAnswers>
+        </Grid3D>
+        <Grid3D EntityId="5"><Name>gf8</Name>
+          <FormTexts><FormText Language="1046"><Title>F8</Title><Text>Como distribuiria os seus pacientes entre os seguintes perfis:</Text></FormText></FormTexts>
+          <Nodes>
+            <Multi EntityId="6"><Name>f8x1</Name>
+              <FormTexts><FormText Language="1046"><Title></Title><Text>Setor privado&#160;(^Sum(f('f7x1')['1'])^ pacientes)</Text></FormText></FormTexts>
+              <MultiAnswers><Predefined ListSource="9" /></MultiAnswers></Multi>
+          </Nodes>
+          <Grid3DAnswers><Answer Precode="1"><Texts><Text Language="1046">Ainda nao receberam tratamento</Text></Texts></Answer></Grid3DAnswers>
+        </Grid3D>
+        <Grid3D EntityId="7"><Name>gf5</Name>
+          <FormTexts><FormText Language="1046"><Title>F5</Title><Text>Dos seus pacientes, quantos tem as seguintes condicoes?</Text></FormText></FormTexts>
+          <Nodes>
+            <Multi EntityId="8"><Name>f5</Name>
+              <FormTexts><FormText Language="1046"><Title>F5</Title><Text>Total de pacientes atendidos</Text></FormText></FormTexts>
+              <MultiAnswers><Answer Precode="A"><Texts><Text Language="1046">Psor&#237;ase</Text></Texts></Answer></MultiAnswers></Multi>
+          </Nodes>
+        </Grid3D>
+      XML
+    end
+
+    it 'toma la columna del Grid3D (no la lista de la fila): fila | columna | TITULO. enunciado, con la fila sin el piping del final' do
+      expect(rows_lookup.call('F6A1_2')).to eq(
+        code: 'F6a', attribute: 'Artrite Psoriásica | Moderada',
+        question: 'Considerando os seus pacientes, como os distribuiria entre as severidades?'
+      )
+      expect(rows_lookup.call('F6A1_1')[:attribute]).to eq('Artrite Psoriásica | Leve')
+    end
+
+    it 'si el piping del final referencia a la fila de otro Grid3D que YA esta en el texto, no se repite' do
+      expect(rows_lookup.call('F7X1_1')[:attribute]).to eq('Artrite Psoriásica | Setor privado(custeado pelo convenio)')
+    end
+
+    it 'si el piping referencia a la fila de otro Grid3D que NO esta en el texto, esa fila va de contexto (F8: diagnostico - setor)' do
+      expect(rows_lookup.call('F8X1_1')).to eq(
+        code: 'F8', attribute: 'Artrite Psoriásica - Setor privado | Ainda nao receberam tratamento',
+        question: 'Como distribuiria os seus pacientes entre os seguintes perfis:'
+      )
+    end
+
+    it 'un Grid3D que no declara esa columna sigue usando las respuestas propias de la fila (gf5)' do
+      expect(rows_lookup.call('F5_A')[:attribute]).to eq('Psoríase')
+    end
+
+    # F5 y F7 de p588393362171: la fila repite las opciones del Grid3D. Esos labels ya se
+    # entregaron y no tienen que cambiar por arreglar F6a/F7/F8.
+    it 'si la lista de la fila y la columna del Grid3D dicen lo mismo, queda el formato de siempre (no cambia labels ya entregados)' do
+      same_lists = described_class.new(<<~XML)
+        <Grid3D EntityId="1"><Name>gf7b</Name>
+          <FormTexts><FormText Language="1046"><Title>F7</Title><Text>Distribua os pacientes por severidade</Text></FormText></FormTexts>
+          <Nodes>
+            <Multi EntityId="2"><Name>f7b</Name>
+              <FormTexts><FormText Language="1046"><Title>F7</Title><Text>Pacientes atendidos</Text></FormText></FormTexts>
+              <MultiAnswers><Answer Precode="A"><Texts><Text Language="1046">Leve</Text></Texts></Answer></MultiAnswers></Multi>
+          </Nodes>
+          <Grid3DAnswers><Answer Precode="A"><Texts><Text Language="1046">Leve</Text></Texts></Answer></Grid3DAnswers>
+        </Grid3D>
+      XML
+
+      expect(same_lists.call('F7B_A')).to eq(code: 'F7', attribute: 'Leve', question: 'Pacientes atendidos')
+    end
+  end
 end

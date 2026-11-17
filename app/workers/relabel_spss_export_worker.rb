@@ -63,6 +63,10 @@ class RelabelSpssExportWorker
     @schema_unavailable = false
     @missing_variables = []
     alert_project = project_id.presence || project_title
+    @failure_type = nil
+    # Copia del zip original de Confirmit para poder reproducir un reclamo despues (ver
+    # EvidenceStore); de mejor esfuerzo.
+    @evidence_key = ExportRelabeling::EvidenceStore.save(zip_path: zip_path, project_id: project_id, export_type: EXPORT_TYPE)
 
     # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida) el export no
     # se puede re-etiquetar bien: se retiene con un aviso en vez de mandarlo como
@@ -73,7 +77,7 @@ class RelabelSpssExportWorker
     return if schema.failure && hold_export(recipients, alert_project, schema.failure, schema.detail, zip_path)
 
     output_paths, relabeled, metadata_info, delivery_zip_name = build_output_paths(zip_path, schema.lookup, email_body)
-    return if !relabeled && hold_export(recipients, alert_project, :processing_error, @pipeline_error, zip_path)
+    return if !relabeled && hold_export(recipients, alert_project, @failure_type || :processing_error, @pipeline_error, zip_path)
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
@@ -122,6 +126,7 @@ class RelabelSpssExportWorker
     [output_paths, true, metadata_info, delivery_zip_name]
   rescue StandardError => e
     @pipeline_error = "#{e.class}: #{e.message}"
+    @failure_type = :data_mismatch if e.is_a?(ExportRelabeling::SavVerifier::MismatchError)
     Rails.logger.error("[RelabelSpssExportWorker] fallo el pipeline de re-etiquetado: #{@pipeline_error}")
     [[zip_path], false, blank_metadata_info, nil]
   end
@@ -242,7 +247,7 @@ class RelabelSpssExportWorker
     Rails.logger.error("[#{self.class.name}] export retenido (#{alert_type}) de #{alert_project.presence || 'proyecto no identificado'}: #{detail}")
     ExportRelabeling::ProcessingAlertNotifier.hold(
       recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE, alert_type: alert_type,
-      detail: detail, filename: File.basename(zip_path.to_s)
+      detail: detail, filename: File.basename(zip_path.to_s), evidence: @evidence_key
     )
   end
 
@@ -280,8 +285,21 @@ class RelabelSpssExportWorker
     # agregando "_relabeled" para distinguirlo del original.
     sav_path = sps_path.sub(/\.sps\z/, '_relabeled.sav')
     ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: prepared_data.path, output_path: sav_path)
+    verify_sav(sav_path, original, data_path)
 
     sav_path
+  end
+
+  # Antes de entregar, se comparan celdas del .sav contra el .dat ORIGINAL (ver SavVerifier). Un
+  # .sav con las columnas corridas -- el caso de FP-18810G -- levanta MismatchError y el export se
+  # retiene con aviso (a Diego siempre). Si la verificacion misma no se puede hacer (formato no
+  # soportado, error al leer), se entrega como antes: no es un fallo del .sav.
+  def verify_sav(sav_path, ordered_sps_text, data_path)
+    ExportRelabeling::SavVerifier.call(sav_path: sav_path, sps_text: ordered_sps_text, data_path: data_path)
+  rescue ExportRelabeling::SavVerifier::MismatchError
+    raise
+  rescue StandardError => e
+    Rails.logger.error("[RelabelSpssExportWorker] no se pudo verificar #{File.basename(sav_path)}, se entrega sin verificar: #{e.class} #{e.message}")
   end
 
   def resolve_data_file_path(sps_text)

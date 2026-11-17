@@ -84,4 +84,83 @@ RSpec.describe ExportRelabeling::PsppLambdaClient do
       expect(deleted_keys.length).to eq(3)
     end
   end
+
+  # p803162949296: "Task timed out after 90.00 seconds" -- PSPP compila ese archivo en
+  # milisegundos, asi que es la Lambda (arranque en frio, etc.) y el reenvio funciono. Se
+  # reintenta antes de dar el export por fallido.
+  describe 'reintentos ante fallos transitorios de la Lambda' do
+    let(:dir) { Dir.mktmpdir }
+    let(:sps_path) { File.join(dir, 'input.sps') }
+    let(:data_path) { File.join(dir, 'data.asc') }
+    let(:output_path) { File.join(dir, 'output.sav') }
+    let(:timeout_payload) do
+      instance_double('payload', read: '{"errorType":"Sandbox.Timedout","errorMessage":"Task timed out after 90.00 seconds"}')
+    end
+    let(:timeout_response) do
+      instance_double(Aws::Lambda::Types::InvocationResponse, function_error: 'Unhandled', payload: timeout_payload)
+    end
+    let(:ok_response) { instance_double(Aws::Lambda::Types::InvocationResponse, function_error: nil) }
+
+    before do
+      File.write(sps_path, 'x')
+      File.write(data_path, 'x')
+      allow(s3_client).to receive(:put_object)
+      allow(s3_client).to receive(:delete_object)
+      sav_body = instance_double('body', read: 'sav')
+      allow(s3_client).to receive(:get_object).and_return(instance_double(Aws::S3::Types::GetObjectOutput, body: sav_body))
+      allow_any_instance_of(described_class).to receive(:sleep)
+    end
+
+    after { FileUtils.rm_rf(dir) }
+
+    def compile
+      described_class.compile(sps_path: sps_path, data_path: data_path, output_path: output_path)
+    end
+
+    it 'si la primera invocacion da timeout y la segunda sale bien, termina OK (sin subir los archivos de nuevo)' do
+      allow(lambda_client).to receive(:invoke).and_return(timeout_response, ok_response)
+
+      expect { compile }.not_to raise_error
+
+      expect(lambda_client).to have_received(:invoke).twice
+      expect(s3_client).to have_received(:put_object).twice # .sps y .dat, una sola vez
+      expect(File.read(output_path)).to eq('sav')
+    end
+
+    it 'si falla todas las veces, levanta el error despues de 3 intentos' do
+      allow(lambda_client).to receive(:invoke).and_return(timeout_response)
+
+      expect { compile }.to raise_error(described_class::TransientLambdaError, /Task timed out/)
+
+      expect(lambda_client).to have_received(:invoke).exactly(3).times
+    end
+
+    it 'reintenta tambien ante un error de red y ante throttling' do
+      allow(lambda_client).to receive(:invoke)
+        .and_raise(Seahorse::Client::NetworkingError.new(Net::ReadTimeout.new('timeout')))
+      expect { compile }.to raise_error(Seahorse::Client::NetworkingError)
+      expect(lambda_client).to have_received(:invoke).exactly(3).times
+    end
+
+    it 'NO reintenta un fallo de PSPP (no genero el .sav): fallaria igual' do
+      pspp_failure = instance_double('payload', read: '{"errorMessage":"PSPP no genero el .sav esperado. exit=1"}')
+      allow(lambda_client).to receive(:invoke).and_return(
+        instance_double(Aws::Lambda::Types::InvocationResponse, function_error: 'Unhandled', payload: pspp_failure)
+      )
+
+      expect { compile }.to raise_error(RuntimeError, /PSPP no genero/)
+
+      expect(lambda_client).to have_received(:invoke).once
+    end
+
+    it 'espera entre intentos (5 s y despues 15 s)' do
+      allow(lambda_client).to receive(:invoke).and_return(timeout_response, timeout_response, ok_response)
+      delays = []
+      allow_any_instance_of(described_class).to receive(:sleep) { |_, seconds| delays << seconds }
+
+      compile
+
+      expect(delays).to eq([5, 15])
+    end
+  end
 end

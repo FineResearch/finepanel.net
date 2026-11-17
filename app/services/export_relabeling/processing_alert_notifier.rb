@@ -42,15 +42,27 @@ module ExportRelabeling
     # recibe como relabelled algo que no lo esta). Devuelve true si el aviso salio;
     # si no se pudo mandar (mail caido, etc.) devuelve false y el worker entrega el
     # export como antes, porque sin aviso nadie se enteraria de que quedo retenido.
-    def self.hold(recipients:, project_id:, export_type:, alert_type:, detail: nil, filename: nil)
+    def self.hold(recipients:, project_id:, export_type:, alert_type:, detail: nil, filename: nil, evidence: nil)
       ExportDeliveryMailer.processing_alert_email(
-        InternalAlertRecipients.call(recipients), project_id, export_type: export_type, alert_type: alert_type,
-        held: true, detail: detail, filename: filename, intended_recipients: Array(recipients)
+        hold_recipients(recipients, alert_type), project_id, export_type: export_type, alert_type: alert_type,
+        held: true, detail: detail, filename: filename, intended_recipients: Array(recipients), evidence: evidence
       ).deliver_now
       true
     rescue StandardError => e
       Rails.logger.error("[ProcessingAlertNotifier] no se pudo avisar la retencion de #{project_id} (#{alert_type}), se entrega el export: #{e.class} #{e.message}")
       false
+    end
+
+    # Algunos avisos van SIEMPRE tambien a una persona puntual (Diego: el desfasaje de datos en
+    # un .sav, que es lo mas grave: el cliente recibiria datos que no corresponden a sus columnas).
+    ALWAYS_NOTIFIED = {
+      data_mismatch: [ENV.fetch('EXPORT_DATA_MISMATCH_ALERT_EMAIL', 'dcasar@fine-research.com')]
+    }.freeze
+
+    def self.hold_recipients(recipients, alert_type)
+      targets = InternalAlertRecipients.call(recipients)
+      extra = ALWAYS_NOTIFIED.fetch(alert_type, [])
+      targets + extra.reject { |email| targets.any? { |target| target.casecmp?(email) } }
     end
 
     def initialize(recipients:, project_id:, export_type:, permission_denied:, relabeled:, missing_variables:, project_unidentified:, schema_unavailable: false)

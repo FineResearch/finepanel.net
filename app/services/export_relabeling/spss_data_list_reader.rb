@@ -37,11 +37,18 @@ module ExportRelabeling
     # "F9_1 65-65") -- confirmado contra un .sps real de Confirmit: son las
     # casillas 0/1 de las preguntas multiples, y antes quedaban fuera del
     # Dictionary, de las cuotas y del detector de variables faltantes.
-    VARIABLE_DEF = /\A(\S+)\s+(\d+)(?:-(\d+))?(?:\s*\([^)]*\))?\z/.freeze
+    VARIABLE_DEF = /\A(\S+)\s+(\d+)(?:-(\d+))?(?:\s*\(([^)]*)\))?\z/.freeze
     LABEL_LINE = /\A(\S+)\s+'((?:[^']|'')*)'\z/.freeze
 
     def self.call(sps_text:, data_path:)
       new(sps_text, data_path).call
+    end
+
+    # Columnas del DATA LIST ([{name:, start:, end:, format:}], format = lo que va entre
+    # parentesis: "A" para texto, "2" para 2 decimales implicitos, nil si no hay), sin
+    # leer el archivo de datos -- lo usa SavVerifier.
+    def self.columns(sps_text)
+      new(sps_text, nil).send(:parse_data_list)
     end
 
     def initialize(sps_text, data_path)
@@ -72,7 +79,7 @@ module ExportRelabeling
         next if line.empty? || line.match?(RECORD_MARKER) || line.match?(SKIP_LINE)
 
         match = VARIABLE_DEF.match(line)
-        columns << { name: match[1], start: match[2].to_i, end: (match[3] || match[2]).to_i } if match
+        columns << { name: match[1], start: match[2].to_i, end: (match[3] || match[2]).to_i, format: match[4]&.strip } if match
       end
       columns
     end
