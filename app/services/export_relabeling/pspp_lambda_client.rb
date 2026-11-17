@@ -42,6 +42,11 @@ module ExportRelabeling
       Aws::Lambda::Errors::ServiceException,
       Seahorse::Client::NetworkingError
     ].freeze
+    # La funcion tiene un timeout de 180 s (antes 90: p803162949296 dio "Task timed out after 90.00 seconds"
+    # en un arranque en frio). El cliente espera un poco MAS que eso: si cortara antes, reintentaria una
+    # invocacion que la Lambda todavia esta ejecutando.
+    LAMBDA_TIMEOUT = 180
+    LAMBDA_READ_TIMEOUT = LAMBDA_TIMEOUT + 30
     MAX_ATTEMPTS = 3
     RETRY_DELAYS = [5, 15].freeze
 
@@ -139,7 +144,7 @@ module ExportRelabeling
     end
 
     def lambda_client
-      @lambda_client ||= Aws::Lambda::Client.new(region: REGION, http_read_timeout: 150)
+      @lambda_client ||= Aws::Lambda::Client.new(region: REGION, http_read_timeout: LAMBDA_READ_TIMEOUT)
     end
   end
 end
