@@ -26,6 +26,7 @@ require 'zip'
 # (ver #build_metadata_excel).
 class RelabelSpssExportWorker
   include Sidekiq::Worker
+  include ExportRelabeling::OriginalDelivery
   sidekiq_options retry: 3
 
   WORK_ROOT = Rails.root.join('tmp', 'relabel_spss')
@@ -71,16 +72,23 @@ class RelabelSpssExportWorker
     # NINGUN rastro y no se podia saber si un mail habia llegado (FP-18915G).
     logger.info("[#{self.class.name}] export recibido: proyecto=#{alert_project.presence || 'no identificado'} archivo=#{File.basename(zip_path.to_s)} destinatarios=#{Array(recipients).length}")
 
-    # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida) el export no
-    # se puede re-etiquetar bien: se retiene con un aviso en vez de mandarlo como
-    # "_relabeled" sin serlo (ver #hold_export).
+    # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida), si el proceso falla o si el .sav no
+    # coincide con el .dat (ver SavVerifier), el export no se puede relabellear bien: se entrega tal como
+    # llego de Confirmit -- el zip original, con su nombre y un mensaje que dice que no esta relabelled -- y se
+    # avisa a Fine (ver ExportRelabeling::OriginalDelivery).
     schema = ExportRelabeling::SchemaFetch.call(project_id)
     @permission_denied = schema.failure == :permission_denied
     @schema_unavailable = schema.failure == :schema_unavailable
-    return if schema.failure && hold_export(recipients, alert_project, schema.failure, schema.detail, zip_path)
+    if schema.failure
+      deliver_original(zip_path, recipients, project_id, project_title, interview_status_filter, alert_project, schema.failure, schema.detail)
+      return
+    end
 
     output_paths, relabeled, metadata_info, delivery_zip_name = build_output_paths(zip_path, schema.lookup, email_body)
-    return if !relabeled && hold_export(recipients, alert_project, @failure_type || :processing_error, @pipeline_error, zip_path)
+    unless relabeled
+      deliver_original(zip_path, recipients, project_id, project_title, interview_status_filter, alert_project, @failure_type || :processing_error, @pipeline_error)
+      return
+    end
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :spss, relabeled: relabeled,
@@ -242,19 +250,6 @@ class RelabelSpssExportWorker
     { includes_quotas: false, includes_report: false, includes_dictionary: false, quota_lines: [] }
   end
 
-  # Retiene el export en vez de entregarlo (Diego: "siempre que se pueda hacer un
-  # aviso prefiero el aviso que un envio" -- el cliente no tiene que recibir como
-  # relabelled algo que no lo esta). Avisa a Fine con el motivo y el error; devuelve
-  # true si el aviso salio. Si no se pudo avisar devuelve false y el export se
-  # entrega como antes, porque sin aviso nadie sabria que quedo retenido.
-  def hold_export(recipients, alert_project, alert_type, detail, zip_path)
-    Rails.logger.error("[#{self.class.name}] export retenido (#{alert_type}) de #{alert_project.presence || 'proyecto no identificado'}: #{detail}")
-    ExportRelabeling::ProcessingAlertNotifier.hold(
-      recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE, alert_type: alert_type,
-      detail: detail, filename: File.basename(zip_path.to_s), evidence: @evidence_key
-    )
-  end
-
   def extract_zip(zip_path, work_dir)
     Zip::File.open(zip_path) do |zip_file|
       zip_file.each { |entry| entry.extract(work_dir.join(entry.name).to_s) }
@@ -295,8 +290,8 @@ class RelabelSpssExportWorker
   end
 
   # Antes de entregar, se comparan celdas del .sav contra el .dat ORIGINAL (ver SavVerifier). Un
-  # .sav con las columnas corridas -- el caso de FP-18810G -- levanta MismatchError y el export se
-  # retiene con aviso (a Diego siempre). Si la verificacion misma no se puede hacer (formato no
+  # .sav con las columnas corridas -- el caso de FP-18810G -- levanta MismatchError y se entrega el original
+  # de Confirmit con aviso (a Diego siempre). Si la verificacion misma no se puede hacer (formato no
   # soportado, error al leer), se entrega como antes: no es un fallo del .sav.
   def verify_sav(sav_path, ordered_sps_text, data_path)
     ExportRelabeling::SavVerifier.call(sav_path: sav_path, sps_text: ordered_sps_text, data_path: data_path)

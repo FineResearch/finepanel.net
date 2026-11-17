@@ -53,6 +53,20 @@ module ExportRelabeling
       false
     end
 
+    # Aviso interno de un export que NO se pudo relabellear pero SI se entrego al cliente como llego de
+    # Confirmit (hoy, el Excel: Diego -- retenerlo arriesgaba perder eventos de farmacovigilancia). Mejor
+    # esfuerzo: el export ya salio, un fallo aca solo se loguea.
+    def self.original_sent(recipients:, project_id:, export_type:, alert_type:, detail: nil, filename: nil, evidence: nil)
+      ExportDeliveryMailer.processing_alert_email(
+        hold_recipients(recipients, alert_type), project_id, export_type: export_type, alert_type: alert_type,
+        original_sent: true, detail: detail, filename: filename, intended_recipients: Array(recipients), evidence: evidence
+      ).deliver_now
+      true
+    rescue StandardError => e
+      Rails.logger.error("[ProcessingAlertNotifier] no se pudo avisar el envio del original de #{project_id} (#{alert_type}): #{e.class} #{e.message}")
+      false
+    end
+
     # Algunos avisos van SIEMPRE tambien a una persona puntual (Diego: el desfasaje de datos en
     # un .sav, que es lo mas grave: el cliente recibiria datos que no corresponden a sus columnas).
     ALWAYS_NOTIFIED = {

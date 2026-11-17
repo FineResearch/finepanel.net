@@ -274,4 +274,33 @@ RSpec.describe ExportRelabeling::ProcessingAlertNotifier do
         .with(['natalia@fine-research.com'], 'p123456', anything)
     end
   end
+
+  describe '.original_sent: aviso de un export entregado como llego de Confirmit' do
+    def original_sent(recipients)
+      delivery = instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(delivery)
+      described_class.original_sent(recipients: recipients, project_id: 'p123456', export_type: :excel, alert_type: :permission_denied, detail: 'x')
+    end
+
+    it 'va a los @fine-research.com del envio, marcado como original_sent, con quienes recibieron el archivo' do
+      expect(original_sent(['cliente@iqvia.com', 'natalia@fine-research.com'])).to be true
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email).with(
+        ['natalia@fine-research.com'], 'p123456',
+        hash_including(original_sent: true, intended_recipients: ['cliente@iqvia.com', 'natalia@fine-research.com'])
+      )
+    end
+
+    it 'sin ninguna direccion de Fine, va a panel@fine-research.com' do
+      original_sent(['cliente@iqvia.com'])
+
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email).with(['panel@fine-research.com'], 'p123456', anything)
+    end
+
+    it 'es de mejor esfuerzo: si el mail falla, devuelve false y no levanta (el export ya salio)' do
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_raise(StandardError, 'sendgrid caido')
+
+      expect(described_class.original_sent(recipients: ['a@fine-research.com'], project_id: 'p1', export_type: :excel, alert_type: :permission_denied)).to be false
+    end
+  end
 end

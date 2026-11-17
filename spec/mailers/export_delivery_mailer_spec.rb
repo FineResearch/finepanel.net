@@ -187,28 +187,58 @@ RSpec.describe ExportDeliveryMailer do
     end
   end
 
-  # Diego: "lo mas seguro seria que si algo falla se envie lo mismo que se
-  # recibio" -- cuando el worker manda la base sin re-etiquetar (fallback),
-  # el cuerpo tiene que avisarlo, nunca decir que la validacion automatica
-  # paso cuando justamente fallo.
-  it 'con relabeled: false, avisa en el cuerpo que no se pudo validar/re-etiquetar' do
+  # Diego: un export que NO se pudo relabellear va TAL COMO LLEGO de Confirmit -- el mismo zip, con su nombre, sin
+  # envolverlo en otro zip -- para que se distinga a simple vista de un envio relabelled, y el cuerpo dice que no
+  # esta relabelled y que consulten al PM por el documento relabelled.
+  it 'con relabeled: false adjunta el zip ORIGINAL con su nombre (sin envolverlo) y avisa que no esta relabelled' do
     Dir.mktmpdir do |dir|
-      zip_path = File.join(dir, 'input_export.zip')
+      zip_path = File.join(dir, 'FP-18915G - 3432521 - EXCEL_20261117.zip')
       File.write(zip_path, 'contenido zip de prueba')
 
       sent_mail = nil
       allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
 
-      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [zip_path], export_type: :spss, relabeled: false)
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [zip_path], export_type: :excel, relabeled: false)
 
       json = sent_json(sent_mail)
       body = json['content'].first['value']
 
-      expect(json['personalizations'].first['subject']).to eq('p123456 - SPSS Export')
-      expect(body).to include('could not be completed for this delivery')
+      expect(json['personalizations'].first['subject']).to eq('p123456 - Excel Export')
+      expect(body).to include('This is the traditional software default format. In this case the file is not relabelled.')
+      expect(body).to include('Please check with the PM if you need the updated relabelled document.')
       expect(body).not_to include('are automatically validated against the scripted questionnaire prior')
-      expect(json['attachments'].first['filename']).to eq('p123456.zip')
-      expect(zip_entries(json['attachments'].first)).to eq('input_export.zip' => 'contenido zip de prueba')
+      attachment = json['attachments'].first
+      expect(attachment['filename']).to eq('FP-18915G - 3432521 - EXCEL_20261117.zip')
+      expect(Base64.decode64(attachment['content'])).to eq('contenido zip de prueba')
+    end
+  end
+
+  it 'el zip original NO se borra despues de enviarlo (es del worker, que ya lo limpia en su ensure)' do
+    Dir.mktmpdir do |dir|
+      zip_path = File.join(dir, 'original.zip')
+      File.write(zip_path, 'contenido')
+      allow_any_instance_of(described_class).to receive(:send_email)
+
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [zip_path], export_type: :excel, relabeled: false)
+
+      expect(File.exist?(zip_path)).to be true
+      expect(Dir.exist?(dir)).to be true
+    end
+  end
+
+  it 'con relabeled: false pero un archivo que no es zip, lo empaqueta como siempre' do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'datos.sav')
+      File.write(path, 'contenido sav')
+
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+
+      described_class.new.relabeled_export_email(['a@cliente.com'], 'p123456', [path], export_type: :spss, relabeled: false)
+
+      attachment = sent_json(sent_mail)['attachments'].first
+      expect(attachment['filename']).to eq('p123456.zip')
+      expect(zip_entries(attachment)).to eq('datos.sav' => 'contenido sav')
     end
   end
 
@@ -515,6 +545,33 @@ Quotas:
       body = deliver(:processing_error, detail: "x#{'y' * 2000}")['content'].first['value']
 
       expect(body.lines.find { |line| line.start_with?('Error:') }.length).to be < 600
+    end
+  end
+
+  # Export Excel que no se pudo relabellear y se entrego como llego de Confirmit (ver RelabelExcelExportWorker).
+  describe '#processing_alert_email con el export enviado sin relabellear' do
+    def deliver(alert_type, **extra)
+      sent_mail = nil
+      allow_any_instance_of(described_class).to receive(:send_email) { |_, mail| sent_mail = mail }
+      described_class.new.processing_alert_email(
+        ['dcasar@fine-research.com'], 'p899583054321', export_type: :excel, alert_type: alert_type, original_sent: true,
+        filename: 'FP-18915G - EXCEL_20261117.zip', intended_recipients: ['cliente@iqvia.com', 'dcasar@fine-research.com'], **extra
+      )
+      sent_json(sent_mail)
+    end
+
+    it 'avisa que el cliente recibio el ORIGINAL sin relabellear, con motivo, archivo, error y a quienes les llego' do
+      json = deliver(:permission_denied, detail: 'Permission denied')
+
+      expect(json['personalizations'].first['subject']).to eq('[ALERTA - ENVIADO SIN RELABELLEAR] p899583054321 - Excel Export')
+      body = json['content'].first['value']
+      expect(body).to include('EXPORT ENVIADO SIN RELABELLEAR: el cliente recibio el archivo ORIGINAL de Confirmit')
+      expect(body).not_to include('EXPORT NO ENVIADO')
+      expect(body).to include('el usuario de la API no tiene acceso')
+      expect(body).to include('Archivo: FP-18915G - EXCEL_20261117.zip')
+      expect(body).to include('Error: Permission denied')
+      expect(body).to include('Destinatarios que recibieron el archivo original: cliente@iqvia.com, dcasar@fine-research.com')
+      expect(body).not_to include('Destinatarios que no lo recibieron')
     end
   end
 

@@ -54,6 +54,7 @@ require 'zip'
 # "Report", como crosstab de conteos.
 class RelabelExcelExportWorker
   include Sidekiq::Worker
+  include ExportRelabeling::OriginalDelivery
   sidekiq_options retry: 3
 
   # El Dictionary/Quotas/Report/quota_lines (constantes incluidas, ver
@@ -83,17 +84,25 @@ class RelabelExcelExportWorker
     # NINGUN rastro y no se podia saber si un mail habia llegado (FP-18915G).
     logger.info("[#{self.class.name}] export recibido: proyecto=#{alert_project.presence || 'no identificado'} archivo=#{File.basename(zip_path.to_s)} destinatarios=#{Array(recipients).length}")
 
-    # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida) el export no
-    # se puede re-etiquetar bien: se retiene con un aviso en vez de mandarlo como
-    # "_relabeled" sin serlo (ver #hold_export).
+    # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida), o si el proceso falla, el export no
+    # se puede re-etiquetar bien: el export se entrega tal como llego de Confirmit, con el mismo nombre y un
+    # mensaje que dice que no esta relabelled, y
+    # ademas se avisa a Fine (Diego: retenerlo arriesgaba perder eventos de farmacovigilancia). Ver
+    # ExportRelabeling::OriginalDelivery.
     schema = ExportRelabeling::SchemaFetch.call(project_id)
     @permission_denied = schema.failure == :permission_denied
     @schema_unavailable = schema.failure == :schema_unavailable
-    return if schema.failure && hold_export(recipients, alert_project, schema.failure, schema.detail, zip_path)
+    if schema.failure
+      deliver_original(zip_path, recipients, project_id, project_title, interview_status_filter, alert_project, schema.failure, schema.detail)
+      return
+    end
 
     output_paths, relabeled, includes_quotas, includes_report, includes_dictionary, quota_lines, delivery_zip_name =
       build_output_paths(zip_path, schema.lookup, email_body)
-    return if !relabeled && hold_export(recipients, alert_project, :processing_error, @pipeline_error, zip_path)
+    unless relabeled
+      deliver_original(zip_path, recipients, project_id, project_title, interview_status_filter, alert_project, :processing_error, @pipeline_error)
+      return
+    end
 
     ExportDeliveryMailer.relabeled_export_email(
       recipients, project_id, output_paths, export_type: :excel, relabeled: relabeled,
@@ -160,19 +169,6 @@ class RelabelExcelExportWorker
 
     main_path, = sheets.find { |path, sheet| variable?(sheet, STATUS_VARIABLE) } || sheets.first
     "#{File.basename(main_path, File.extname(main_path))}_relabeled"
-  end
-
-  # Retiene el export en vez de entregarlo (Diego: "siempre que se pueda hacer un
-  # aviso prefiero el aviso que un envio" -- el cliente no tiene que recibir como
-  # relabelled algo que no lo esta). Avisa a Fine con el motivo y el error; devuelve
-  # true si el aviso salio. Si no se pudo avisar devuelve false y el export se
-  # entrega como antes, porque sin aviso nadie sabria que quedo retenido.
-  def hold_export(recipients, alert_project, alert_type, detail, zip_path)
-    Rails.logger.error("[#{self.class.name}] export retenido (#{alert_type}) de #{alert_project.presence || 'proyecto no identificado'}: #{detail}")
-    ExportRelabeling::ProcessingAlertNotifier.hold(
-      recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE, alert_type: alert_type,
-      detail: detail, filename: File.basename(zip_path.to_s), evidence: @evidence_key
-    )
   end
 
   def extract_zip(zip_path, work_dir)

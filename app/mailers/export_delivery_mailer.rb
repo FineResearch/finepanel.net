@@ -70,12 +70,13 @@ class ExportDeliveryMailer < ApplicationMailer
     body = body_for(project_reference(project_id, project_title), recipient_list, relabeled, includes_quotas, includes_report, includes_dictionary, interview_status_filter, quota_lines)
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
-    delivery_zip_path = build_delivery_zip(file_paths, project_id, delivery_zip_name)
+    delivery_zip_path, temporary = delivery_attachment(file_paths, project_id, delivery_zip_name, relabeled)
     mail.add_attachment(build_attachment(delivery_zip_path))
 
     send_email(mail)
   ensure
-    FileUtils.rm_rf(File.dirname(delivery_zip_path)) if delivery_zip_path
+    # Solo se borra el zip que se armo aca: el original (ver #delivery_attachment) es del worker.
+    FileUtils.rm_rf(File.dirname(delivery_zip_path)) if delivery_zip_path && temporary
   end
 
   # Alerta interna (ver ExportRelabeling::ProcessingAlertNotifier) -- NUNCA
@@ -127,15 +128,28 @@ class ExportDeliveryMailer < ApplicationMailer
 
   # held: true = el export se retuvo (ver HELD_MESSAGES); detail es el error tecnico,
   # filename el archivo original e intended_recipients quienes lo iban a recibir.
-  def processing_alert_email(recipients, project_id, export_type:, alert_type:, held: false, detail: nil, filename: nil, intended_recipients: [], evidence: nil)
+  # Un export que no se pudo relabellear pero SI se entrego como llego de Confirmit (hoy, el Excel: ver
+  # RelabelExcelExportWorker). El aviso interno dice por que y a quienes les llego el archivo original.
+  ORIGINAL_SENT_NOTICE = 'EXPORT ENVIADO SIN RELABELLEAR: el cliente recibio el archivo ORIGINAL de Confirmit (formato por defecto), ' \
+                         'con un aviso de que no esta relabelled.'
+
+  def processing_alert_email(recipients, project_id, export_type:, alert_type:, held: false, detail: nil, filename: nil, intended_recipients: [], evidence: nil, original_sent: false)
     mail = SendGrid::Mail.new
     mail.from = Email.new(email: FROM)
 
     personalization = generate_personalization(Array(recipients).join(','))
-    personalization.subject = "[ALERTA#{held ? ' - EXPORT NO ENVIADO' : ''}] #{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
+    tag = if held then ' - EXPORT NO ENVIADO'
+          elsif original_sent then ' - ENVIADO SIN RELABELLEAR'
+          else ''
+          end
+    personalization.subject = "[ALERTA#{tag}] #{project_id} - #{EXPORT_TYPE_LABELS.fetch(export_type)}"
     mail.add_personalization(personalization)
 
-    body = held ? held_alert_body(alert_type, project_id, detail, filename, intended_recipients, evidence) : alert_body(alert_type, project_id)
+    body = if held || original_sent
+             held_alert_body(alert_type, project_id, detail, filename, intended_recipients, evidence, notice: original_sent ? ORIGINAL_SENT_NOTICE : HELD_NOTICE)
+           else
+             alert_body(alert_type, project_id)
+           end
     mail.add_content(SendGrid::Content.new(type: 'text/plain', value: body))
 
     send_email(mail)
@@ -201,12 +215,13 @@ class ExportDeliveryMailer < ApplicationMailer
   # eso habia que deducirlo del asunto).
   MAX_ALERT_DETAIL_LENGTH = 500
 
-  def held_alert_body(alert_type, project_id, detail, filename, intended_recipients, evidence = nil)
-    lines = [HELD_NOTICE, '', HELD_MESSAGES.fetch(alert_type), '']
+  def held_alert_body(alert_type, project_id, detail, filename, intended_recipients, evidence = nil, notice: HELD_NOTICE)
+    lines = [notice, '', HELD_MESSAGES.fetch(alert_type), '']
     lines << "Proyecto: #{project_id.presence || 'no identificado'}"
     lines << "Archivo: #{filename}" if filename.present?
     lines << "Error: #{detail.to_s.squish.truncate(MAX_ALERT_DETAIL_LENGTH)}" if detail.present?
-    lines << "Destinatarios que no lo recibieron: #{Array(intended_recipients).join(', ')}" if Array(intended_recipients).any?
+    recipients_label = notice == ORIGINAL_SENT_NOTICE ? 'Destinatarios que recibieron el archivo original' : 'Destinatarios que no lo recibieron'
+    lines << "#{recipients_label}: #{Array(intended_recipients).join(', ')}" if Array(intended_recipients).any?
     lines << "Zip original guardado en #{ExportRelabeling::EvidenceStore.location(evidence)} (se conserva unos #{ExportRelabeling::EvidenceStore::RETENTION_DAYS} dias)" if evidence.present?
     lines.join("\n")
   end
@@ -249,6 +264,18 @@ class ExportDeliveryMailer < ApplicationMailer
   # @work_dir del worker, que ya se borra en su propio "ensure" antes de
   # que este metodo pueda terminar) y se borra en el "ensure" de arriba
   # apenas se termina de leer para el adjunto.
+  # Un export que NO se pudo relabellear (relabeled: false) va tal como llego de Confirmit: el MISMO zip,
+  # con su nombre original, sin envolverlo en otro -- asi se distingue a simple vista de un envio relabelled
+  # (que se llama "..._relabeled"), y el cliente recibe los datos exactamente como los exporto Confirmit
+  # (Diego: ante un fallo, un evento de farmacovigilancia no puede perderse por no haber enviado el export).
+  # Devuelve [ruta, es_temporal]: solo un zip armado aca se borra despues.
+  def delivery_attachment(file_paths, project_id, delivery_zip_name, relabeled)
+    original = file_paths.first
+    return [original, false] if !relabeled && file_paths.length == 1 && original.to_s.downcase.end_with?('.zip') && File.exist?(original)
+
+    [build_delivery_zip(file_paths, project_id, delivery_zip_name), true]
+  end
+
   def build_delivery_zip(file_paths, project_id, delivery_zip_name)
     zip_dir = Dir.mktmpdir
     zip_path = File.join(zip_dir, "#{delivery_zip_basename(project_id, file_paths, delivery_zip_name)}.zip")
@@ -328,8 +355,8 @@ class ExportDeliveryMailer < ApplicationMailer
   def validation_note(relabeled)
     return 'As part of the process, data structure and variable labeling are automatically validated against the scripted questionnaire prior to delivery.' if relabeled
 
-    'Note: automated validation against the scripted questionnaire could not be completed for this delivery -- ' \
-      'the attached file reflects the data exactly as received, without relabeling.'
+    'This is the traditional software default format. In this case the file is not relabelled. ' \
+      'Please check with the PM if you need the updated relabelled document.'
   end
 
   def quota_lines_section(quota_lines)

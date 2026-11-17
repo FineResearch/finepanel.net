@@ -641,61 +641,66 @@ RSpec.describe RelabelExcelExportWorker do
     end
   end
 
-  # Diego: "siempre que se pueda hacer un aviso prefiero el aviso que un envio": si el
-  # export no se puede procesar bien, NO se manda al cliente como "relabelled" -- se
-  # avisa a Fine con el error (ver ProcessingAlertNotifier.hold). Solo si el aviso no
-  # sale se entrega como antes, porque sin aviso nadie sabria que quedo retenido.
-  describe 'export retenido con aviso (en vez de entregarlo sin relabellear)' do
+  # Diego: retener el Excel arriesgaba perder eventos de farmacovigilancia. Si el export no se puede
+  # relabellear (sin permiso en Confirmit, schema ilegible, proyecto sin ID, fallo del proceso), se
+  # entrega IGUAL el zip original de Confirmit -- mismo nombre, con un mensaje que dice que no esta
+  # relabelled -- y ademas se avisa a Fine. (El SPSS sigue reteniendose con aviso.)
+  describe 'export sin relabellear: se entrega el original y se avisa' do
     let(:recipients) { ['destino@cliente.com', 'dcasar@fine-research.com'] }
     let(:alert_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_now: true) }
+    let(:client_mail) { {} }
 
     before do
       allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_return(alert_delivery)
-      allow(ExportDeliveryMailer).to receive(:relabeled_export_email)
-        .and_return(instance_double(ActionMailer::MessageDelivery, deliver_now: true))
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |recipient_list, project_id, paths, **options|
+        client_mail.merge!(recipients: recipient_list, project_id: project_id, paths: paths, **options)
+        instance_double(ActionMailer::MessageDelivery, deliver_now: true)
+      end
     end
 
-    def expect_held_alert(project_id, alert_type, **extra)
+    def expect_original_sent(alert_type, **extra)
+      expect(client_mail).to include(paths: [zip_path], relabeled: false, export_type: :excel, recipients: recipients)
       expect(ExportDeliveryMailer).to have_received(:processing_alert_email).with(
-        ['dcasar@fine-research.com'], project_id,
-        hash_including(export_type: :excel, alert_type: alert_type, held: true, intended_recipients: recipients, **extra)
+        ['dcasar@fine-research.com'], anything,
+        hash_including(export_type: :excel, alert_type: alert_type, original_sent: true, intended_recipients: recipients, **extra)
       )
-      expect(ExportDeliveryMailer).not_to have_received(:relabeled_export_email)
+      expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email).with(anything, anything, hash_including(held: true))
     end
 
-    it 'sin permiso en Confirmit: avisa a los @fine-research.com con el motivo y no se lo manda al cliente' do
+    it 'sin permiso en Confirmit: entrega el zip original (sin relabellear) y avisa a Fine con el motivo' do
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
         .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
 
       described_class.new.perform(zip_path, 'p123456', recipients)
 
-      expect_held_alert('p123456', :permission_denied, detail: 'Permission denied', filename: 'test_export.zip')
+      expect_original_sent(:permission_denied, detail: 'Permission denied', filename: 'test_export.zip')
     end
 
-    it 'si Confirmit no responde (otro error al leer el schema): lo retiene con el error' do
+    it 'si Confirmit no responde (otro error al leer el schema): entrega el original y avisa' do
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
         .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::SchemaUnavailableError, 'RuntimeError: timeout')
 
       described_class.new.perform(zip_path, 'p123456', recipients)
 
-      expect_held_alert('p123456', :schema_unavailable, detail: 'RuntimeError: timeout')
+      expect_original_sent(:schema_unavailable, detail: 'RuntimeError: timeout')
     end
 
-    it 'sin ID de proyecto: lo retiene (usa el titulo para nombrarlo en el aviso) y ni intenta leer el schema' do
+    it 'sin ID de proyecto: entrega el original (usa el titulo para nombrarlo en el aviso) y ni intenta leer el schema' do
       allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
 
       described_class.new.perform(zip_path, nil, recipients, nil, 'FP-18928G - Hidradenite')
 
       expect(ExportRelabeling::ConfirmitSchemaFetcher).not_to have_received(:call)
-      expect_held_alert('FP-18928G - Hidradenite', :project_unidentified)
+      expect_original_sent(:project_unidentified)
+      expect(ExportDeliveryMailer).to have_received(:processing_alert_email).with(anything, 'FP-18928G - Hidradenite', anything)
     end
 
-    it 'si el pipeline central revienta (ej. el Excel no se puede leer): lo retiene con el error' do
+    it 'si el pipeline central revienta (ej. el Excel no se puede leer): entrega el original y avisa con el error' do
       allow(ExportRelabeling::ExcelReader).to receive(:call).and_raise(StandardError, 'archivo corrupto')
 
       expect { described_class.new.perform(zip_path, 'p123456', recipients) }.not_to raise_error
 
-      expect_held_alert('p123456', :processing_error, detail: 'StandardError: archivo corrupto')
+      expect_original_sent(:processing_error, detail: 'StandardError: archivo corrupto')
     end
 
     it 'si la lista del envio no tiene ningun @fine-research.com, el aviso va a panel@fine-research.com' do
@@ -704,37 +709,44 @@ RSpec.describe RelabelExcelExportWorker do
 
       described_class.new.perform(zip_path, 'p123456', ['destino@cliente.com'])
 
+      expect(client_mail).to include(paths: [zip_path], relabeled: false)
       expect(ExportDeliveryMailer).to have_received(:processing_alert_email)
-        .with(['panel@fine-research.com'], 'p123456', hash_including(held: true))
-      expect(ExportDeliveryMailer).not_to have_received(:relabeled_export_email)
+        .with(['panel@fine-research.com'], 'p123456', hash_including(original_sent: true))
     end
 
-    context 'cuando el aviso NO se puede mandar' do
-      before { allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_raise(StandardError, 'sendgrid caido') }
+    it 'si el aviso interno no sale, el original se entrego igual y no se levanta nada' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+      allow(ExportDeliveryMailer).to receive(:processing_alert_email).and_raise(StandardError, 'sendgrid caido')
 
-      it 'sin permiso: entrega el export como antes (sin relabellear a fondo), porque nadie se enteraria de la retencion' do
-        allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
-          .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+      expect { described_class.new.perform(zip_path, 'p123456', recipients) }.not_to raise_error
 
-        described_class.new.perform(zip_path, 'p123456', recipients)
+      expect(client_mail).to include(paths: [zip_path], relabeled: false)
+    end
 
-        expect(ExportDeliveryMailer).to have_received(:relabeled_export_email)
-      end
+    it 'si el envio del original al cliente falla, la excepcion sube (Sidekiq reintenta): los datos no se pueden perder en silencio' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+      allow(ExportDeliveryMailer).to receive(:relabeled_export_email).and_raise(StandardError, 'sendgrid caido')
 
-      it 'si el pipeline revienta: manda el zip original sin cambios, marcado como no relabelleado' do
-        allow(ExportRelabeling::ExcelReader).to receive(:call).and_raise(StandardError, 'archivo corrupto')
-        captured = {}
-        allow(ExportDeliveryMailer).to receive(:relabeled_export_email) do |_recipients, _project_id, output_paths, relabeled: true, **|
-          captured[:output_paths] = output_paths
-          captured[:relabeled] = relabeled
-          instance_double(ActionMailer::MessageDelivery, deliver_now: true)
-        end
+      expect { described_class.new.perform(zip_path, 'p123456', recipients) }.to raise_error('sendgrid caido')
+    end
 
-        expect { described_class.new.perform(zip_path, 'p123456', recipients) }.not_to raise_error
+    it 'el original se entrega con el titulo y el filtro de entrevistas, como un envio normal' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
 
-        expect(captured[:output_paths]).to eq([zip_path])
-        expect(captured[:relabeled]).to be false
-      end
+      described_class.new.perform(zip_path, 'p123456', recipients, nil, 'FP-1 Proyecto', 'Complete')
+
+      expect(client_mail).to include(project_title: 'FP-1 Proyecto', interview_status_filter: 'Complete')
+    end
+
+    it 'con todo en orden se entrega el relabelled y no hay aviso de original' do
+      described_class.new.perform(zip_path, 'p123456', recipients)
+
+      expect(client_mail).to include(relabeled: true)
+      expect(client_mail[:paths]).not_to eq([zip_path])
+      expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email).with(anything, anything, hash_including(original_sent: true))
     end
 
     it 'guarda una copia del zip original y la cita en el aviso (para reproducir el reclamo despues)' do
@@ -762,11 +774,17 @@ RSpec.describe RelabelExcelExportWorker do
       expect(lines.join).not_to include('@')
     end
 
-    it 'con todo en orden no retiene nada: el export se entrega' do
-      described_class.new.perform(zip_path, 'p123456', recipients)
+    it 'el log distingue el export entregado sin relabellear' do
+      allow(ExportRelabeling::ConfirmitSchemaFetcher).to receive(:call)
+        .and_raise(ExportRelabeling::ConfirmitSchemaFetcher::PermissionDeniedError, 'Permission denied')
+      worker = described_class.new
+      lines = []
+      allow(worker).to receive(:logger).and_return(instance_double(Logger, info: nil))
+      allow(worker.logger).to receive(:info) { |line| lines << line }
 
-      expect(ExportDeliveryMailer).to have_received(:relabeled_export_email)
-      expect(ExportDeliveryMailer).not_to have_received(:processing_alert_email).with(anything, anything, hash_including(held: true))
+      worker.perform(zip_path, 'p123456', recipients)
+
+      expect(lines.grep(/export entregado SIN relabellear: proyecto=p123456 archivo=test_export\.zip destinatarios=2/)).not_to be_empty
     end
   end
 end
