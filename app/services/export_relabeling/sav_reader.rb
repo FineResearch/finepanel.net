@@ -184,20 +184,24 @@ module ExportRelabeling
       @variables = merged
     end
 
+    # Una cadena muy larga se parte en ceil(ancho / 252) segmentos (no / 255: es la regla del formato),
+    # aunque de cada segmento cuenten hasta 255 bytes de texto. Por eso hay anchos (510, 765, 1020, 2040,
+    # 4080...) con un ultimo segmento que ya no trae texto pero SI existe como variable: si no se consume,
+    # queda como una variable de mas y corre todas las columnas siguientes (el falso desfasaje de p330455179161).
+    VLS_SEGMENT_CHUNK = 252
+
     # [[slots, bytes_utiles], ...] de los segmentos que arrancan en la variable `start`: de cada uno
     # cuentan tantos bytes como su ancho declarado (255, y el resto en el ultimo), hasta completar `width`.
     def collect_segments(start, width)
       remaining = width
       segments = []
-      position = start
-      while remaining.positive?
-        segment = @variables[position]
+      (width.to_f / VLS_SEGMENT_CHUNK).ceil.times do |offset|
+        segment = @variables[start + offset]
         raise UnsupportedFormat, "segmentos de #{@variables[start].name}" if segment.nil? || !segment.string?
 
         useful = [segment.width, remaining].min
         segments << [segment.slots, useful]
         remaining -= useful
-        position += 1
       end
       segments
     end
