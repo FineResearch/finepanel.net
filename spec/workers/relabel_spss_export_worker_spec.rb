@@ -377,6 +377,19 @@ RSpec.describe RelabelSpssExportWorker do
         .with(anything, 'p123456', hash_including(evidence: 'evidence/2026/11/16/p123456/spss_ab12_x.zip'))
     end
 
+    it 'deja una linea de log por export recibido y otra por entregado, con proyecto y archivo pero sin direcciones de mail' do
+      worker = described_class.new
+      lines = []
+      allow(worker).to receive(:logger).and_return(instance_double(Logger, info: nil))
+      allow(worker.logger).to receive(:info) { |line| lines << line }
+
+      worker.perform(zip_path, 'p123456', recipients)
+
+      expect(lines.grep(/export recibido: proyecto=p123456 archivo=test_export\.zip destinatarios=2/)).not_to be_empty
+      expect(lines.grep(/export entregado: proyecto=p123456 destinatarios=2/)).not_to be_empty
+      expect(lines.join).not_to include('@')
+    end
+
     it 'con todo en orden no retiene nada: el export se entrega' do
       described_class.new.perform(zip_path, 'p123456', recipients)
 

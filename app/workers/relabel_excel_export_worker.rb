@@ -79,6 +79,9 @@ class RelabelExcelExportWorker
     # Copia del zip original de Confirmit para poder reproducir un reclamo despues (ver
     # EvidenceStore); de mejor esfuerzo.
     @evidence_key = ExportRelabeling::EvidenceStore.save(zip_path: zip_path, project_id: project_id, export_type: EXPORT_TYPE)
+    # Una linea por export (sin direcciones de mail, solo la cantidad): un export entregado no dejaba
+    # NINGUN rastro y no se podia saber si un mail habia llegado (FP-18915G).
+    logger.info("[#{self.class.name}] export recibido: proyecto=#{alert_project.presence || 'no identificado'} archivo=#{File.basename(zip_path.to_s)} destinatarios=#{Array(recipients).length}")
 
     # Sin schema de Confirmit (permiso, sin ID de proyecto, API caida) el export no
     # se puede re-etiquetar bien: se retiene con un aviso en vez de mandarlo como
@@ -98,6 +101,7 @@ class RelabelExcelExportWorker
       project_title: project_title, interview_status_filter: interview_status_filter,
       quota_lines: quota_lines, delivery_zip_name: delivery_zip_name
     ).deliver_now
+    logger.info("[#{self.class.name}] export entregado: proyecto=#{alert_project.presence || 'no identificado'} destinatarios=#{Array(recipients).length} relabelled=#{relabeled}")
 
     ExportRelabeling::ProcessingAlertNotifier.call(
       recipients: recipients, project_id: alert_project, export_type: EXPORT_TYPE,
