@@ -341,6 +341,25 @@ RSpec.describe RelabelSpssExportWorker do
         expect(File.basename(verified[:data_path])).to eq('data.asc')
         expect(File.basename(verified[:sav_path])).to eq('data_relabeled.sav')
       end
+
+      # PSPP lee mal las columnas > 65535 (ver SpssRecordSplitter): la Lambda compila el DATA LIST partido en
+      # registros con /KEEP, pero la verificacion sigue comparando contra el .sps de UNA linea y el .dat original.
+      it 'si el DATA LIST pasa del limite de PSPP, compila el partido (con /KEEP) y verifica contra el original' do
+        split = ExportRelabeling::SpssRecordSplitter::Result.new("RECORDS=3\nDATA LIST partido", '/tmp/data_split.asc', " /KEEP=\n A B", true)
+        allow(ExportRelabeling::SpssRecordSplitter).to receive(:call).and_return(split)
+        compiled = {}
+        stub_pspp_success { |sps_path, data_path| compiled.merge!(sps: File.read(sps_path), data: data_path) }
+        verified = nil
+        allow(ExportRelabeling::SavVerifier).to receive(:call) { |**args| verified = args }
+
+        described_class.new.perform(zip_path, 'p123456', recipients)
+
+        expect(compiled[:data]).to eq('/tmp/data_split.asc')
+        expect(compiled[:sps]).to include('RECORDS=3', "SAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}' /KEEP=\n A B.")
+        expect(verified[:sps_text]).not_to include('RECORDS=3')
+        expect(File.basename(verified[:data_path])).to eq('data.asc')
+        expect(client_mail).to include(relabeled: true)
+      end
     end
 
     it 'guarda una copia del zip original y la cita en el aviso (para reproducir el reclamo despues)' do

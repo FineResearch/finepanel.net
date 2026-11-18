@@ -270,10 +270,13 @@ class RelabelSpssExportWorker
     # Variables en el orden del cuestionario, igual que el Excel (ver ColumnOrder).
     original = ExportRelabeling::SpssDataListOrder.call(original, lookup)
     rewritten = ExportRelabeling::SpssSyntaxRewriter.call(original, lookup: lookup)
-    rewritten = rewritten.sub(FILE_HANDLE_NAME, file_handle_name_clause(prepared_data.encoding))
+    # PSPP lee mal las columnas > 65535 (ver SpssRecordSplitter): solo la compilacion usa el DATA LIST partido;
+    # la verificacion de abajo sigue comparando contra el .sps de una sola linea y el .dat ORIGINAL.
+    compiled = ExportRelabeling::SpssRecordSplitter.call(sps_text: rewritten, data_path: prepared_data.path)
+    rewritten = compiled.sps_text.sub(FILE_HANDLE_NAME, file_handle_name_clause(prepared_data.encoding))
     rewritten = rewritten.gsub(LIST_COMMAND, '')
     rewritten = MXWARNS_DIRECTIVE + rewritten
-    rewritten += "\nSAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}'.\n"
+    rewritten += "\nSAVE OUTFILE='#{ExportRelabeling::PsppLambdaClient::LAMBDA_SAV_PATH}'#{compiled.keep_clause}.\n"
 
     relabeled_sps_path = sps_path.sub(/\.sps\z/, '_relabeled.sps')
     File.write(relabeled_sps_path, rewritten)
@@ -283,7 +286,7 @@ class RelabelSpssExportWorker
     # el nombre ORIGINAL del archivo que llego, nunca en project_id,
     # agregando "_relabeled" para distinguirlo del original.
     sav_path = sps_path.sub(/\.sps\z/, '_relabeled.sav')
-    ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: prepared_data.path, output_path: sav_path)
+    ExportRelabeling::PsppLambdaClient.compile(sps_path: relabeled_sps_path, data_path: compiled.data_path, output_path: sav_path)
     verify_sav(sav_path, original, data_path)
 
     sav_path
